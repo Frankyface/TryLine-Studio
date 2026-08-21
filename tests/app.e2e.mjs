@@ -311,6 +311,27 @@ if (blockedTone === 'error') {
   process.stdout.write('  note  no blocked state available to test the export guard\n')
 }
 
+// Person-level settings. Retyping a club handle every session was the single
+// most-repeated action in the app.
+await page.fill('#handle', '@testclubrfc')
+await page.selectOption('#theme', 'chalk')
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForFunction(() => document.getElementById('theme').options.length > 0)
+const restoredPrefs = await page.evaluate(() => ({
+  handle: document.getElementById('handle').value,
+  theme: document.getElementById('theme').value,
+}))
+check('handle and theme survive a reload',
+  restoredPrefs.handle === '@testclubrfc' && restoredPrefs.theme === 'chalk',
+  JSON.stringify(restoredPrefs))
+
+await page.check('#accent-auto')
+const accentOff = await page.isDisabled('#accent')
+await page.uncheck('#accent-auto')
+const accentOn = await page.isDisabled('#accent')
+check('the accent picker is disabled only while team colour is on',
+  accentOff && !accentOn, `ticked=${accentOff} unticked=${accentOn}`)
+
 check('no console errors', consoleErrors.length === 0, consoleErrors.join(' | '))
 // A missing crest must not break a render. The "no console errors" check above
 // already proves nothing threw during the whole run, including every render

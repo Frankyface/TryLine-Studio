@@ -11,6 +11,7 @@ import { TIME_ZONES, LOCAL_ZONE, zoneForCompetition, resolveZone } from './data/
 import { buildManualMatch, parseSquadText, parseTableText } from './data/manual.js'
 import { readCrestFile } from './data/crest.js'
 import { loadManualState, saveManualState, clearManualState, PERSISTED_FIELDS } from './data/manual-store.js'
+import { loadPrefs, savePrefs } from './data/prefs.js'
 import { SIZES, THEME_LIST, THEMES } from './render/theme.js'
 import { GRAPHICS, GRAPHIC_BY_ID, renderGraphic } from './render/index.js'
 import { exportOne, exportSet } from './export/png.js'
@@ -588,6 +589,16 @@ function bindEvents() {
   }
 
   // Without this the picker looks live but changes nothing.
+  // The handle and theme are the same on every graphic a club ever makes.
+  const prefs = loadPrefs()
+  if (prefs.handle) $('handle').value = prefs.handle
+  if (prefs.theme && $('theme').querySelector(`option[value="${prefs.theme}"]`)) {
+    $('theme').value = prefs.theme
+    setState({ themeId: prefs.theme })
+  }
+  $('handle').addEventListener('input', () => savePrefs({ handle: $('handle').value }))
+  $('theme').addEventListener('change', () => savePrefs({ theme: $('theme').value }))
+
   const syncAccentEnabled = () => { $('accent').disabled = $('accent-auto').checked }
   $('accent-auto').addEventListener('change', syncAccentEnabled)
   syncAccentEnabled()
@@ -603,7 +614,9 @@ function bindEvents() {
 
   $('m-clear').addEventListener('click', () => {
     clearManualState()
-    for (const id of PERSISTED_FIELDS) { if ($(id)) $(id).value = '' }
+    for (const field of document.querySelectorAll('[data-panel="manual"] input, [data-panel="manual"] textarea')) {
+      if (field.type !== 'file') field.value = ''
+    }
     $('m-home-crest').value = ''
     $('m-away-crest').value = ''
     setState({ crests: { homeCrest: '', awayCrest: '' } })
@@ -638,7 +651,7 @@ async function start() {
     // empty picker - the men's Rugby World Cup is between tournaments.
     const available = catalog.competitions.filter((competition) => competition.matches > 0)
     if (!available.length) {
-      setStatus('No competition data downloaded yet. Run "npm run refresh", or switch to "My own team".', 'error')
+      setStatus('No competition data available. Switch to "My own team" to enter a match yourself.', 'error')
       return
     }
     for (const competition of available) {

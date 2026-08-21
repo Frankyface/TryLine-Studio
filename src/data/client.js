@@ -18,7 +18,7 @@ async function getJson(path) {
 
   const request = fetch(path).then(async (response) => {
     if (response.status === 404) {
-      throw new Error('That data has not been downloaded yet. Run "npm run refresh" to update it.')
+      throw new Error('That data is not available yet.')
     }
     if (!response.ok) throw new Error(`Could not load ${path} (${response.status}).`)
     return response.json()
