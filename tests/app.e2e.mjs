@@ -333,6 +333,20 @@ const accentOn = await page.isDisabled('#accent')
 check('the accent picker is disabled only while team colour is on',
   accentOff && !accentOn, `ticked=${accentOff} unticked=${accentOn}`)
 
+// A club that works from its own team should land on its own team, not have to
+// click through to it every visit.
+await page.click('[data-source="manual"]')
+await page.waitForTimeout(700)
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForTimeout(2500)
+const restoredSource = await page.evaluate(() => ({
+  active: document.querySelector('[data-source].is-active')?.dataset.source,
+  manualVisible: !document.querySelector('[data-panel="manual"]').hidden,
+}))
+check('the chosen source survives a reload',
+  restoredSource.active === 'manual' && restoredSource.manualVisible,
+  JSON.stringify(restoredSource))
+
 // The preview is sticky on desktop and must NOT be on a phone: taller than the
 // viewport, it pins over the whole control rail and every chip, select and
 // button stops responding. This shipped, because the override was written

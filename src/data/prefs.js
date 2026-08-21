@@ -1,8 +1,11 @@
 /**
  * Settings that belong to the person, not to the match.
  *
- * A club's @handle and their chosen theme are the same on every graphic they
- * will ever make, and both were being retyped and re-picked every session.
+ * A club's @handle, their chosen theme and whether they work from a live
+ * competition or their own team are the same every week, and all three were
+ * being set again every session - a club had its squad restored from storage
+ * but still had to click "My own team" to see it.
+ *
  * Kept apart from the manual-entry store because they apply in both sources
  * and must survive "Forget saved details".
  */
@@ -10,7 +13,7 @@
 const STORAGE_KEY = 'tryline-studio:prefs:v1'
 
 /** Only these keys are stored; anything else in the object is dropped. */
-const PREF_KEYS = Object.freeze(['handle', 'theme'])
+const PREF_KEYS = Object.freeze(['handle', 'theme', 'source'])
 
 /**
  * localStorage throws outright in some private-browsing modes, so every access

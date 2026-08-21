@@ -480,26 +480,32 @@ function buildStaticControls() {
   }
 }
 
+/** Switch between the live competition and a club's own entry. */
+function applySource(source) {
+  for (const button of document.querySelectorAll('[data-source]')) {
+    const active = button.dataset.source === source
+    button.classList.toggle('is-active', active)
+    button.setAttribute('aria-selected', String(active))
+  }
+  document.querySelector('[data-panel="live"]').hidden = source !== 'live'
+  document.querySelector('[data-panel="manual"]').hidden = source === 'live'
+
+  if (source === 'manual') {
+    // Drop the live competition's data outright when entering manual mode.
+    setState({ source, table: null, season: null })
+    readManualForm()
+    return
+  }
+  setState({ source })
+  selectMatch()
+  selectTable()
+}
+
 function bindEvents() {
   document.querySelectorAll('[data-source]').forEach((button) => {
     button.addEventListener('click', () => {
-      const source = button.dataset.source
-      document.querySelectorAll('[data-source]').forEach((other) => {
-        const active = other === button
-        other.classList.toggle('is-active', active)
-        other.setAttribute('aria-selected', String(active))
-      })
-      document.querySelector('[data-panel="live"]').hidden = source !== 'live'
-      document.querySelector('[data-panel="manual"]').hidden = source === 'live'
-      if (source === 'manual') {
-        // Drop the live competition's data outright when entering manual mode.
-        setState({ source, table: null, season: null })
-        readManualForm()
-      } else {
-        setState({ source })
-        selectMatch()
-        selectTable()
-      }
+      applySource(button.dataset.source)
+      savePrefs({ source: button.dataset.source })
     })
   })
 
@@ -618,6 +624,11 @@ async function start() {
     }
     $('data-age').textContent = `Data refreshed ${formatMatchDate(catalog.updated, { withYear: true })}`
     await selectCompetition(available[0].id)
+
+    // Restored last, so a club that works from its own team lands on its own
+    // team. The manual fields are already back from storage by this point; the
+    // live path needs the catalog loaded, which is why this is not earlier.
+    if (loadPrefs().source === 'manual') applySource('manual')
   } catch (error) {
     setStatus(`${error.message} Switch to "My own team" to build graphics without downloaded data.`, 'error')
   }

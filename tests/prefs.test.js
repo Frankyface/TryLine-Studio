@@ -66,7 +66,12 @@ describe('savePrefs / loadPrefs', () => {
     expect(savePrefs({ handle: '@a' }).ok).toBe(false)
   })
 
-  it('owns exactly the two person-level settings', () => {
-    expect([...PREF_KEYS].sort()).toEqual(['handle', 'theme'])
+  it('owns exactly the person-level settings', () => {
+    expect([...PREF_KEYS].sort()).toEqual(['handle', 'source', 'theme'])
+  })
+
+  it('remembers which source a club works from', () => {
+    savePrefs({ source: 'manual' })
+    expect(loadPrefs().source).toBe('manual')
   })
 })
