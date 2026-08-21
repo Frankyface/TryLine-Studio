@@ -2,11 +2,50 @@
 
 _Last updated 2026-08-21. **LIVE at https://frankyface.github.io/TryLine-Studio/**_
 
-## State: v1 complete, plus analysis graphics and an accessibility pass
+## State: 9 graphics live, reviewed and audited
 
-Since v1: a computed win-probability chart, 13 competitions (up from 4),
-timezone-correct kick-off times, and every finding from a full visual audit
-fixed. 139 unit tests, 18 end-to-end checks, all green.
+Nine graphics across two Instagram formats from two data sources, deployed to
+GitHub Pages. **311 unit tests, 39 end-to-end checks, all green.**
+
+A code review and a live-production audit both ran against this build. Every
+CRITICAL and HIGH finding is fixed and verified in production; the remaining
+open items are listed below.
+
+### The one that mattered
+
+**The app was unusable on every phone and tablet.** `.stage { position: static }`
+for narrow screens was written *above* `.stage { position: sticky }` in the same
+file - equal specificity, so source order decided and the override silently
+lost. `order: -1` survived, so the preview still appeared first and the layout
+looked right. But a preview taller than the viewport pinned itself to the top
+and painted over the entire control rail: every chip, select and button was
+unclickable at 900px and below. Fixed, verified by hit-test at eight viewports
+and functionally on a 390x664 phone, and now covered by two e2e checks.
+
+### Also fixed this pass
+
+- 13 crest urls were permanently 404 at ESPN and were retried on every page
+  view. Live console errors: 12 -> **0**.
+- 90 fixtures rendered "00:00 KICK OFF" - ESPN's not-yet-announced marker.
+- `blockingReason` decides what draws, what exports and how chips render, and
+  no unit test could reach it. Now `src/render/availability.js`, with a
+  table-driven test over every graphic.
+- Comparison bars are computed as a pair, so a tie reads as a tie. Previously
+  "both missed 5 tackles" drew two full bars and "neither missed any" drew two
+  stubs.
+- Player cards no longer pad to four tiles with zeroes (18% of players).
+- Season data goes through the schema like matches and tables do.
+- Handle, theme and chosen source persist between visits.
+
+### Open, deliberately
+
+- **Nobody has posted one of these to Instagram or eyeballed them on a phone.**
+  That is still the outstanding human acceptance step (`help.md`).
+- Low-severity review items not acted on: `loadImage`/`loadImageOrNull` are
+  exported but only used inside `primitives.js`; `dataFiles()` in
+  `mirror-crests` skips top-level `data/index.json` (no crest there today).
+- Crest plating stays on mean luminance - see `docs/decisions.md` for why the
+  "vanishing pixel share" alternative was measured and rejected.
 
 ## Earlier state: v1 complete and verified
 

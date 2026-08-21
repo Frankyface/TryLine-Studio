@@ -25,6 +25,17 @@ Rugby matchday graphics generator. Read `handoff.md` for current state, then
   curve on 68% of real matches. `npm run stress` runs the label geometry over
   every match in `data/` and is part of `npm run verify`.
 
+## CSS source order is a live trap in this file
+
+`styles/app.css` has no build step and no nesting, so an override and the rule
+it overrides have EQUAL specificity and source order decides. A mobile
+`.stage { position: static }` written above `.stage { position: sticky }`
+silently lost, pinned a viewport-taller preview over the whole control rail,
+and made the app unusable on every phone and tablet - while still looking
+correct, because the `order: -1` in the same block did apply. Any `@media`
+block that overrides a base rule must sit BELOW it. Two e2e checks now
+hit-test the controls at 390px.
+
 ## ESPN quirks already handled (don't rediscover)
 
 - `starter`, `captain`, `active`, `subbedIn`, `subbedOut` are present on every
@@ -48,6 +59,12 @@ Rugby matchday graphics generator. Read `handoff.md` for current state, then
   are only valid in competitions between countries.
 - **Abbreviations are not unique.** Three Top 14 clubs are all "STA". Use
   `uniqueTeamLabels` from `src/render/format.js` for any team label.
+- **13 club crests are permanently 404 at ESPN.** `mirror-crests` blanks the
+  url so the monogram draws with no request; leaving it made the live site
+  retry a failing cross-origin request on every page view.
+- **`T00:00Z` means the kick-off has not been announced**, not midnight. 90 of
+  1,147 matches carry it, 77 of them Top 14. `formatKickoffTime` returns '' for
+  it and the matchday pill collapses.
 - Some ids resolve with a correct name but serve zero events - Women's Six
   Nations (289258) and Currie Cup (270555) are dead. Verify events, not just
   a 200.
