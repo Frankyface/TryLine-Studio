@@ -1,0 +1,27 @@
+{
+  "name": "tryline-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Instagram-ready rugby matchday graphics from live pro data or your own team sheet.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "refresh": "node scripts/fetch-data.mjs && node scripts/repair-data.mjs && node scripts/derive-form.mjs && node scripts/build-season-stats.mjs && node scripts/fit-winprob.mjs",
+    "shots": "node dev/shots.mjs",
+    "e2e": "node tests/app.e2e.mjs",
+    "verify": "vitest run --coverage && node dev/shots.mjs && node dev/stress-labels.mjs && node tests/app.e2e.mjs",
+    "fit": "node scripts/fit-winprob.mjs",
+    "reindex": "node scripts/reindex.mjs",
+    "form": "node scripts/derive-form.mjs",
+    "stress": "node dev/stress-labels.mjs",
+    "seasons": "node scripts/build-season-stats.mjs",
+    "repair": "node scripts/repair-data.mjs"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
+    "playwright": "^1.62.1",
+    "vitest": "^3.2.4"
+  }
+}

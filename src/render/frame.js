@@ -1,0 +1,107 @@
+/**
+ * The chrome every graphic shares: backdrop, top eyebrow, footer credit, and
+ * the content box each layout draws inside.
+ */
+import { STORY_SAFE_TOP, STORY_SAFE_BOTTOM, FONTS, scale } from './theme.js'
+import {
+  drawBackdrop, drawTexture, drawText, drawPill, drawDivider, withAlpha, contrastAccent,
+  measureText, truncateText,
+} from './primitives.js'
+
+/**
+ * The accent a graphic should actually draw with: an explicit override, else the
+ * team colour lifted until it is readable on this theme, else the theme accent.
+ */
+export const resolveAccent = (theme, { accent, team } = {}) =>
+  contrastAccent(accent || team?.color || theme.accent, theme.bg, { fallback: theme.accent })
+
+/**
+ * Usable content box. On story the box is inset from top and bottom so nothing
+ * important sits under Instagram's own UI.
+ */
+export function contentBox(size) {
+  const isStory = size.height > size.width
+  const top = isStory ? STORY_SAFE_TOP : size.pad
+  const bottom = isStory ? size.height - STORY_SAFE_BOTTOM : size.height - size.pad
+  return {
+    left: size.pad,
+    right: size.width - size.pad,
+    top,
+    bottom,
+    width: size.width - size.pad * 2,
+    height: bottom - top,
+    centerX: size.width / 2,
+    centerY: (top + bottom) / 2,
+  }
+}
+
+/** Backdrop plus texture plus the accent hairline down the left edge. */
+export function drawFrame(ctx, size, theme, { accent } = {}) {
+  const tint = accent || theme.accent
+  drawBackdrop(ctx, size, theme, tint)
+  drawTexture(ctx, size, theme)
+  ctx.fillStyle = tint
+  ctx.fillRect(0, 0, scale(size, 10), size.height)
+}
+
+/**
+ * Eyebrow: competition pill on the left, optional round/status on the right.
+ * Returns the y coordinate where content can start.
+ */
+export function drawEyebrow(ctx, size, theme, { label, meta, accent } = {}) {
+  const box = contentBox(size)
+  const height = scale(size, 48)
+  if (label) {
+    drawPill(ctx, label, box.left, box.top, {
+      size: scale(size, 22),
+      height,
+      fill: withAlpha(accent || theme.accent, 0.16),
+      color: accent || theme.accent,
+    })
+  }
+  if (meta) {
+    drawText(ctx, meta, box.right, box.top + height / 2 + 1, {
+      size: scale(size, 22),
+      weight: 600,
+      family: FONTS.body,
+      color: theme.inkMuted,
+      align: 'right',
+      baseline: 'middle',
+      tracking: 3,
+      uppercase: true,
+    })
+  }
+  return box.top + height + scale(size, 34)
+}
+
+/**
+ * Footer: hairline, left credit, right handle.
+ * The right-hand text wins the space; the left is truncated to fit beside it,
+ * because a long venue name or column legend would otherwise run underneath it.
+ */
+export function drawFooter(ctx, size, theme, { left, right } = {}) {
+  const box = contentBox(size)
+  const y = box.bottom - scale(size, 34)
+  drawDivider(ctx, box.left, y - scale(size, 26), box.width, withAlpha(theme.line, 0.9), 2)
+
+  const rightOptions = {
+    size: scale(size, 20), weight: 700, family: FONTS.body, tracking: 2, uppercase: true,
+  }
+  const rightWidth = right ? measureText(ctx, right, rightOptions) : 0
+
+  if (left) {
+    const leftOptions = {
+      size: scale(size, 20), weight: 600, family: FONTS.body, tracking: 2, uppercase: true,
+    }
+    const available = box.width - rightWidth - scale(size, 40)
+    drawText(ctx, truncateText(ctx, left, available, leftOptions), box.left, y + scale(size, 8), {
+      ...leftOptions, color: theme.inkFaint,
+    })
+  }
+  if (right) {
+    drawText(ctx, right, box.right, y + scale(size, 8), {
+      ...rightOptions, color: theme.inkMuted, align: 'right',
+    })
+  }
+  return y - scale(size, 40)
+}

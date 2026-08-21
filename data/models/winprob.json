@@ -1,0 +1,75 @@
+{
+  "k": 0.9200013338611758,
+  "h": 0.8119481147959942,
+  "source": "fitted",
+  "fittedAt": "2026-08-21T20:01:18.999Z",
+  "matches": 658,
+  "skippedIncomplete": 125,
+  "samples": 53298,
+  "quality": {
+    "logLoss": 0.4289809335179588,
+    "accuracy": 0.7898190949038406,
+    "calibration": [
+      {
+        "band": "0-10%",
+        "count": 3888,
+        "predicted": 0.031,
+        "actual": 0.052
+      },
+      {
+        "band": "10-20%",
+        "count": 1804,
+        "predicted": 0.15,
+        "actual": 0.173
+      },
+      {
+        "band": "20-30%",
+        "count": 1919,
+        "predicted": 0.253,
+        "actual": 0.275
+      },
+      {
+        "band": "30-40%",
+        "count": 2074,
+        "predicted": 0.352,
+        "actual": 0.377
+      },
+      {
+        "band": "40-50%",
+        "count": 3237,
+        "predicted": 0.455,
+        "actual": 0.462
+      },
+      {
+        "band": "50-60%",
+        "count": 4297,
+        "predicted": 0.55,
+        "actual": 0.532
+      },
+      {
+        "band": "60-70%",
+        "count": 10100,
+        "predicted": 0.666,
+        "actual": 0.661
+      },
+      {
+        "band": "70-80%",
+        "count": 5029,
+        "predicted": 0.75,
+        "actual": 0.761
+      },
+      {
+        "band": "80-90%",
+        "count": 7541,
+        "predicted": 0.842,
+        "actual": 0.846
+      },
+      {
+        "band": "90-100%",
+        "count": 13409,
+        "predicted": 0.97,
+        "actual": 0.978
+      }
+    ]
+  }
+}

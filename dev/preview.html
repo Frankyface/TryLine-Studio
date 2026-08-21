@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TryLine Studio - render harness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 24px; background: #16181d; color: #e7ecf4; font: 14px/1.4 system-ui, sans-serif; }
+    h1 { font-size: 16px; letter-spacing: .12em; text-transform: uppercase; color: #8fa0bb; }
+    .row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    figure { margin: 0; }
+    figcaption { padding: 8px 0; color: #8fa0bb; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+    canvas { width: 380px; height: auto; border-radius: 8px; display: block; background: #000; }
+    #status { padding: 8px 0 16px; color: #ffb4b4; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Render harness</h1>
+  <div id="status">Rendering...</div>
+  <div class="row" id="out"></div>
+
+  <script type="module">
+    import { renderGraphic, GRAPHICS } from '../src/render/index.js'
+    import { adaptSummary, adaptStandings } from '../src/data/espn.js'
+    import { createTable } from '../src/data/schema.js'
+    import { SIZES, THEMES } from '../src/render/theme.js'
+
+    const status = document.getElementById('status')
+    const out = document.getElementById('out')
+    const params = new URLSearchParams(location.search)
+    const only = params.get('only')
+    const themeName = params.get('theme') || 'midnight'
+
+    const load = (path) => fetch(path).then((r) => r.json())
+
+    try {
+      await document.fonts.load('700 100px "Barlow Condensed"')
+      await document.fonts.load('600 40px "Inter"')
+      await document.fonts.ready
+
+      const [summary, standings, model, comeback, contrast, season] = await Promise.all([
+        load('../tests/fixtures/espn-summary-fra-ire-2026.json'),
+        load('../data/267979/table-2026.json').catch(() => load('../tests/fixtures/espn-standings-urc-2026.json')),
+        load('../data/models/winprob.json').catch(() => null),
+        load('../tests/fixtures/match-comeback.json').catch(() => null),
+        load('../tests/fixtures/match-contrast.json').catch(() => null),
+        load('../data/270559/season-2026.json').catch(() => null),
+      ])
+      const match = adaptSummary(summary)
+      // data/ files are already normalised; the fixture is raw ESPN.
+      const table = standings.rows
+        ? createTable(standings)
+        : adaptStandings(standings, { season: 2026 })
+      const theme = THEMES[themeName]
+
+      // The comparison card has two modes; both need to be in the shot set,
+      // or one of them never gets looked at.
+      const wanted = (only ? GRAPHICS.filter((g) => g.meta.id === only) : GRAPHICS)
+        .flatMap((graphic) => (graphic.meta.id === 'comparison'
+          ? [{ graphic, mode: 'teams' }, { graphic, mode: 'players', suffix: '-players' }]
+          : [{ graphic }]))
+
+      for (const { graphic, mode, suffix = '' } of wanted) {
+        for (const size of Object.values(SIZES)) {
+          const figure = document.createElement('figure')
+          const caption = document.createElement('figcaption')
+          caption.textContent = `${graphic.meta.id}${suffix} / ${size.id}`
+          const canvas = document.createElement('canvas')
+          canvas.id = `${graphic.meta.id}${suffix}-${size.id}`
+          figure.append(canvas, caption)
+          out.append(figure)
+          // Each analysis graphic gets the match that actually shows it off:
+          // a comeback for the curve, a lopsided stat profile for the card.
+          let subject = match
+          if (graphic.meta.id === 'winprob' && comeback) subject = comeback
+          if (graphic.meta.id === 'comparison' && contrast) subject = contrast
+          await renderGraphic(canvas, graphic.meta.id, {
+            match: subject, table, season, size, theme,
+            options: {
+              mode,
+              player: subject.home.squad?.[9] || match.home.squad[9],
+              playerB: subject.away.squad?.[9] || match.away.squad[9],
+              model,
+            },
+          })
+        }
+      }
+      status.textContent = `OK - ${wanted.length} graphics rendered`
+      status.style.color = '#7ee2a8'
+      document.body.dataset.renderState = 'done'
+    } catch (error) {
+      status.textContent = `FAILED: ${error.message}\n${error.stack || ''}`
+      document.body.dataset.renderState = 'error'
+    }
+  </script>
+</body>
+</html>

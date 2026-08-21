@@ -1,0 +1,360 @@
+/* TryLine Studio - control room styling.
+   Deliberately close to the graphics themselves: condensed display type,
+   dark field, one live accent. */
+
+:root {
+  --bg: #0a0e16;
+  --bg-raised: #121826;
+  --bg-sunken: #070a11;
+  --line: #202b41;
+  --ink: #f2f6fc;
+  --ink-muted: #8b9cba;
+  --ink-faint: #5a6b8a;
+  --accent: #25d07a;
+  --accent-ink: #04180d;
+  --danger: #ff6b7d;
+
+  --radius: 12px;
+  --radius-lg: 18px;
+  --pad: 20px;
+
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Flex display on .field would otherwise beat the hidden attribute. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(37, 208, 122, 0.09), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 22px clamp(16px, 3vw, 40px) 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark { display: flex; align-items: center; gap: 12px; }
+
+.wordmark__mark {
+  width: 8px;
+  height: 34px;
+  border-radius: 99px;
+  background: linear-gradient(180deg, var(--accent), #0f8a4d);
+}
+
+.masthead h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.masthead h1 em { font-style: normal; color: var(--ink-muted); font-weight: 500; }
+
+.masthead__tag {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ---------- shell ---------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 32px);
+  padding: clamp(16px, 2.4vw, 32px) clamp(16px, 3vw, 40px) 40px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+
+  /* On a phone the preview must come first. Below the controls it sits a full
+     screen down, so you would be adjusting a graphic you cannot see. */
+  .stage {
+    position: static;
+    order: -1;
+  }
+}
+
+.rail { display: flex; flex-direction: column; gap: 16px; }
+
+.panel {
+  background: linear-gradient(180deg, var(--bg-raised), rgba(18, 24, 38, 0.6));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--pad);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel__title {
+  margin: 0 0 2px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- controls ---------- */
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.segmented__button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-weight: 600;
+  padding: 9px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.segmented__button:hover { color: var(--ink); background: rgba(255, 255, 255, 0.04); }
+
+.segmented__button.is-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field--narrow { max-width: 92px; }
+.field-row { display: flex; gap: 10px; align-items: flex-end; }
+.field-row > .field { flex: 1; }
+
+.field__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.field__label em {
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--ink-faint);
+  opacity: 0.75;
+}
+
+.field--check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 9px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+input, select, textarea {
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 11px;
+  width: 100%;
+  min-width: 0;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+textarea { resize: vertical; font-size: 13px; line-height: 1.45; }
+
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 208, 122, 0.22);
+}
+
+input[type="color"] { padding: 4px; height: 38px; cursor: pointer; }
+
+input[type="file"] {
+  padding: 7px 9px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+
+input[type="file"]::file-selector-button {
+  font: inherit;
+  font-weight: 600;
+  margin-right: 10px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button:hover { background: rgba(255, 255, 255, 0.1); }
+input[type="checkbox"] { width: auto; accent-color: var(--accent); }
+select:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.button {
+  appearance: none;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 11px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  transition: transform 120ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.button:hover { background: rgba(255, 255, 255, 0.07); border-color: #2d3d5c; }
+.button:active { transform: translateY(1px); }
+
+.button--primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+
+.button--primary:hover { background: #34e089; }
+.button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.button-row { display: flex; gap: 8px; }
+.button-row .button { flex: 1; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chip {
+  appearance: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-sunken);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.chip:hover { color: var(--ink); border-color: #2d3d5c; }
+
+.chip.is-active {
+  background: rgba(37, 208, 122, 0.16);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hint { margin: 2px 0 0; color: var(--ink-faint); font-size: 12px; }
+
+/* ---------- stage ---------- */
+
+.stage {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.status {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.status[data-tone="error"] { color: var(--danger); border-color: rgba(255, 107, 125, 0.4); }
+.status[data-tone="ok"] { color: var(--accent); border-color: rgba(37, 208, 122, 0.35); }
+
+.previews {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.preview { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+
+.preview canvas {
+  width: min(420px, 44vw);
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #000;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  display: block;
+}
+
+.preview--story canvas { width: min(260px, 30vw); }
+
+.preview figcaption {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.colophon {
+  padding: 0 clamp(16px, 3vw, 40px) 36px;
+  color: var(--ink-faint);
+  font-size: 12px;
+  max-width: 78ch;
+}
+
+.colophon p { margin: 0; }
+
+/* Phone sizing lives here, after the base .preview rules it overrides -
+   equal specificity means source order decides. Side by side at phone width
+   left the feed preview at 172px, too small to judge a graphic by. */
+@media (max-width: 900px) {
+  .previews {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .preview canvas { width: min(420px, 86vw); }
+  .preview--story canvas { width: min(300px, 58vw); }
+}

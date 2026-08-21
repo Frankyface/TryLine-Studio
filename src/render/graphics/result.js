@@ -1,0 +1,174 @@
+/**
+ * Full-time / live score graphic.
+ * Crest, score, crest across the middle; try and goal scorers underneath.
+ */
+import { MATCH_STATUS } from '../../data/schema.js'
+import { FONTS, scale } from '../theme.js'
+import {
+  drawText, drawCrest, loadImageOrNull, fitTextSize, truncateText,
+  withAlpha, fillRoundRect, drawPill, crestFallback,
+} from '../primitives.js'
+import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
+import {
+  formatMatchDate, formatKickoffTime, summariseScorers, timelineMark,
+  cardEvents, formatAttendance,
+} from '../format.js'
+
+export const meta = Object.freeze({
+  id: 'result',
+  label: 'Result',
+  description: 'Final or live score with the scorers.',
+  needs: 'match',
+  requiresSquad: false,
+})
+
+const statusLabel = (match) => {
+  if (match.status === MATCH_STATUS.FINAL) return 'Full time'
+  if (match.status === MATCH_STATUS.LIVE) return match.statusDetail || 'Live'
+  return 'Kick off'
+}
+
+function drawScorerColumn(ctx, size, theme, { x, y, width, align, timeline, side, maxRows }) {
+  const lineHeight = scale(size, 34)
+  const rows = summariseScorers(timeline, side).slice(0, maxRows)
+  let cursor = y
+
+  for (const row of rows) {
+    const minutes = row.minutes.length ? ` ${row.minutes.join(', ')}` : ''
+    const text = truncateText(ctx, `${row.name}${minutes}`, width, {
+      size: scale(size, 25), family: FONTS.body, weight: 500,
+    })
+    // Every scorer reads the same. Greying the goal-kickers looked like a
+    // rendering fault, since nothing on the graphic explained the difference.
+    drawText(ctx, text, x, cursor, {
+      size: scale(size, 25),
+      weight: 500,
+      family: FONTS.body,
+      color: theme.ink,
+      align,
+      baseline: 'top',
+    })
+    cursor += lineHeight
+  }
+  return cursor
+}
+
+export async function draw(ctx, { match, size, theme, options = {} }) {
+  const tz = { timeZone: options.timeZone }
+  const accent = resolveAccent(theme, { accent: options.accent })
+  const box = contentBox(size)
+  const isStory = size.height > size.width
+
+  drawFrame(ctx, size, theme, { accent })
+  const top = drawEyebrow(ctx, size, theme, {
+    label: match.competition.name || 'Rugby',
+    meta: match.round || match.season.display || formatMatchDate(match.kickoff, tz),
+    accent,
+  })
+
+  const [homeCrest, awayCrest] = await Promise.all([
+    loadImageOrNull(match.home.logo),
+    loadImageOrNull(match.away.logo),
+  ])
+
+  // Status pill, centred above the score.
+  const pillY = top + scale(size, isStory ? 40 : 8)
+  drawPill(ctx, statusLabel(match), box.centerX, pillY, {
+    size: scale(size, 21),
+    height: scale(size, 44),
+    align: 'center',
+    fill: match.status === MATCH_STATUS.LIVE ? withAlpha('#E5344A', 0.9) : withAlpha(theme.ink, 0.08),
+    color: match.status === MATCH_STATUS.LIVE ? '#FFFFFF' : theme.inkMuted,
+  })
+
+  const crestBox = scale(size, isStory ? 250 : 210)
+  const crestY = pillY + scale(size, 60) + crestBox / 2
+  const crestOffset = scale(size, isStory ? 320 : 348)
+
+  drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, crestBox, {
+    ...crestFallback(theme, match.home.color || accent, match.home.abbreviation),
+  })
+  drawCrest(ctx, awayCrest, box.centerX + crestOffset, crestY, crestBox, {
+    ...crestFallback(theme, match.away.color || accent, match.away.abbreviation),
+  })
+
+  // Score, or the kick-off time when the match has not been played.
+  const played = match.home.score !== null && match.away.score !== null
+  const scoreText = played
+    ? `${match.home.score}-${match.away.score}`
+    : options.timeText || formatKickoffTime(match.kickoff, tz) || 'v'
+  const scoreSize = fitTextSize(ctx, scoreText, crestOffset * 2 - crestBox - scale(size, 40), {
+    max: scale(size, played ? 150 : 110), min: scale(size, 48), weight: 700,
+  })
+  drawText(ctx, scoreText, box.centerX, crestY + scoreSize * 0.36, {
+    size: scoreSize, weight: 700, color: theme.ink, align: 'center',
+  })
+
+  // Team names, sized down individually so a long club name never overflows.
+  const nameY = crestY + crestBox / 2 + scale(size, 62)
+  const nameWidth = scale(size, 400)
+  for (const [side, x, align] of [['home', box.left, 'left'], ['away', box.right, 'right']]) {
+    const team = match[side]
+    const nameSize = fitTextSize(ctx, team.name, nameWidth, {
+      max: scale(size, 52), min: scale(size, 26), weight: 700, uppercase: true,
+    })
+    drawText(ctx, team.name, x, nameY, {
+      size: nameSize, weight: 700, color: theme.ink, align, uppercase: true, tracking: 1,
+    })
+    if (team.isWinner && played) {
+      fillRoundRect(ctx, align === 'left' ? x : x - scale(size, 64), nameY + scale(size, 16),
+        scale(size, 64), scale(size, 6), 999, accent)
+    }
+  }
+
+  // Scorers, one column per side, centred in whatever space is left so the
+  // graphic does not end with a band of dead canvas above the footer.
+  const lineHeight = scale(size, 34)
+  const cards = played ? cardEvents(match.timeline) : []
+  const blockBottom = box.bottom - scale(size, cards.length ? 150 : 110)
+  const blockTop = nameY + scale(size, 54)
+  const rowsNeeded = Math.max(
+    summariseScorers(match.timeline, 'home').length,
+    summariseScorers(match.timeline, 'away').length,
+  )
+  const maxRows = Math.max(2, Math.floor((blockBottom - blockTop) / lineHeight))
+  const blockHeight = Math.min(rowsNeeded, maxRows) * lineHeight
+  // Centring inside the story format's tall band leaves dead canvas above AND
+  // below, so story top-aligns and only feed centres.
+  const scorersTop = isStory
+    ? blockTop
+    : blockTop + Math.max(0, (blockBottom - blockTop - blockHeight) / 2)
+
+  if (played && match.timeline.length) {
+    drawText(ctx, 'Scorers', box.centerX, scorersTop - scale(size, 26), {
+      size: scale(size, 19), weight: 700, family: FONTS.body,
+      color: theme.inkFaint, align: 'center', tracking: 4, uppercase: true,
+    })
+    const columnWidth = scale(size, 420)
+    drawScorerColumn(ctx, size, theme, {
+      x: box.left, y: scorersTop, width: columnWidth, align: 'left',
+      timeline: match.timeline, side: 'home', maxRows,
+    })
+    drawScorerColumn(ctx, size, theme, {
+      x: box.right, y: scorersTop, width: columnWidth, align: 'right',
+      timeline: match.timeline, side: 'away', maxRows,
+    })
+
+    if (cards.length) {
+      const summary = cards
+        .map((c) => `${timelineMark(c.type)} ${c.player.shortName || c.player.name} ${c.minute ?? ''}`.trim())
+        .join('   ')
+      drawText(ctx, summary, box.centerX, box.bottom - scale(size, 118), {
+        size: scale(size, 20), weight: 600, family: FONTS.body,
+        color: theme.inkFaint, align: 'center', uppercase: true, tracking: 1,
+      })
+    }
+  }
+
+  const venueParts = [match.venue.name, formatMatchDate(match.kickoff, tz)].filter(Boolean)
+  const attendance = formatAttendance(match.venue.attendance)
+  drawFooter(ctx, size, theme, {
+    left: venueParts.join('  -  '),
+    right: attendance ? `${attendance} in` : match.season.display || '',
+  })
+}

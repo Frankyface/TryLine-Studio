@@ -1,0 +1,14 @@
+node_modules/
+dev/shots/
+dev/app-shots/
+dev/downloads/
+dev/sweep/
+dev/audit*/
+dev/app-mobile.png
+coverage/
+.DS_Store
+Thumbs.db
+
+# Never commit secrets, even though the app has none today
+.env
+.env.*

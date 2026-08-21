@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TryLine Studio - rugby matchday graphics</title>
+  <meta name="description" content="Instagram-ready rugby graphics from live competition data or your own team sheet.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="wordmark">
+      <span class="wordmark__mark" aria-hidden="true"></span>
+      <h1>TryLine <em>Studio</em></h1>
+    </div>
+    <p class="masthead__tag">Matchday graphics, Instagram ready</p>
+  </header>
+
+  <main class="shell">
+    <aside class="rail" aria-label="Graphic controls">
+      <section class="panel">
+        <h2 class="panel__title">1 &middot; Source</h2>
+        <div class="segmented" role="tablist" aria-label="Data source">
+          <button type="button" role="tab" class="segmented__button is-active" data-source="live" aria-selected="true">Live competition</button>
+          <button type="button" role="tab" class="segmented__button" data-source="manual" aria-selected="false">My own team</button>
+        </div>
+
+        <div data-panel="live">
+          <label class="field">
+            <span class="field__label">Competition</span>
+            <select id="competition"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Filter <em>team name</em></span>
+            <input type="search" id="match-filter" placeholder="Leinster">
+          </label>
+          <label class="field field--check">
+            <input type="checkbox" id="only-squads">
+            <span>Only matches with squads</span>
+          </label>
+          <label class="field field--check">
+            <input type="checkbox" id="only-stats">
+            <span>Only matches with player stats</span>
+          </label>
+          <label class="field">
+            <span class="field__label">Match</span>
+            <select id="match" size="8"></select>
+          </label>
+          <p class="hint">* = team sheets available. Player stats exist for internationals only.</p>
+          <label class="field">
+            <span class="field__label">Season</span>
+            <select id="season"></select>
+          </label>
+          <label class="field">
+            <span class="field__label">Kick-off shown in</span>
+            <select id="timezone"></select>
+          </label>
+          <p class="hint" id="data-age"></p>
+        </div>
+
+        <div data-panel="manual" hidden>
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Competition</span>
+              <input type="text" id="m-competition" placeholder="Saturday League">
+            </label>
+            <label class="field">
+              <span class="field__label">Round</span>
+              <input type="text" id="m-round" placeholder="Round 4">
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Home team</span>
+              <input type="text" id="m-home" placeholder="Your club">
+            </label>
+            <label class="field field--narrow">
+              <span class="field__label">Score</span>
+              <input type="number" id="m-home-score" placeholder="">
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Away team</span>
+              <input type="text" id="m-away" placeholder="Opposition">
+            </label>
+            <label class="field field--narrow">
+              <span class="field__label">Score</span>
+              <input type="number" id="m-away-score" placeholder="">
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Home crest</span>
+              <input type="file" id="m-home-crest" accept="image/*">
+            </label>
+            <label class="field">
+              <span class="field__label">Away crest</span>
+              <input type="file" id="m-away-crest" accept="image/*">
+            </label>
+          </div>
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Venue</span>
+              <input type="text" id="m-venue" placeholder="Home ground">
+            </label>
+            <label class="field">
+              <span class="field__label">Kick off</span>
+              <input type="datetime-local" id="m-kickoff">
+            </label>
+          </div>
+          <label class="field">
+            <span class="field__label">Home squad <em>one name per line, 1-23</em></span>
+            <textarea id="m-home-squad" rows="4" placeholder="1 Jonny Smith&#10;2 Alex Jones (c)&#10;3 Sam Taylor"></textarea>
+          </label>
+          <label class="field">
+            <span class="field__label">Away squad</span>
+            <textarea id="m-away-squad" rows="3" placeholder="1 Chris Brown"></textarea>
+          </label>
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Home try scorers</span>
+              <input type="text" id="m-home-tries" placeholder="Smith 12, Jones 40">
+            </label>
+            <label class="field">
+              <span class="field__label">Away try scorers</span>
+              <input type="text" id="m-away-tries" placeholder="Brown 55">
+            </label>
+          </div>
+          <label class="field">
+            <span class="field__label">League table <em>Team, P, W, D, L, PF, PA, BP, PTS</em></span>
+            <textarea id="m-table" rows="3" placeholder="Your Club, 8, 7, 0, 1, 245, 96, 5, 33"></textarea>
+          </label>
+          <p class="hint" id="manual-note">Your club details stay in this browser and are remembered next time.</p>
+          <button type="button" class="button button--ghost" id="m-clear">Forget saved details</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">2 &middot; Graphic</h2>
+        <div class="chips" id="graphics" role="group" aria-label="Graphic type"></div>
+
+        <label class="field" data-option="side">
+          <span class="field__label">Team</span>
+          <select id="side">
+            <option value="home">Home</option>
+            <option value="away">Away</option>
+          </select>
+        </label>
+        <label class="field" data-option="mode" hidden>
+          <span class="field__label">Compare</span>
+          <select id="mode">
+            <option value="teams">Team v team</option>
+            <option value="players">Player v player</option>
+          </select>
+        </label>
+        <label class="field" data-option="player" hidden>
+          <span class="field__label">Player</span>
+          <select id="player"></select>
+        </label>
+        <label class="field" data-option="player-b" hidden>
+          <span class="field__label">Against</span>
+          <select id="player-b"></select>
+        </label>
+        <label class="field">
+          <span class="field__label">Theme</span>
+          <select id="theme"></select>
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">Accent</span>
+            <input type="color" id="accent" value="#25D07A">
+          </label>
+          <label class="field field--check">
+            <input type="checkbox" id="accent-auto" checked>
+            <span>Use team colour</span>
+          </label>
+        </div>
+        <label class="field">
+          <span class="field__label">Handle / credit</span>
+          <input type="text" id="handle" placeholder="@yourclub">
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span class="field__label">Date text</span>
+            <input type="text" id="date-text" placeholder="auto">
+          </label>
+          <label class="field">
+            <span class="field__label">Kick-off text</span>
+            <input type="text" id="time-text" placeholder="auto">
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">3 &middot; Export</h2>
+        <button type="button" class="button button--primary" id="export-set">Download Instagram set</button>
+        <div class="button-row">
+          <button type="button" class="button button--ghost" data-export="feed">Feed only</button>
+          <button type="button" class="button button--ghost" data-export="story">Story only</button>
+        </div>
+        <p class="hint">Feed 1080&times;1080 and story 1080&times;1920 PNGs, saved straight to your downloads.</p>
+      </section>
+    </aside>
+
+    <section class="stage" aria-label="Preview">
+      <p class="status" id="status" role="status">Loading fixtures&hellip;</p>
+      <div class="previews">
+        <figure class="preview">
+          <canvas id="canvas-feed" width="1080" height="1080"></canvas>
+          <figcaption>Feed &middot; 1080 &times; 1080</figcaption>
+        </figure>
+        <figure class="preview preview--story">
+          <canvas id="canvas-story" width="1080" height="1920"></canvas>
+          <figcaption>Story &middot; 1080 &times; 1920</figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <p>Live data via ESPN's public rugby endpoints - unofficial, and best kept to club and personal use. Nothing is uploaded; every graphic is drawn in your browser.</p>
+  </footer>
+
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
