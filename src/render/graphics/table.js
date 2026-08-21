@@ -4,7 +4,7 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, truncateText, withAlpha, fillRoundRect, drawDivider, crestFallback,
+  drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider, crestFallback,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formLetters } from '../format.js'
@@ -95,7 +95,7 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
   const rowHeight = (listBottom - listTop) / rows.length
   const crestBox = Math.min(scale(size, 40), rowHeight * 0.68)
 
-  const crests = await Promise.all(rows.map((row) => loadImageOrNull(row.team.logo)))
+  const crests = await Promise.all(rows.map((row) => loadCrestImage(row.team.logo, scale(size, 40))))
 
   rows.forEach((row, index) => {
     const y = listTop + index * rowHeight

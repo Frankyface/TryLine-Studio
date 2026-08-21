@@ -6,7 +6,7 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, fitTextSize, withAlpha, drawPill, crestFallback,
+  drawText, drawCrest, loadCrestImage, fitTextSize, withAlpha, drawPill, crestFallback,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate, formatKickoffTime } from '../format.js'
@@ -33,8 +33,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   })
 
   const [homeCrest, awayCrest] = await Promise.all([
-    loadImageOrNull(match.home.logo),
-    loadImageOrNull(match.away.logo),
+    loadCrestImage(match.home.logo, scale(size, 300)),
+    loadCrestImage(match.away.logo, scale(size, 300)),
   ])
 
   const headline = options.headline || 'Matchday'

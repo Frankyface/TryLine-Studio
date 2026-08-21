@@ -172,10 +172,17 @@ function barShare(value, other) {
   return value / largest
 }
 
-/** Bar for a side, floored so a real number is never drawn as nothing. */
-function visibleBar(value, share) {
+/**
+ * Bar for a side, floored so a real number is never drawn as nothing.
+ *
+ * The zero case depends on direction. On a normal row, zero tries genuinely
+ * means no bar. On a "fewer is better" row zero is the BEST possible score, so
+ * treating it as nothing left the winner blank next to the loser's stub -
+ * and 42% of players record zero missed tackles, a default row.
+ */
+function visibleBar(value, share, betterWhen) {
   if (value === null || value === undefined) return 0
-  if (value === 0) return 0
+  if (value === 0 && betterWhen !== BETTER.LOWER) return 0
   return Math.max(MIN_VISIBLE_BAR, share)
 }
 
@@ -213,9 +220,9 @@ export function buildComparison(leftStats, rightStats, keys) {
       // full bar and 11 as a stub read as an emphatic win for the side that
       // actually lost it. The values themselves are printed unchanged.
       leftBar: visibleBar(left, definition.betterWhen === BETTER.LOWER
-        ? barShare(right, left) : barShare(left, right)),
+        ? barShare(right, left) : barShare(left, right), definition.betterWhen),
       rightBar: visibleBar(right, definition.betterWhen === BETTER.LOWER
-        ? barShare(left, right) : barShare(right, left)),
+        ? barShare(left, right) : barShare(right, left), definition.betterWhen),
       leader: leaderOf(left, right, definition.betterWhen),
     }
   })

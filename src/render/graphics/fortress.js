@@ -8,7 +8,7 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, withAlpha, fillRoundRect, truncateText, crestFallback,
+  drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, truncateText, crestFallback,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { canPlotFortress, fortressRows, fortressHighlights, formatRate } from '../../analysis/fortress.js'
@@ -122,7 +122,7 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     ctx.restore()
   }
 
-  const crests = await Promise.all(rows.map((row) => loadImageOrNull(row.team.logo)))
+  const crests = await Promise.all(rows.map((row) => loadCrestImage(row.team.logo, scale(size, 36))))
   const crestBox = Math.min(scale(size, 36), rowHeight * 0.72)
   const valueSize = Math.min(scale(size, 22), rowHeight * 0.42)
 
@@ -192,7 +192,11 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     ? ''
     : `home sides win ${formatRate(highlights.leagueHomeWinRate)}`
   drawFooter(ctx, size, theme, {
-    left: [`${season.matches} matches`, leagueRate, 'gap in points'].filter(Boolean).join('  -  '),
+    left: [
+      rows.length < (season.teams?.length ?? 0) ? `top ${rows.length} of ${season.teams.length}` : `${season.matches} matches`,
+      leagueRate,
+      'gap in points',
+    ].filter(Boolean).join('  -  '),
     right: options.handle || season.competition.abbreviation || '',
   })
 }

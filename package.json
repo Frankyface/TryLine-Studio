@@ -8,7 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "refresh": "node scripts/fetch-data.mjs && node scripts/repair-data.mjs && node scripts/derive-form.mjs && node scripts/build-season-stats.mjs && node scripts/fit-winprob.mjs",
+    "refresh": "node scripts/fetch-data.mjs && node scripts/repair-data.mjs && node scripts/mirror-crests.mjs && node scripts/derive-form.mjs && node scripts/build-season-stats.mjs && node scripts/fit-winprob.mjs",
     "shots": "node dev/shots.mjs",
     "e2e": "node tests/app.e2e.mjs",
     "verify": "vitest run --coverage && node dev/shots.mjs && node dev/stress-labels.mjs && node tests/app.e2e.mjs",
@@ -17,7 +17,8 @@
     "form": "node scripts/derive-form.mjs",
     "stress": "node dev/stress-labels.mjs",
     "seasons": "node scripts/build-season-stats.mjs",
-    "repair": "node scripts/repair-data.mjs"
+    "repair": "node scripts/repair-data.mjs",
+    "crests": "node scripts/mirror-crests.mjs"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.2.4",

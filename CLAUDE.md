@@ -14,6 +14,10 @@ Rugby matchday graphics generator. Read `handoff.md` for current state, then
   `src/data/schema.js`. Graphics never branch on where data came from.
 - **Verify visually.** A graphic that renders without throwing is not a graphic
   that looks right. Run `npm run shots` and actually look at the PNGs.
+- **Crests are mirrored locally, at two sizes.** ESPN's 500x500 originals were
+  78% of a session's transfer and 597 KB to open one league table whose crests
+  draw at 40px; mirrored, that table costs 28 KB. Use `loadCrestImage(logo, px)`
+  and pass the size you actually draw at.
 - **A real number must never draw as nothing.** A proportional bar can collapse
   to zero width; floor it. This shipped on 565 rows of a default card.
 - **Never judge a chart by one fixture.** The demo match in `dev/preview.html`
@@ -101,6 +105,7 @@ leaves the season files stale.
 | `npm run form` | Recompute form from match results; blank where unverifiable |
 | `npm run seasons` | Build per-team home/away records for the season charts |
 | `npm run repair` | Fix known data faults in files already on disk |
+| `npm run crests` | Mirror and downscale team crests into assets/crests |
 | `npm run fit` | Refit the win-probability model |
 | `npm run shots` | Render every graphic to `dev/shots/` |
 | `npm run e2e` | Drive the real app in Chromium |

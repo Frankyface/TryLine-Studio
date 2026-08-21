@@ -11,7 +11,7 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, truncateText, withAlpha, fillRoundRect, crestFallback,
+  drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, crestFallback,
   luminance,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
@@ -66,15 +66,23 @@ function drawRow(ctx, size, theme, { row, y, height, box, colours }) {
   // of that row - except where lower is better, which the leader flag handles.
   const leftWidth = zoneWidth * row.leftBar
   const rightWidth = zoneWidth * row.rightBar
-  // The losing bar must still read. At 22% a light-theme bar disappeared into
-  // the row band entirely, so a real value looked like a rendering failure.
-  const loserAlpha = luminance(theme.bg) > 0.5 ? 0.45 : 0.24
-  const dim = (colour, isLeader) => withAlpha(colour, isLeader ? 0.95 : loserAlpha)
+  // The losing bar must still read. Fading toward the page works on a dark
+  // theme but not a light one - a 45% yellow measured 1.14:1 against its own
+  // row band. On light themes the loser keeps full opacity and is distinguished
+  // by height instead.
+  const isLightTheme = luminance(theme.bg) > 0.5
+  const dim = (colour, isLeader) => withAlpha(colour, isLeader || isLightTheme ? 0.95 : 0.24)
+  const barScale = (isLeader) => (isLeader || !isLightTheme ? 1 : 0.55)
 
-  fillRoundRect(ctx, leftBarRight - barGap - leftWidth, barY, leftWidth, barHeight,
-    barHeight / 2, dim(colours.left, row.leader !== 'right'))
-  fillRoundRect(ctx, rightBarLeft + barGap, barY, rightWidth, barHeight,
-    barHeight / 2, dim(colours.right, row.leader !== 'left'))
+  const leftLeads = row.leader !== 'right'
+  const rightLeads = row.leader !== 'left'
+  const leftHeight = barHeight * barScale(leftLeads)
+  const rightHeight = barHeight * barScale(rightLeads)
+
+  fillRoundRect(ctx, leftBarRight - barGap - leftWidth, y + height / 2 - leftHeight / 2,
+    leftWidth, leftHeight, leftHeight / 2, dim(colours.left, leftLeads))
+  fillRoundRect(ctx, rightBarLeft + barGap, y + height / 2 - rightHeight / 2,
+    rightWidth, rightHeight, rightHeight / 2, dim(colours.right, rightLeads))
 
   const isTie = row.leader === null && row.left !== null && row.right !== null
   drawText(ctx, values.left, box.left + valueZone - scale(size, 18), y + height / 2, {
@@ -179,8 +187,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   }
 
   const [homeCrest, awayCrest] = await Promise.all([
-    loadImageOrNull(match.home.logo),
-    loadImageOrNull(match.away.logo),
+    loadCrestImage(match.home.logo, scale(size, 84)),
+    loadCrestImage(match.away.logo, scale(size, 84)),
   ])
 
   const identityY = top + scale(size, isStory ? 150 : 122)

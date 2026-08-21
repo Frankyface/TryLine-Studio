@@ -8,7 +8,7 @@
 import { STARTING_XV } from '../../data/schema.js'
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, truncateText, withAlpha, fillRoundRect, drawDivider, crestFallback,
+  drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider, crestFallback,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate } from '../format.js'
@@ -102,7 +102,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     accent,
   })
 
-  const crest = await loadImageOrNull(team.logo)
+  const crest = await loadCrestImage(team.logo, scale(size, 150))
   const crestBox = scale(size, isStory ? 150 : 128)
   drawCrest(ctx, crest, box.left + crestBox / 2, top + crestBox / 2, crestBox, {
     ...crestFallback(theme, accent, team.abbreviation),

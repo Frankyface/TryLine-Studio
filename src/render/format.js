@@ -110,10 +110,15 @@ export function pickPlayerStats(player, limit = 6) {
     .map((key) => ({ key, label: STAT_LABELS[key] || key, value: formatStatValue(key, stats[key]) }))
   if (meaningful.length >= limit) return meaningful.slice(0, limit)
 
+  // Padding to a fixed count filled a prop's card with four tiles reading "0".
+  // Four real numbers beat eight tiles half of which say nothing happened.
+  const MIN_TILES = 4
+  if (meaningful.length >= MIN_TILES) return meaningful
+
   const filler = STAT_PRIORITY
     .filter((key) => !meaningful.some((s) => s.key === key) && stats[key] !== undefined)
     .map((key) => ({ key, label: STAT_LABELS[key] || key, value: formatStatValue(key, stats[key]) }))
-  return [...meaningful, ...filler].slice(0, limit)
+  return [...meaningful, ...filler].slice(0, Math.max(MIN_TILES, meaningful.length))
 }
 
 const TIMELINE_MARKS = Object.freeze({

@@ -4,7 +4,7 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, fitTextSize, withAlpha, fillRoundRect, readableInk,
+  drawText, drawCrest, loadCrestImage, fitTextSize, withAlpha, fillRoundRect, readableInk,
   luminance, crestFallback,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
@@ -17,6 +17,9 @@ export const meta = Object.freeze({
   needs: 'match',
   requiresSquad: true,
   requiresPlayer: true,
+  // Without stats this drew a crest, a name and 45% empty canvas, reported it
+  // as fine, and let it be exported.
+  requiresStats: true,
 })
 
 const COLUMNS = 2
@@ -70,7 +73,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     accent,
   })
 
-  const crest = await loadImageOrNull(team.logo)
+  const crest = await loadCrestImage(team.logo, scale(size, 130))
 
   // Shirt number as a watermark - the card's visual anchor.
   // Story used to run 560px, whose descender was clipped by the first stat tile.

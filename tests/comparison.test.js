@@ -98,6 +98,21 @@ describe('buildComparison', () => {
     expect(row.rightBar).toBeCloseTo(388 / 588, 5)
   })
 
+  it('gives a full bar to a ZERO on a fewer-is-better row', () => {
+    // Zero missed tackles is the best possible score, and 42% of players record
+    // it. Treating zero as "nothing to draw" left the winner blank.
+    const [row] = buildComparison({ missedTackles: 0 }, { missedTackles: 3 }, ['missedTackles'])
+    expect(row.leader).toBe('left')
+    expect(row.leftBar).toBe(1)
+    expect(row.rightBar).toBeGreaterThan(0)
+  })
+
+  it('draws both bars when a fewer-is-better row is tied at zero', () => {
+    const [row] = buildComparison({ missedTackles: 0 }, { missedTackles: 0 }, ['missedTackles'])
+    expect(row.leftBar).toBeGreaterThan(0)
+    expect(row.leftBar).toBe(row.rightBar)
+  })
+
   it('draws no bar at all when both sides are zero', () => {
     const [row] = buildComparison({ tries: 0 }, { tries: 0 }, ['tries'])
     expect(row.leftBar).toBe(0)

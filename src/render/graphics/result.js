@@ -5,7 +5,7 @@
 import { MATCH_STATUS } from '../../data/schema.js'
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, fitTextSize, truncateText,
+  drawText, drawCrest, loadCrestImage, fitTextSize, truncateText,
   withAlpha, fillRoundRect, drawPill, crestFallback,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
@@ -67,8 +67,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   })
 
   const [homeCrest, awayCrest] = await Promise.all([
-    loadImageOrNull(match.home.logo),
-    loadImageOrNull(match.away.logo),
+    loadCrestImage(match.home.logo, scale(size, 250)),
+    loadCrestImage(match.away.logo, scale(size, 250)),
   ])
 
   // Status pill, centred above the score.

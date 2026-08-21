@@ -11,7 +11,7 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, withAlpha, fillRoundRect, measureText, crestFallback,
+  drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, measureText, crestFallback,
   luminance,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
@@ -176,7 +176,7 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
   const useMonogram = profile.teams.length > 12
   const crests = useMonogram
     ? profile.teams.map(() => null)
-    : await Promise.all(profile.teams.map((team) => loadImageOrNull(team.team.logo)))
+    : await Promise.all(profile.teams.map((team) => loadCrestImage(team.team.logo, scale(size, 60))))
   const crestBox = scale(size, isStory ? 60 : 52)
   const labelSize = scale(size, 20)
   const placed = []

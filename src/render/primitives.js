@@ -29,6 +29,29 @@ export function loadImage(src) {
 /** Load a crest, returning null rather than throwing so one dead url can't kill a render. */
 export const loadImageOrNull = (src) => loadImage(src).catch(() => null)
 
+/** Sizes mirrored into assets/crests, smallest first. */
+const CREST_SIZES = Object.freeze([96, 320])
+
+/**
+ * Load a crest at the smallest mirrored size that covers how big it will draw.
+ *
+ * Measured before mirroring: ESPN's 500x500 originals were 78% of a session's
+ * transfer, and 597 KB to open one league table whose crests draw at 40px.
+ * A stored path has no size suffix; the caller's target size picks the file.
+ * Anything else - a remote url, or an uploaded club crest as a data URL - is
+ * loaded unchanged.
+ */
+export function loadCrestImage(logo, targetPx = 320) {
+  const path = String(logo || '')
+  if (!path.startsWith('assets/crests/')) return loadImageOrNull(path)
+  const size = CREST_SIZES.find((option) => option >= targetPx) ?? CREST_SIZES.at(-1)
+  // Resolved against THIS MODULE, not the page. A page-relative path breaks the
+  // dev harness at /dev/ while working in the app at /, and both must work -
+  // as must a GitHub Pages subpath, which this also handles.
+  const url = new URL(`../../${path}@${size}.png`, import.meta.url).href
+  return loadImageOrNull(url)
+}
+
 export function roundRect(ctx, x, y, width, height, radius = 0) {
   const r = Math.min(radius, width / 2, height / 2)
   ctx.beginPath()
@@ -176,7 +199,7 @@ export function drawContained(ctx, image, centerX, centerY, box) {
  * dark. These thresholds are on the crest's own luminance.
  */
 const CREST_TOO_DARK = 0.14
-const CREST_TOO_PALE = 0.86
+const CREST_TOO_PALE = 0.66
 
 /**
  * Average luminance of an image's opaque pixels, 0-1.
@@ -280,7 +303,8 @@ export function crestFallback(theme, color, label, { tooDark, tooPale } = {}) {
       tooDark,
       tooPale,
       // The light-theme fill was too weak to rescue anything it was applied to.
-      fill: pageLuminance < 0.5 ? 'rgba(255,255,255,0.92)' : 'rgba(11,18,32,0.16)',
+      // The light fill was too weak to rescue anything it was applied to.
+      fill: pageLuminance < 0.5 ? 'rgba(255,255,255,0.92)' : 'rgba(11,18,32,0.42)',
     },
   }
 }
@@ -376,7 +400,13 @@ export function contrastAccent(color, background, { minRatio = 3.5, fallback } =
   return fallback || toHex(current)
 }
 
-/** Dark ink on a bright background, light ink on a dark one. */
+/**
+ * Whichever ink actually reads better on this background.
+ *
+ * A fixed 0.55 flip point was wrong: white on white breaks even against dark
+ * ink at about 0.20, so 15 team-colour chips were shipping white text at under
+ * 3:1 - Benetton's green measured 2.15:1.
+ */
 export function readableInk(background, lightInk = '#FFFFFF', darkInk = '#0B1220') {
-  return luminance(background) > 0.55 ? darkInk : lightInk
+  return contrastRatio(darkInk, background) >= contrastRatio(lightInk, background) ? darkInk : lightInk
 }

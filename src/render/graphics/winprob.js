@@ -7,7 +7,7 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadImageOrNull, withAlpha, fillRoundRect, truncateText, crestFallback,
+  drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, truncateText, crestFallback,
   contrastAccent, measureText,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
@@ -268,8 +268,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   })
 
   const [homeCrest, awayCrest] = await Promise.all([
-    loadImageOrNull(match.home.logo),
-    loadImageOrNull(match.away.logo),
+    loadCrestImage(match.home.logo, scale(size, 58)),
+    loadCrestImage(match.away.logo, scale(size, 58)),
   ])
 
   // Final score, large, on the right of the title.
