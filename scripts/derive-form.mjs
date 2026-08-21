@@ -115,7 +115,7 @@ for (const competitionId of readdirSync(dataDir)) {
       // is not safe to draw next to that record.
       const won = results.filter((r) => r === 'W').length
       const lost = results.filter((r) => r === 'L').length
-      const drawn = results.filter((r) => r === 'T').length
+      const drawn = results.filter((r) => r === 'D').length
       const reconciles = won === row.won && lost === row.lost && drawn === (row.drawn ?? 0)
 
       if (results.length < MIN_MATCHES || !reconciles) return { ...row, form: '' }

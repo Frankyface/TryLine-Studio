@@ -163,27 +163,35 @@ export function aggregateSquad(squad = []) {
  */
 const MIN_VISIBLE_BAR = 0.12
 
-/** Bar length for `value` relative to the larger of the pair, 0-1. */
-function barShare(value, other) {
-  // A missing value has no bar at all - that is different from a value of zero.
-  if (value === null || value === undefined) return 0
-  const largest = Math.max(value, other ?? 0)
-  if (largest <= 0) return 0
-  return value / largest
-}
-
 /**
- * Bar for a side, floored so a real number is never drawn as nothing.
+ * Bars for both sides of one row, as a fraction of the track.
  *
- * The zero case depends on direction. On a normal row, zero tries genuinely
- * means no bar. On a "fewer is better" row zero is the BEST possible score, so
- * treating it as nothing left the winner blank next to the loser's stub -
- * and 42% of players record zero missed tackles, a default row.
+ * Computed as a pair because the rule that matters is relational: a tie must
+ * read as a tie. Done per-side, "both missed 5 tackles" drew two full bars
+ * while "neither missed any" drew two stubs - the same relationship rendered
+ * as opposites, and the stubs landed on the better of the two outcomes. That
+ * is 236 of the 1,219 like-for-like pairings in the archive.
+ *
+ * On a fewer-is-better row zero is the best possible score, so it always draws
+ * full; on a normal row zero means nothing happened and draws nothing. A value
+ * with no opponent owns the row rather than collapsing to a stub.
  */
-function visibleBar(value, share, betterWhen) {
-  if (value === null || value === undefined) return 0
-  if (value === 0 && betterWhen !== BETTER.LOWER) return 0
-  return Math.max(MIN_VISIBLE_BAR, share)
+function pairBars(left, right, betterWhen) {
+  const lower = betterWhen === BETTER.LOWER
+  const present = (value) => value !== null && value !== undefined
+
+  const one = (value, other) => {
+    if (!present(value)) return 0
+    if (!present(other)) return 1
+    if (lower) {
+      if (value === 0) return 1
+      return Math.max(MIN_VISIBLE_BAR, Math.min(value, other) / value)
+    }
+    if (value === 0) return 0
+    return Math.max(MIN_VISIBLE_BAR, value / Math.max(value, other))
+  }
+
+  return { leftBar: one(left, right), rightBar: one(right, left) }
 }
 
 /** Which side wins a row, honouring stats where lower is better. */
@@ -219,10 +227,7 @@ export function buildComparison(leftStats, rightStats, keys) {
       // always belongs to the side winning that row. Drawing 18 turnovers as a
       // full bar and 11 as a stub read as an emphatic win for the side that
       // actually lost it. The values themselves are printed unchanged.
-      leftBar: visibleBar(left, definition.betterWhen === BETTER.LOWER
-        ? barShare(right, left) : barShare(left, right), definition.betterWhen),
-      rightBar: visibleBar(right, definition.betterWhen === BETTER.LOWER
-        ? barShare(left, right) : barShare(right, left), definition.betterWhen),
+      ...pairBars(left, right, definition.betterWhen),
       leader: leaderOf(left, right, definition.betterWhen),
     }
   })

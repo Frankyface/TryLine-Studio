@@ -332,6 +332,42 @@ const accentOn = await page.isDisabled('#accent')
 check('the accent picker is disabled only while team colour is on',
   accentOff && !accentOn, `ticked=${accentOff} unticked=${accentOn}`)
 
+// The preview is sticky on desktop and must NOT be on a phone: taller than the
+// viewport, it pins over the whole control rail and every chip, select and
+// button stops responding. This shipped, because the override was written
+// above the rule it overrides and silently lost the source-order tie.
+const phone = await browser.newPage({ viewport: { width: 390, height: 664 } })
+await phone.goto(baseUrl, { waitUntil: 'networkidle' })
+await phone.waitForTimeout(1500)
+const reach = await phone.evaluate(() => {
+  const probe = (selector) => {
+    const el = document.querySelector(selector)
+    if (!el) return 'missing'
+    el.scrollIntoView({ block: 'center' })
+    const box = el.getBoundingClientRect()
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+    return el === hit || el.contains(hit) ? 'ok' : 'blocked'
+  }
+  return {
+    position: getComputedStyle(document.querySelector('.stage')).position,
+    chip: probe('[data-graphic="table"]'),
+    exportButton: probe('#export-set'),
+    matchList: probe('#match'),
+  }
+})
+check('every control is reachable at phone width',
+  reach.position === 'static' && reach.chip === 'ok'
+    && reach.exportButton === 'ok' && reach.matchList === 'ok',
+  JSON.stringify(reach))
+
+const beforeTap = await phone.textContent('#status')
+await phone.click('[data-graphic="table"]')
+await phone.waitForTimeout(1200)
+const afterTap = await phone.textContent('#status')
+check('tapping a chip on a phone actually changes the graphic',
+  afterTap !== beforeTap && /table/i.test(afterTap), `${beforeTap} -> ${afterTap}`)
+await phone.close()
+
 check('no console errors', consoleErrors.length === 0, consoleErrors.join(' | '))
 // A missing crest must not break a render. The "no console errors" check above
 // already proves nothing threw during the whole run, including every render

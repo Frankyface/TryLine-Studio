@@ -244,3 +244,55 @@ describe('against a real international', () => {
     expect(rows.every((row) => row.left !== null && row.right !== null)).toBe(true)
   })
 })
+
+/**
+ * Bars are a pair, not two independent numbers. The rule these pin down is
+ * that a tie reads as a tie whichever direction the stat runs in - the
+ * previous per-side calculation drew "both missed 5" as two full bars and
+ * "neither missed any" as two stubs.
+ */
+describe('bar geometry', () => {
+  const barsFor = (key, left, right) => {
+    const [row] = buildComparison({ [key]: left }, { [key]: right }, [key])
+    return [row.leftBar, row.rightBar]
+  }
+
+  // missedTackles is a fewer-is-better stat; metres is a more-is-better one.
+  it('gives the better side a full bar when fewer is better', () => {
+    expect(barsFor('missedTackles', 0, 5)).toEqual([1, 0.12])
+    expect(barsFor('missedTackles', 5, 0)).toEqual([0.12, 1])
+  })
+
+  it('draws a fewer-is-better tie as two equal bars, at both extremes', () => {
+    expect(barsFor('missedTackles', 0, 0)).toEqual([1, 1])
+    expect(barsFor('missedTackles', 5, 5)).toEqual([1, 1])
+  })
+
+  it('scales a fewer-is-better loser proportionally', () => {
+    const [left, right] = barsFor('missedTackles', 2, 5)
+    expect(left).toBe(1)
+    expect(right).toBeCloseTo(0.4, 5)
+  })
+
+  it('still draws nothing for a genuine zero on a more-is-better row', () => {
+    expect(barsFor('metres', 0, 50)).toEqual([0, 1])
+    expect(barsFor('metres', 0, 0)).toEqual([0, 0])
+  })
+
+  it('gives a lone value the full row in either direction', () => {
+    expect(barsFor('missedTackles', null, 5)).toEqual([0, 1])
+    expect(barsFor('missedTackles', 5, null)).toEqual([1, 0])
+    expect(barsFor('metres', null, 50)).toEqual([0, 1])
+  })
+
+  it('never draws a real number as nothing', () => {
+    for (const [key, left, right] of [
+      ['missedTackles', 0, 0], ['missedTackles', 1, 99], ['missedTackles', 99, 1],
+      ['metres', 1, 999], ['metres', 999, 1],
+    ]) {
+      const [l, r] = barsFor(key, left, right)
+      expect(l).toBeGreaterThan(0)
+      expect(r).toBeGreaterThan(0)
+    }
+  })
+})

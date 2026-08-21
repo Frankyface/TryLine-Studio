@@ -91,13 +91,6 @@ body {
 
 @media (max-width: 900px) {
   .shell { grid-template-columns: 1fr; }
-
-  /* On a phone the preview must come first. Below the controls it sits a full
-     screen down, so you would be adjusting a graphic you cannot see. */
-  .stage {
-    position: static;
-    order: -1;
-  }
 }
 
 .rail { display: flex; flex-direction: column; gap: 16px; }
@@ -327,7 +320,7 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 .preview { margin: 0; display: flex; flex-direction: column; gap: 8px; }
 
 .preview canvas {
-  width: min(420px, 44vw);
+  width: min(clamp(320px, 34vw, 640px), 72vh);
   height: auto;
   border-radius: 14px;
   border: 1px solid var(--line);
@@ -336,7 +329,7 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
   display: block;
 }
 
-.preview--story canvas { width: min(260px, 30vw); }
+.preview--story canvas { width: min(clamp(200px, 21vw, 400px), 40vh); }
 
 .preview figcaption {
   font-size: 11px;
@@ -354,10 +347,22 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .colophon p { margin: 0; }
 
-/* Phone sizing lives here, after the base .preview rules it overrides -
-   equal specificity means source order decides. Side by side at phone width
-   left the feed preview at 172px, too small to judge a graphic by. */
+/* Phone sizing lives here, after the base rules it overrides - equal
+   specificity means source order decides. Side by side at phone width left the
+   feed preview at 172px, too small to judge a graphic by.
+
+   The .stage override MUST stay below `.stage { position: sticky }` for the
+   same reason. It was written above it, lost the tie, and left a preview
+   taller than the viewport pinned over the whole control rail - every chip,
+   select and button unclickable on any phone or portrait tablet. */
 @media (max-width: 900px) {
+  /* The preview must come first. Below the controls it sits a full screen
+     down, so you would be adjusting a graphic you cannot see. */
+  .stage {
+    position: static;
+    order: -1;
+  }
+
   .previews {
     flex-direction: column;
     align-items: center;
