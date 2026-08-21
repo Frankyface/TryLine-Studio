@@ -111,7 +111,6 @@ export function createMatch(input = {}) {
       id: str(input.competition?.id),
       name: str(input.competition?.name),
       abbreviation: str(input.competition?.abbreviation),
-      logo: str(input.competition?.logo),
     }),
     season: Object.freeze({
       year: num(input.season?.year),
@@ -166,7 +165,6 @@ export function createTable(input = {}) {
       id: str(input.competition?.id),
       name: str(input.competition?.name),
       abbreviation: str(input.competition?.abbreviation),
-      logo: str(input.competition?.logo),
     }),
     season: Object.freeze({
       year: num(input.season?.year),

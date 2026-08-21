@@ -47,6 +47,23 @@ describe('canPlotFortress', () => {
     expect(MIN_TEAMS_FOR_FORTRESS).toBeGreaterThan(3)
   })
 
+  it('refuses a league whose teams have no usable rate', () => {
+    // The gate must agree with the draw. Six teams in the file but none with a
+    // rate produced a zero-row chart that reported itself as fine.
+    const rateless = seasonOf(Array.from({ length: 8 }, (_, i) => ({
+      team: { name: `Team ${i}` },
+      home: { played: 0 }, away: { played: 0 },
+      homeWinRate: null, awayWinRate: null,
+    })))
+    expect(canPlotFortress(rateless)).toMatch(/only 0 teams/i)
+    expect(fortressRows(rateless)).toHaveLength(0)
+  })
+
+  it('reports a null league rate rather than undefined when there is nothing to draw', () => {
+    // undefined passes a `!== null` guard and reaches the canvas as NaN.
+    expect(fortressHighlights({ teams: [] }).leagueHomeWinRate).toBeNull()
+  })
+
   it('refuses nothing at all', () => {
     expect(canPlotFortress(null)).toMatch(/no season data/i)
     expect(canPlotFortress({ teams: [] })).toMatch(/no season data/i)
@@ -107,8 +124,9 @@ describe('fortressHighlights', () => {
     expect(withReversed.reversed.team.name).toBe('Travellers')
   })
 
-  it('returns an empty object for no teams', () => {
-    expect(fortressHighlights({ teams: [] })).toEqual({})
+  it('returns explicit nulls for no teams', () => {
+    expect(fortressHighlights({ teams: [] }))
+      .toEqual({ strongest: null, reversed: null, leagueHomeWinRate: null })
   })
 })
 

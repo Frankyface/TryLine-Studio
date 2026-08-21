@@ -44,6 +44,11 @@ export function formatMatchDate(iso, { withYear = false, timeZone } = {}) {
 export function formatKickoffTime(iso, { timeZone } = {}) {
   const date = parse(iso)
   if (!date) return ''
+  // ESPN writes T00:00Z when the time has not been announced. 90 of 1,147
+  // matches carry it - 77 of them Top 14, where midnight UTC would be a 1am
+  // kick-off - and the graphic was advertising them as "00:00". The manual
+  // kick-off override is the way to state a time the feed does not have.
+  if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0) return ''
   const parts = partsIn(date, timeZone, { hour: '2-digit', minute: '2-digit', hour12: false })
   const hour = partValue(parts, 'hour')
   const minute = partValue(parts, 'minute')
@@ -100,25 +105,21 @@ export function formatStatValue(key, value) {
 }
 
 /**
- * The stats worth showing for one player: priority order, skipping zeroes so a
- * prop's card is not four columns of "0".
+ * The stats worth showing for one player, in priority order.
+ *
+ * Only numbers that actually happened. Padding to a fixed tile count meant 18%
+ * of the 2,438 players with stats got a card where most tiles read "0" - a
+ * replacement on for two minutes looked like a full performance rendered
+ * badly. Half of all players have an odd count, so the grid has to cope with a
+ * ragged last row either way; that is a layout problem, not a reason to invent
+ * content.
  */
 export function pickPlayerStats(player, limit = 6) {
   const stats = player?.stats || {}
-  const meaningful = STAT_PRIORITY
+  return STAT_PRIORITY
     .filter((key) => stats[key] !== undefined && stats[key] !== null && stats[key] !== 0)
+    .slice(0, limit)
     .map((key) => ({ key, label: STAT_LABELS[key] || key, value: formatStatValue(key, stats[key]) }))
-  if (meaningful.length >= limit) return meaningful.slice(0, limit)
-
-  // Padding to a fixed count filled a prop's card with four tiles reading "0".
-  // Four real numbers beat eight tiles half of which say nothing happened.
-  const MIN_TILES = 4
-  if (meaningful.length >= MIN_TILES) return meaningful
-
-  const filler = STAT_PRIORITY
-    .filter((key) => !meaningful.some((s) => s.key === key) && stats[key] !== undefined)
-    .map((key) => ({ key, label: STAT_LABELS[key] || key, value: formatStatValue(key, stats[key]) }))
-  return [...meaningful, ...filler].slice(0, Math.max(MIN_TILES, meaningful.length))
 }
 
 const TIMELINE_MARKS = Object.freeze({

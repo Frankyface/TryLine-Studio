@@ -96,9 +96,20 @@ describe('stat values', () => {
     expect(picked.map((s) => s.key)).toEqual(['metres', 'runs', 'tackles'])
   })
 
-  it('falls back to zero stats when there are not enough non-zero ones', () => {
+  it('never pads a sparse card with zeroes', () => {
+    // This previously returned three tiles, two of them "0". 18% of the 2,438
+    // players with stats have fewer than four real numbers, so the padded card
+    // was the normal case for anyone off the bench.
     const player = { stats: { points: 0, tries: 0, metres: 4 } }
-    expect(pickPlayerStats(player, 3)).toHaveLength(3)
+    expect(pickPlayerStats(player, 3)).toEqual([
+      { key: 'metres', label: 'Metres made', value: '4' },
+    ])
+  })
+
+  it('honours the limit rather than a fixed tile count', () => {
+    const player = { stats: { points: 5, tries: 1, metres: 40, runs: 8, tackles: 3 } }
+    expect(pickPlayerStats(player, 2)).toHaveLength(2)
+    expect(pickPlayerStats(player, 4)).toHaveLength(4)
   })
 
   it('returns nothing for a player with no stats', () => {

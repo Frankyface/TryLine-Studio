@@ -5,6 +5,7 @@
  * beyond image loading, so the same code runs in the browser tool and in any
  * headless canvas used for verification.
  */
+import { CREST_SIZES } from './crest-sizes.js'
 import { FONTS, font } from './theme.js'
 
 /**
@@ -30,7 +31,7 @@ export function loadImage(src) {
 export const loadImageOrNull = (src) => loadImage(src).catch(() => null)
 
 /** Sizes mirrored into assets/crests, smallest first. */
-const CREST_SIZES = Object.freeze([96, 320])
+
 
 /**
  * Load a crest at the smallest mirrored size that covers how big it will draw.
@@ -242,10 +243,10 @@ export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
     // on a dark theme. When a crest and the page are both dark (or both light),
     // it gets a soft plate behind it so the shape still reads.
     if (fallback.plate) {
-      // The test is CONTRAST against the page, not absolute darkness. A
-      // saturated red crest has a low luminance (0.16) but stands out fine on
-      // navy at 3.8:1; a black crest sits at 1.1:1 and vanishes. Judging by
-      // luminance alone plated both.
+      // Directional, and deliberately so: on a dark page only a very dark
+      // crest needs rescuing, and on a light page only a very pale one. A
+      // symmetric test plated most crests on chalk while missing near-black
+      // on midnight. The thresholds are tuned against the real crest set.
       const crestLuminance = imageLuminance(image)
       const pageIsDark = fallback.plate.pageLuminance < 0.5
       const tooDark = fallback.plate.tooDark ?? CREST_TOO_DARK
@@ -303,7 +304,6 @@ export function crestFallback(theme, color, label, { tooDark, tooPale } = {}) {
       tooDark,
       tooPale,
       // The light-theme fill was too weak to rescue anything it was applied to.
-      // The light fill was too weak to rescue anything it was applied to.
       fill: pageLuminance < 0.5 ? 'rgba(255,255,255,0.92)' : 'rgba(11,18,32,0.42)',
     },
   }

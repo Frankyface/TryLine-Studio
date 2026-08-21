@@ -15,6 +15,7 @@ import { loadPrefs, savePrefs } from './data/prefs.js'
 import { SIZES, THEME_LIST, THEMES } from './render/theme.js'
 import { GRAPHICS, GRAPHIC_BY_ID, renderGraphic } from './render/index.js'
 import { exportOne, exportSet } from './export/png.js'
+import { blockingReason, usesSide } from './render/availability.js'
 import { formatMatchDate } from './render/format.js'
 
 const $ = (id) => document.getElementById(id)
@@ -117,7 +118,7 @@ async function render() {
   const comparingPlayers = graphic.meta.id === 'comparison' && $('mode').value === 'players'
   // Shown only where the graphic actually reads it. It was previously visible
   // on four graphics whose output is byte-identical either way.
-  document.querySelector('[data-option="side"]').hidden = !graphic.meta.usesSide
+  document.querySelector('[data-option="side"]').hidden = !usesSide(graphic, options)
   document.querySelector('[data-option="mode"]').hidden = graphic.meta.id !== 'comparison'
   syncGraphicChips(options)
   document.querySelector('[data-option="player"]').hidden = !graphic.meta.requiresPlayer && !comparingPlayers
@@ -150,62 +151,6 @@ async function render() {
   } catch (error) {
     reportIfCurrent(token, error.message, 'error')
   }
-}
-
-const squadHasStats = (squad = []) =>
-  squad.some((player) => Object.keys(player.stats || {}).length > 0)
-
-/**
- * Why this graphic cannot be drawn from the current data, or '' if it can.
- *
- * The single source of truth for availability. It used to live only inside
- * render(), so Export ran with no checks at all and could save a
- * finished-looking but empty PNG that the preview had refused to draw.
- */
-export function blockingReason(graphic, snapshot, options = {}) {
-  const { match, table, season, source } = snapshot
-  const needs = graphic.meta.needs
-
-  if (needs === 'table') {
-    if (!table) {
-      return source === 'manual'
-        ? 'Paste your league table into the box above to draw this.'
-        : 'No league table loaded for that season.'
-    }
-    return ''
-  }
-
-  if (needs === 'season') {
-    if (source === 'manual') {
-      return 'Home and away records cannot come from manual entry - this one needs a full league season.'
-    }
-    if (!season) {
-      return 'No home and away records for that season. Try another season, or a league that plays home and away.'
-    }
-    return ''
-  }
-
-  if (!match) return 'Pick a match to draw.'
-
-  if (graphic.meta.requiresTimeline && !(match.timeline || []).length) {
-    return 'That match has no scoring timeline, so the swing chart would be guesswork.'
-  }
-
-  if (graphic.meta.requiresSquad) {
-    const squad = match[options.side === 'away' ? 'away' : 'home']?.squad || []
-    if (!squad.length) {
-      return source === 'manual'
-        ? 'Type your team sheet into the Home squad box above.'
-        : 'No squad recorded for that match. Tick "only matches with squads", or enter the team yourself.'
-    }
-    if (graphic.meta.requiresStats && !squadHasStats(squad)) {
-      return source === 'manual'
-        ? 'Player stats cannot come from manual entry - the form has no place to put them.'
-        : 'That match has team sheets but no player stats. ESPN records them for internationals only - try Six Nations, The Rugby Championship, the Lions tour or the Womens Rugby World Cup.'
-    }
-  }
-
-  return ''
 }
 
 /** Blank both previews, so an error never sits on top of the last good graphic. */
@@ -596,8 +541,19 @@ function bindEvents() {
     $('theme').value = prefs.theme
     setState({ themeId: prefs.theme })
   }
-  $('handle').addEventListener('input', () => savePrefs({ handle: $('handle').value }))
-  $('theme').addEventListener('change', () => savePrefs({ theme: $('theme').value }))
+  const remember = (patch) => {
+    const result = savePrefs(patch)
+    if (!result.ok) setStatus(result.reason, 'error')
+  }
+
+  // The handle is typed a character at a time, so it is debounced like the
+  // manual store. A theme is one `change` event and is written straight away.
+  let handleTimer = null
+  $('handle').addEventListener('input', () => {
+    clearTimeout(handleTimer)
+    handleTimer = setTimeout(() => remember({ handle: $('handle').value }), 400)
+  })
+  $('theme').addEventListener('change', () => remember({ theme: $('theme').value }))
 
   const syncAccentEnabled = () => { $('accent').disabled = $('accent-auto').checked }
   $('accent-auto').addEventListener('change', syncAccentEnabled)

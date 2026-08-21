@@ -39,8 +39,16 @@ export function savePrefs(patch) {
     }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     return { ok: true }
-  } catch {
-    return { ok: false }
+  } catch (error) {
+    // Matches saveManualState's shape so a caller can show the reason rather
+    // than failing silently.
+    const detail = `${error?.name ?? ''} ${error?.message ?? ''}`
+    return {
+      ok: false,
+      reason: /quota|exceeded/i.test(detail)
+        ? 'This browser is out of local storage, so your handle and theme were not remembered.'
+        : 'This browser will not let the page store anything, so your handle and theme were not remembered.',
+    }
   }
 }
 

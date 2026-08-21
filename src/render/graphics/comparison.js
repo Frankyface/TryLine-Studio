@@ -27,7 +27,9 @@ export const meta = Object.freeze({
   label: 'Match stats',
   description: 'Team or player head-to-head.',
   needs: 'match',
-  usesSide: true,
+  // Player mode lists one side's squad; team mode aggregates both and draws
+  // the same thing whichever is picked.
+  usesSide: (options = {}) => options.mode === 'players',
   requiresSquad: true,
   requiresStats: true,
 })

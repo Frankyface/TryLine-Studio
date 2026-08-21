@@ -315,6 +315,7 @@ if (blockedTone === 'error') {
 // most-repeated action in the app.
 await page.fill('#handle', '@testclubrfc')
 await page.selectOption('#theme', 'chalk')
+await page.waitForTimeout(700)   // the handle write is debounced 400ms
 await page.reload({ waitUntil: 'networkidle' })
 await page.waitForFunction(() => document.getElementById('theme').options.length > 0)
 const restoredPrefs = await page.evaluate(() => ({

@@ -23,7 +23,7 @@ export const meta = Object.freeze({
 
 const AWAY_TINT = 0.3
 
-function drawScale(ctx, size, theme, track, rows) {
+function drawScale(ctx, size, theme, track) {
   for (const level of [0, 0.25, 0.5, 0.75, 1]) {
     const x = track.left + track.width * level
     const isEnd = level === 0 || level === 1
@@ -46,7 +46,6 @@ function drawScale(ctx, size, theme, track, rows) {
       baseline: 'bottom',
     })
   }
-  return rows
 }
 
 export async function draw(ctx, { season, size, theme, options = {} }) {
@@ -106,7 +105,7 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     get width() { return this.right - this.left },
   }
 
-  drawScale(ctx, size, theme, track, rows)
+  drawScale(ctx, size, theme, track)
 
   // The league's own average, so a club's gap is read against its peers.
   if (highlights.leagueHomeWinRate !== null) {

@@ -16,6 +16,8 @@
  * Usage: node scripts/mirror-crests.mjs [--check]
  */
 import { chromium } from 'playwright'
+import { COMPETITIONS, isCountryFlag } from '../src/data/espn.js'
+import { CREST_SIZES } from '../src/render/crest-sizes.js'
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -26,9 +28,6 @@ const dataDir = join(root, 'data')
 const crestDir = join(root, 'assets', 'crests')
 const checkOnly = process.argv.includes('--check')
 const NL = String.fromCharCode(10)
-
-/** The two scales the graphics actually draw at. */
-export const CREST_SIZES = Object.freeze([96, 320])
 
 const readJson = (path) => {
   try {
@@ -77,6 +76,33 @@ for (const path of files) {
   })
 }
 
+const nationalIds = new Set(
+  COMPETITIONS.filter((competition) => competition.national).map((competition) => competition.id),
+)
+
+/**
+ * repair-data spots a country-flag-as-club-crest by its ESPN url. Mirroring
+ * rewrites that url to a local path the check can never match, and the
+ * original is gone - so the flag is welded onto the club until a full refetch.
+ * Refuse to run rather than destroy the evidence.
+ */
+const flagged = []
+for (const path of files) {
+  eachTeam(readJson(path), (team) => {
+    if (REMOTE.test(team.logo) && isCountryFlag(team.logo)) flagged.push({ path, logo: team.logo })
+  })
+}
+const clubFlags = flagged.filter(({ path }) => {
+  const parts = path.split(/[\/]/)
+  const competitionId = parts[parts.indexOf('data') + 1]
+  return !nationalIds.has(competitionId)
+})
+if (clubFlags.length) {
+  process.stderr.write(`${clubFlags.length} club team(s) are still using a country flag.${NL}`)
+  process.stderr.write(`Run "npm run repair" FIRST - mirroring would make this permanent.${NL}`)
+  process.exit(1)
+}
+
 process.stdout.write(`${files.length} data files, ${remoteUrls.size} distinct remote crest(s)${NL}`)
 if (!remoteUrls.size) {
   process.stdout.write(`Nothing to mirror - all crests are already local.${NL}`)
@@ -96,6 +122,9 @@ await page.goto('about:blank')
 let saved = 0
 let missing = 0
 const localFor = new Map()
+
+/** Crests ESPN no longer serves. Blanked so the monogram draws with no request. */
+const dead = new Set()
 
 for (const url of remoteUrls) {
   const id = idOf(url)
@@ -122,7 +151,11 @@ for (const url of remoteUrls) {
   }, { src: url, sizes: CREST_SIZES })
 
   if (!encoded) {
+    // Measured: 13 of these are permanently 404 at ESPN. Keeping the URL made
+    // the app retry them on every page view - a cross-origin request that
+    // always fails, and a red 404 in the console of the live site.
     missing += 1
+    dead.add(url)
     continue
   }
 
@@ -143,6 +176,11 @@ for (const path of files) {
   if (!payload) continue
   let touched = false
   eachTeam(payload, (team) => {
+    if (dead.has(team.logo)) {
+      team.logo = ''
+      touched = true
+      return
+    }
     const local = localFor.get(team.logo)
     if (!local) return
     team.logo = local
@@ -158,6 +196,6 @@ const bytes = readdirSync(crestDir)
   .reduce((total, file) => total + statSync(join(crestDir, file)).size, 0)
 
 process.stdout.write(`${saved} crest(s) mirrored at ${CREST_SIZES.join(' and ')}px${NL}`)
-if (missing) process.stdout.write(`${missing} crest(s) could not be downloaded and keep the monogram fallback${NL}`)
+if (missing) process.stdout.write(`${missing} crest(s) 404 at the source; their urls were blanked for the monogram fallback${NL}`)
 process.stdout.write(`${rewritten} data file(s) repointed${NL}`)
 process.stdout.write(`assets/crests is ${(bytes / 1024 / 1024).toFixed(2)} MB${NL}`)

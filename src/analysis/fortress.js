@@ -15,8 +15,13 @@ export const MIN_TEAMS_FOR_FORTRESS = 6
 
 export function canPlotFortress(season) {
   if (!season || !season.teams?.length) return 'No season data for that competition.'
-  if (season.teams.length < MIN_TEAMS_FOR_FORTRESS) {
-    return `Only ${season.teams.length} teams have enough home and away games to compare.`
+  // Count what the chart can actually draw, not what the file happens to hold.
+  // Gating on season.teams while fortressRows drops teams with no rate let six
+  // rate-less teams through to a zero-row chart: an Infinity row height and a
+  // footer reading "top 0 of 6 - home sides win NaN%".
+  const drawable = fortressRows(season).length
+  if (drawable < MIN_TEAMS_FOR_FORTRESS) {
+    return `Only ${drawable} teams have enough home and away games to compare.`
   }
   return ''
 }
@@ -45,7 +50,7 @@ export function fortressRows(season, { limit } = {}) {
 /** The one or two teams worth naming in a caption. */
 export function fortressHighlights(season) {
   const rows = fortressRows(season)
-  if (!rows.length) return {}
+  if (!rows.length) return { strongest: null, reversed: null, leagueHomeWinRate: null }
   const strongest = rows[0]
   const reversed = rows[rows.length - 1]
   return {
