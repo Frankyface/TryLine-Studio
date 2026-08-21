@@ -1,6 +1,6 @@
 # Handoff
 
-_Last updated 2026-08-21 (second session)._
+_Last updated 2026-08-21. **LIVE at https://frankyface.github.io/TryLine-Studio/**_
 
 ## State: v1 complete, plus analysis graphics and an accessibility pass
 
@@ -160,8 +160,7 @@ matching is correct - it keeps the Durban "Sharks" and "Sale Sharks" distinct.
   the app, 8.5 MB); the weekly refresh could never trigger a deploy because
   GitHub blocks token-pushed workflow chains (now listens for the refresh);
   added a favicon; removed a dead empty `public/`.
-- **The project is still not a git repository** - that is the only remaining
-  blocker to going live. One command, in `help.md`.
+- **Shipped 2026-08-21.** Repo `Frankyface/TryLine-Studio`, Pages via Actions.
 
 ## Visual audit of the analysis charts (2026-08-21)
 

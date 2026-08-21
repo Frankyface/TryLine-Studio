@@ -10,23 +10,17 @@ sits under Instagram's own UI in the story frame.
 
 Sample PNGs are in `dev/shots/` after `npm run shots`.
 
-## 2. Put it online (when you want it)
+## 2. It is online
 
-The app is static, so GitHub Pages hosts it free. **It is not a git repository
-yet** - that is the only thing standing between it and being live.
+**https://frankyface.github.io/TryLine-Studio/** - repo at
+https://github.com/Frankyface/TryLine-Studio, Pages building from GitHub
+Actions. Pushing to `main` redeploys; the weekly data refresh redeploys too.
 
-```bash
-git init -b main && git add -A && git commit -m "feat: rugby matchday graphics"
-```
+Verified on the live site: 13 competitions and 15 matches load, graphics render,
+PNG export works, no 404s and no page errors. `CLAUDE.md` and `handoff.md`
+return 404 - the workflow publishes only the app.
 
-```bash
-gh repo create tryline-studio --public --source . --push
-```
-
-Then in the repo: Settings -> Pages -> Source: **GitHub Actions**. The workflows
-in `.github/workflows/` handle deploys and the weekly data refresh.
-
-Already checked, so you should not hit these:
+Checked before launch, so you should not hit these:
 
 - **It works from a subdirectory.** Pages serves project sites at
   `user.github.io/tryline-studio/`, which breaks any absolute path. Every path
