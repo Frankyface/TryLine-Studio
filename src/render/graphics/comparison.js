@@ -27,6 +27,7 @@ export const meta = Object.freeze({
   label: 'Match stats',
   description: 'Team or player head-to-head.',
   needs: 'match',
+  usesSide: true,
   requiresSquad: true,
   requiresStats: true,
 })

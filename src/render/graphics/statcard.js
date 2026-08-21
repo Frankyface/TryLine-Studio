@@ -15,6 +15,7 @@ export const meta = Object.freeze({
   label: 'Player card',
   description: 'One player and their match numbers.',
   needs: 'match',
+  usesSide: true,
   requiresSquad: true,
   requiresPlayer: true,
   // Without stats this drew a crest, a name and 45% empty canvas, reported it

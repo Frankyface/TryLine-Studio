@@ -207,6 +207,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 }
 
 input[type="color"] { padding: 4px; height: 38px; cursor: pointer; }
+input[type="color"]:disabled { opacity: 0.4; cursor: not-allowed; }
 
 input[type="file"] {
   padding: 7px 9px;
@@ -277,6 +278,13 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 
 .chip:hover { color: var(--ink); border-color: #2d3d5c; }
+
+.chip.is-unavailable {
+  opacity: 0.42;
+  border-style: dashed;
+}
+
+.chip.is-unavailable:hover { opacity: 0.7; }
 
 .chip.is-active {
   background: rgba(37, 208, 122, 0.16);

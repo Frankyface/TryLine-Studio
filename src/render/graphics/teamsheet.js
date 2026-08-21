@@ -18,6 +18,7 @@ export const meta = Object.freeze({
   label: 'Team sheet',
   description: 'The matchday 23 by shirt number.',
   needs: 'match',
+  usesSide: true,
   requiresSquad: true,
 })
 

@@ -72,7 +72,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   ])
 
   // Status pill, centred above the score.
-  const pillY = top + scale(size, isStory ? 40 : 8)
+  const pillY = top + scale(size, isStory ? 96 : 8)
   drawPill(ctx, statusLabel(match), box.centerX, pillY, {
     size: scale(size, 21),
     height: scale(size, 44),
@@ -81,9 +81,9 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     color: match.status === MATCH_STATUS.LIVE ? '#FFFFFF' : theme.inkMuted,
   })
 
-  const crestBox = scale(size, isStory ? 250 : 210)
+  const crestBox = scale(size, isStory ? 330 : 210)
   const crestY = pillY + scale(size, 60) + crestBox / 2
-  const crestOffset = scale(size, isStory ? 320 : 348)
+  const crestOffset = scale(size, isStory ? 316 : 348)
 
   drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, crestBox, {
     ...crestFallback(theme, match.home.color || accent, match.home.abbreviation),
@@ -98,14 +98,14 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     ? `${match.home.score}-${match.away.score}`
     : options.timeText || formatKickoffTime(match.kickoff, tz) || 'v'
   const scoreSize = fitTextSize(ctx, scoreText, crestOffset * 2 - crestBox - scale(size, 40), {
-    max: scale(size, played ? 150 : 110), min: scale(size, 48), weight: 700,
+    max: scale(size, played ? (isStory ? 190 : 150) : 110), min: scale(size, 48), weight: 700,
   })
   drawText(ctx, scoreText, box.centerX, crestY + scoreSize * 0.36, {
     size: scoreSize, weight: 700, color: theme.ink, align: 'center',
   })
 
   // Team names, sized down individually so a long club name never overflows.
-  const nameY = crestY + crestBox / 2 + scale(size, 62)
+  const nameY = crestY + crestBox / 2 + scale(size, isStory ? 92 : 62)
   const nameWidth = scale(size, 400)
   for (const [side, x, align] of [['home', box.left, 'left'], ['away', box.right, 'right']]) {
     const team = match[side]
@@ -133,11 +133,10 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   )
   const maxRows = Math.max(2, Math.floor((blockBottom - blockTop) / lineHeight))
   const blockHeight = Math.min(rowsNeeded, maxRows) * lineHeight
-  // Centring inside the story format's tall band leaves dead canvas above AND
-  // below, so story top-aligns and only feed centres.
-  const scorersTop = isStory
-    ? blockTop
-    : blockTop + Math.max(0, (blockBottom - blockTop - blockHeight) / 2)
+  // Both formats centre the block. Story used to top-align it, which simply
+  // moved a third of the canvas from above the scorers to below them; the
+  // bigger hero block above is what actually fills the space.
+  const scorersTop = blockTop + Math.max(0, (blockBottom - blockTop - blockHeight) / 2)
 
   if (played && match.timeline.length) {
     drawText(ctx, 'Scorers', box.centerX, scorersTop - scale(size, 26), {

@@ -120,6 +120,73 @@ function drawAxes(ctx, size, theme, plot) {
   ctx.restore()
 }
 
+/**
+ * Nudge overlapping marks apart, remembering where each one truly belongs.
+ *
+ * Teams genuinely cluster - in Top 14 five clubs sat within one marker of each
+ * other and the discs became unreadable. Positions must stay honest, so a
+ * displaced mark keeps a leader line back to its real point and never moves
+ * further than `maxShift`.
+ */
+function relaxMarks(points, { radius, maxShift, bounds, rounds = 60 }) {
+  const marks = points.map((point) => ({ ...point, x: point.trueX, y: point.trueY }))
+  const spacing = radius * 2.05
+
+  for (let round = 0; round < rounds; round += 1) {
+    let moved = false
+
+    for (let i = 0; i < marks.length; i += 1) {
+      for (let j = i + 1; j < marks.length; j += 1) {
+        const a = marks[i]
+        const b = marks[j]
+        let dx = b.x - a.x
+        let dy = b.y - a.y
+        let distance = Math.hypot(dx, dy)
+
+        if (distance >= spacing) continue
+
+        // Exactly coincident: pick a deterministic direction from the index so
+        // the same data always produces the same chart.
+        if (distance === 0) {
+          const angle = (i * 2.399) % (Math.PI * 2)
+          dx = Math.cos(angle)
+          dy = Math.sin(angle)
+          distance = 1
+        }
+
+        const push = (spacing - distance) / 2
+        const ux = (dx / distance) * push
+        const uy = (dy / distance) * push
+        a.x -= ux
+        a.y -= uy
+        b.x += ux
+        b.y += uy
+        moved = true
+      }
+    }
+
+    // Keep every mark inside the plot and within maxShift of the truth.
+    for (const mark of marks) {
+      const offsetX = mark.x - mark.trueX
+      const offsetY = mark.y - mark.trueY
+      const drift = Math.hypot(offsetX, offsetY)
+      if (drift > maxShift) {
+        mark.x = mark.trueX + (offsetX / drift) * maxShift
+        mark.y = mark.trueY + (offsetY / drift) * maxShift
+      }
+      mark.x = Math.min(Math.max(mark.x, bounds.left + radius), bounds.right - radius)
+      mark.y = Math.min(Math.max(mark.y, bounds.top + radius), bounds.bottom - radius)
+    }
+
+    if (!moved) break
+  }
+
+  return marks.map((mark) => ({
+    ...mark,
+    displaced: Math.hypot(mark.x - mark.trueX, mark.y - mark.trueY) > radius * 0.35,
+  }))
+}
+
 export async function draw(ctx, { table, size, theme, options = {} }) {
   const blocked = canPlotSeason(table)
   if (blocked) throw new Error(blocked)
@@ -181,19 +248,40 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
   const labelSize = scale(size, 20)
   const placed = []
 
-  // Crests first, so no label is drawn beneath a later crest.
-  profile.teams.forEach((team, index) => {
-    const x = position.x(team.attack)
-    const y = position.y(team.defence)
-    // Scatter marks are ~52px, so they need more separation from the page than
-    // a full-size crest does: Saracens and Newcastle clear 2:1 but still read as
-    // dark smudges at this size.
-    const label = labels.get(team.team.name) || team.team.abbreviation || '?'
+  const radius = crestBox * (useMonogram ? 0.56 : 0.62)
+  const marks = relaxMarks(
+    profile.teams.map((team, index) => ({
+      team,
+      index,
+      trueX: position.x(team.attack),
+      trueY: position.y(team.defence),
+    })),
+    { radius, maxShift: radius * 1.6, bounds: plot },
+  )
 
-    // Uniform backing behind every mark. Plating only the dark crests made
-    // those few look like stickers pasted over their neighbours; giving all of
-    // them the same quiet disc reads as a system and keeps line-art legible.
-    const radius = crestBox * (useMonogram ? 0.56 : 0.62)
+  // Leader lines first, so nothing is drawn over a mark.
+  for (const mark of marks) {
+    if (!mark.displaced) continue
+    ctx.save()
+    ctx.strokeStyle = withAlpha(theme.ink, 0.35)
+    ctx.lineWidth = Math.max(1, scale(size, 2))
+    ctx.beginPath()
+    ctx.moveTo(mark.trueX, mark.trueY)
+    ctx.lineTo(mark.x, mark.y)
+    ctx.stroke()
+    // A dot at the true position, so the real reading is still on the chart.
+    ctx.beginPath()
+    ctx.arc(mark.trueX, mark.trueY, Math.max(2, scale(size, 3)), 0, Math.PI * 2)
+    ctx.fillStyle = withAlpha(theme.ink, 0.5)
+    ctx.fill()
+    ctx.restore()
+  }
+
+  for (const mark of marks) {
+    const { x, y } = mark
+    const label = labels.get(mark.team.team.name) || mark.team.team.abbreviation || '?'
+
+    // Uniform backing behind every mark, so the set reads as one system.
     ctx.save()
     ctx.beginPath()
     ctx.arc(x, y, radius, 0, Math.PI * 2)
@@ -214,28 +302,21 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
         baseline: 'middle',
       })
     } else {
-      drawCrest(ctx, crests[index], x, y, crestBox * 0.86, {
+      drawCrest(ctx, crests[mark.index], x, y, crestBox * 0.86, {
         ...crestFallback(theme, accent, label),
-        // The backing disc already separates the mark from the page.
         plate: null,
         solid: 'rgba(0,0,0,0)',
         ring: 'rgba(0,0,0,0)',
         ink: '#0B1220',
       })
     }
-    placed.push({
-      left: x - crestBox / 2,
-      right: x + crestBox / 2,
-      top: y - crestBox / 2,
-      bottom: y + crestBox / 2,
-    })
-  })
 
-  // With lettered discs the mark already carries the name.
-  if (!useMonogram) profile.teams.forEach((team) => {
-    const x = position.x(team.attack)
-    const y = position.y(team.defence)
-    const label = labels.get(team.team.name) || team.team.abbreviation || '?'
+    placed.push({ left: x - radius, right: x + radius, top: y - radius, bottom: y + radius })
+  }
+
+  if (!useMonogram) marks.forEach((mark) => {
+    const { x, y } = mark
+    const label = labels.get(mark.team.team.name) || mark.team.team.abbreviation || '?'
     const labelOptions = { size: labelSize, weight: 700, family: FONTS.body, tracking: 1 }
     const width = measureText(ctx, label, labelOptions)
 

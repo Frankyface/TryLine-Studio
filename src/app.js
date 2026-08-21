@@ -114,8 +114,11 @@ async function render() {
   const needsSeason = graphic.meta.needs === 'season'
 
   const comparingPlayers = graphic.meta.id === 'comparison' && $('mode').value === 'players'
-  document.querySelector('[data-option="side"]').hidden = needsTable || needsSeason
+  // Shown only where the graphic actually reads it. It was previously visible
+  // on four graphics whose output is byte-identical either way.
+  document.querySelector('[data-option="side"]').hidden = !graphic.meta.usesSide
   document.querySelector('[data-option="mode"]').hidden = graphic.meta.id !== 'comparison'
+  syncGraphicChips(options)
   document.querySelector('[data-option="player"]').hidden = !graphic.meta.requiresPlayer && !comparingPlayers
   document.querySelector('[data-option="player-b"]').hidden = !comparingPlayers
 
@@ -211,6 +214,22 @@ function clearCanvases() {
   }
 }
 
+
+/**
+ * Mark chips that cannot be drawn from the current data, with the reason as a
+ * tooltip. Every chip used to look identical, so on a competition with no
+ * table, squads or season records six of nine failed only once clicked.
+ */
+function syncGraphicChips(options) {
+  const snapshot = { ...state, source: state.source }
+  for (const chip of document.querySelectorAll('[data-graphic]')) {
+    const graphic = GRAPHIC_BY_ID[chip.dataset.graphic]
+    if (!graphic) continue
+    const reason = blockingReason(graphic, snapshot, options)
+    chip.classList.toggle('is-unavailable', Boolean(reason))
+    chip.title = reason || graphic.meta.description
+  }
+}
 
 /* ---------- control population ---------- */
 
@@ -567,6 +586,11 @@ function bindEvents() {
   for (const id of ['player', 'accent', 'accent-auto', 'handle', 'date-text', 'time-text']) {
     $(id).addEventListener('input', render)
   }
+
+  // Without this the picker looks live but changes nothing.
+  const syncAccentEnabled = () => { $('accent').disabled = $('accent-auto').checked }
+  $('accent-auto').addEventListener('change', syncAccentEnabled)
+  syncAccentEnabled()
 
   document.querySelectorAll('[data-panel="manual"] input, [data-panel="manual"] textarea')
     .forEach((input) => {
