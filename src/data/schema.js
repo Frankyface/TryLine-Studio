@@ -174,6 +174,51 @@ export function createTable(input = {}) {
   })
 }
 
+/** One team's home and away record within a season. */
+export function createSeasonTeam(input = {}) {
+  const record = (side) => Object.freeze({
+    played: num(input[side]?.played) ?? 0,
+    won: num(input[side]?.won) ?? 0,
+    drawn: num(input[side]?.drawn) ?? 0,
+    lost: num(input[side]?.lost) ?? 0,
+    pointsFor: num(input[side]?.pointsFor),
+    pointsAgainst: num(input[side]?.pointsAgainst),
+  })
+
+  return Object.freeze({
+    team: createTeam(input.team),
+    home: record('home'),
+    away: record('away'),
+    homeWinRate: num(input.homeWinRate),
+    awayWinRate: num(input.awayWinRate),
+  })
+}
+
+/**
+ * Per-team home and away records for one season.
+ *
+ * Validated for the same reason matches and tables are: the graphic reads
+ * `season.competition.name`, `season.season.display` and `leagueHomeWinRate`
+ * straight onto the canvas, and an absent number reaches it as NaN rather than
+ * as an error. A footer once read "home sides win NaN%" for exactly this.
+ */
+export function createSeason(input = {}) {
+  return Object.freeze({
+    competition: Object.freeze({
+      id: str(input.competition?.id),
+      name: str(input.competition?.name),
+      abbreviation: str(input.competition?.abbreviation),
+    }),
+    season: Object.freeze({
+      year: num(input.season?.year),
+      display: str(input.season?.display),
+    }),
+    matches: num(input.matches) ?? 0,
+    leagueHomeWinRate: num(input.leagueHomeWinRate),
+    teams: Object.freeze((input.teams || []).map(createSeasonTeam)),
+  })
+}
+
 /**
  * Validate a match well enough to render it. Returns a list of human-readable
  * problems — empty means renderable. Callers decide whether to warn or block.

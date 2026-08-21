@@ -77,3 +77,18 @@ a rendering fault.
 **2026-08-21 - Pool tables are labelled as pools.** A Champions Cup file holds
 one pool of six from twenty-four teams; titling that "Standings" would silently
 omit three quarters of the competition.
+
+**2026-08-21 - Crest plating stays on mean luminance. Investigated and rejected
+a "vanishing pixel share" test.** Counting how many of a crest's pixels fall
+below a contrast bar against the page says 43 of 97 crests are largely
+invisible, and the shipped mean-luminance test catches only 12 of those. That
+measurement is misleading: it counts dark pixels, not illegibility. Rendering
+every crest through the real `drawCrest` path and inspecting the result shows
+they read fine - a mostly-dark crest like the Australia flag or the Sharks box
+is defined by its bright content, and a bold blue mark clears 2:1 and is
+perfectly legible. The genuinely invisible case that motivated plating in the
+first place (Newcastle Falcons) is already caught. Switching to the share test
+would plate roughly a third of all crests and make the design worse. The dim
+wordmarks that remain (Saracens, Harlequins, Ospreys) are a matter of degree,
+not a defect. Do not re-open without a legibility measure that is not just a
+dark-pixel count.

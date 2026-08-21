@@ -7,7 +7,7 @@
  * like a CORS problem rather than a block. Static files also mean the app keeps
  * working offline and loads instantly.
  */
-import { createMatch, createTable } from './schema.js'
+import { createMatch, createTable, createSeason } from './schema.js'
 
 const DATA_ROOT = 'data'
 
@@ -56,7 +56,9 @@ export const loadModel = () =>
  * support it, so the caller gets null rather than an exception.
  */
 export const loadSeason = (competitionId, season) =>
-  getJson(`${DATA_ROOT}/${competitionId}/season-${season}.json`).catch(() => null)
+  getJson(`${DATA_ROOT}/${competitionId}/season-${season}.json`)
+    .then(createSeason)
+    .catch(() => null)
 
 /** A league table for one season. */
 export async function loadTable(competitionId, season) {

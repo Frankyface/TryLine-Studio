@@ -32,7 +32,8 @@ const NL = String.fromCharCode(10)
 const readJson = (path) => {
   try {
     return JSON.parse(readFileSync(path, 'utf8'))
-  } catch {
+  } catch (error) {
+    process.stderr.write(`skipped unreadable ${path}: ${error.message}${NL}`)
     return null
   }
 }
@@ -170,24 +171,42 @@ await browser.close()
 
 // Point the data at the mirrored files. The stored path has no size suffix;
 // the renderer appends the one it needs.
+/**
+ * A copy of `node` with every crest url replaced by its local path, or blanked
+ * where the source 404s. Returns the node unchanged when nothing applies, so
+ * the caller can tell whether the file needs rewriting at all.
+ */
+function repointed(node) {
+  if (Array.isArray(node)) {
+    const next = node.map(repointed)
+    return next.some((entry, index) => entry !== node[index]) ? next : node
+  }
+  if (!node || typeof node !== 'object') return node
+
+  let changed = false
+  const next = {}
+  for (const [key, value] of Object.entries(node)) {
+    if (key === 'logo' && typeof value === 'string' && value) {
+      const replacement = dead.has(value) ? '' : localFor.get(value)
+      if (replacement !== undefined && replacement !== value) {
+        next[key] = replacement
+        changed = true
+        continue
+      }
+    }
+    next[key] = repointed(value)
+    if (next[key] !== value) changed = true
+  }
+  return changed ? next : node
+}
+
 let rewritten = 0
 for (const path of files) {
   const payload = readJson(path)
   if (!payload) continue
-  let touched = false
-  eachTeam(payload, (team) => {
-    if (dead.has(team.logo)) {
-      team.logo = ''
-      touched = true
-      return
-    }
-    const local = localFor.get(team.logo)
-    if (!local) return
-    team.logo = local
-    touched = true
-  })
-  if (touched) {
-    writeFileSync(path, `${JSON.stringify(payload)}${NL}`)
+  const next = repointed(payload)
+  if (next !== payload) {
+    writeFileSync(path, `${JSON.stringify(next)}${NL}`)
     rewritten += 1
   }
 }
