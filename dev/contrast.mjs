@@ -117,12 +117,18 @@ const marks = await page.evaluate(async () => {
     add('bar left', P.withAlpha(barLeft, 0.95), band, 3)
     add('bar right', P.withAlpha(barRight, 0.95), band, 3)
 
-    // Season chart bars, at the default accent.
-    const win = S.chroma(accent) < S.MIN_CHROMA ? theme.accent : accent
-    const loss = S.distinctFrom(
-      P.contrastAccent('#E5484D', theme.bg, { fallback: theme.inkMuted }), win,
-    )
+    // Season chart bars, computed the way `teamseason.js` computes them.
+    //
+    // This modelled a version of that code which no longer exists: it lifted
+    // against `theme.bg` - the reference CLAUDE.md says nothing is ever drawn
+    // on - and then ran the result through `distinctFrom`, which can swap in a
+    // palette colour nobody re-checks. The graphic stopped doing both (green
+    // stays green and red stays red on every theme) and this did not, so it
+    // failed a new theme at 1.26:1 for a mark the graphic actually draws at
+    // 3.01. A guard that models the wrong code is worse than no guard.
     const surface = P.pageSurface(theme, accent)
+    const win = P.contrastAccent('#25D07A', surface, { minRatio: 3, fallback: theme.ink })
+    const loss = P.contrastAccent('#E5484D', surface, { minRatio: 3, fallback: theme.ink })
     add('season win', win, surface, 3)
     add('season loss', loss, surface, 3)
     add('season draw', P.contrastAccent(theme.inkMuted, surface, { minRatio: 3, fallback: theme.ink }), surface, 3)

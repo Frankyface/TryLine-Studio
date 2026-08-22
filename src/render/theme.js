@@ -85,6 +85,48 @@ export const THEMES = Object.freeze({
     accentInk: '#2A0007',
     panel: '#221016',
   }),
+  // A second LIGHT theme. Chalk was the only one, so a club posting a run of
+  // cards had one bright option and three dark ones to rotate through.
+  slate: Object.freeze({
+    id: 'slate',
+    label: 'Slate',
+    bg: '#E7EAF0',
+    bgAlt: '#F8FAFC',
+    ink: '#0E1526',
+    inkMuted: '#333D52',
+    inkFaint: '#454E61',
+    line: '#CBD3E0',
+    // Warm, so a cool grey page does not read as a second Chalk.
+    accent: '#A63A00',
+    accentInk: '#FFFFFF',
+    panel: '#FFFFFF',
+  }),
+  ocean: Object.freeze({
+    id: 'ocean',
+    label: 'Ocean',
+    bg: '#04161E',
+    bgAlt: '#08222E',
+    ink: '#FFFFFF',
+    inkMuted: '#A9C7D3',
+    inkFaint: '#8DAAB6',
+    line: '#10394A',
+    accent: '#22C1D6',
+    accentInk: '#00161B',
+    panel: '#071E28',
+  }),
+  violet: Object.freeze({
+    id: 'violet',
+    label: 'Violet',
+    bg: '#130A20',
+    bgAlt: '#1E1132',
+    ink: '#FFFFFF',
+    inkMuted: '#C0B0DA',
+    inkFaint: '#A294BD',
+    line: '#311E4D',
+    accent: '#B978F5',
+    accentInk: '#190630',
+    panel: '#190E2A',
+  }),
 })
 
 export const THEME_LIST = Object.freeze(Object.values(THEMES))
