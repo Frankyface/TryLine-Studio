@@ -187,6 +187,22 @@ function relaxMarks(points, { radius, maxShift, bounds, rounds = 60 }) {
   }))
 }
 
+/** A dot at the true position, drawn last so a nudged mark cannot hide it. */
+function drawAnchors(ctx, size, theme, marks) {
+  for (const mark of marks) {
+    if (!mark.displaced) continue
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(mark.trueX, mark.trueY, Math.max(2, scale(size, 3)), 0, Math.PI * 2)
+    ctx.fillStyle = withAlpha(theme.ink, 0.62)
+    ctx.strokeStyle = luminance(theme.bg) > 0.5 ? 'rgba(255,255,255,0.9)' : 'rgba(11,18,32,0.9)'
+    ctx.lineWidth = Math.max(1, scale(size, 1.5))
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+  }
+}
+
 export async function draw(ctx, { table, size, theme, options = {} }) {
   const blocked = canPlotSeason(table)
   if (blocked) throw new Error(blocked)
@@ -259,7 +275,8 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
     { radius, maxShift: radius * 1.6, bounds: plot },
   )
 
-  // Leader lines first, so nothing is drawn over a mark.
+  // Leader lines run UNDER the discs, so they read as tethers rather than as
+  // lines crossing the marks.
   for (const mark of marks) {
     if (!mark.displaced) continue
     ctx.save()
@@ -269,17 +286,13 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
     ctx.moveTo(mark.trueX, mark.trueY)
     ctx.lineTo(mark.x, mark.y)
     ctx.stroke()
-    // A dot at the true position, so the real reading is still on the chart.
-    ctx.beginPath()
-    ctx.arc(mark.trueX, mark.trueY, Math.max(2, scale(size, 3)), 0, Math.PI * 2)
-    ctx.fillStyle = withAlpha(theme.ink, 0.5)
-    ctx.fill()
     ctx.restore()
   }
 
   for (const mark of marks) {
     const { x, y } = mark
     const label = labels.get(mark.team.team.name) || mark.team.team.abbreviation || '?'
+
 
     // Uniform backing behind every mark, so the set reads as one system.
     ctx.save()
@@ -362,6 +375,11 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
       })
     })
   }
+
+  // Last of all: a displaced mark sits only 1.6 radii from where it belongs,
+  // so an anchor drawn before the discs was covered by its own mark 25 times
+  // out of 30. Drawn last, the true reading is genuinely on the chart.
+  drawAnchors(ctx, size, theme, marks)
 
   drawFooter(ctx, size, theme, {
     left: [
