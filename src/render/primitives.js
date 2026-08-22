@@ -114,6 +114,29 @@ export function measureText(ctx, text, options = {}) {
 }
 
 /**
+ * The INK height of the glyphs, not the em box.
+ *
+ * A 340px number in Barlow Condensed paints about 250px of actual digit, and
+ * where the rest of that box falls depends on the face. Stacking a label under
+ * a hero number by adding the font size therefore leaves a visible hole, and
+ * guessing a ratio to close it put the label through the row beneath it.
+ * `actualBoundingBox*` is exact, so the caller can stack against real ink.
+ */
+export function inkHeight(ctx, text, options = {}) {
+  const { size = 40, weight = 600, family = FONTS.display, uppercase = false } = options
+  ctx.save()
+  ctx.font = font(weight, size, family)
+  const metrics = ctx.measureText(uppercase ? String(text).toUpperCase() : String(text))
+  ctx.restore()
+  const ascent = metrics.actualBoundingBoxAscent
+  const descent = metrics.actualBoundingBoxDescent
+  // Fall back to the em box where the metrics are unavailable, which keeps a
+  // layout that is merely loose rather than one that overlaps.
+  if (!Number.isFinite(ascent) || !Number.isFinite(descent)) return size
+  return ascent + descent
+}
+
+/**
  * Largest font size at or below `max` that fits `text` into `maxWidth`.
  * Long club names get smaller rather than overflowing the canvas.
  */

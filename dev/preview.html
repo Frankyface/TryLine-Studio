@@ -41,10 +41,11 @@
       await document.fonts.load('600 40px "Inter"')
       await document.fonts.ready
 
-      const [summary, standings, model, comeback, contrast, rawSeason, rawSeasonTable] = await Promise.all([
+      const [summary, standings, model, heroStats, comeback, contrast, rawSeason, rawSeasonTable] = await Promise.all([
         load('../tests/fixtures/espn-summary-fra-ire-2026.json'),
         load('../data/267979/table-2026.json').catch(() => load('../tests/fixtures/espn-standings-urc-2026.json')),
         load('../data/models/winprob.json').catch(() => null),
+        load('../data/models/hero-stats.json').catch(() => null),
         load('../tests/fixtures/match-comeback.json').catch(() => null),
         load('../tests/fixtures/match-contrast.json').catch(() => null),
         load('../data/270559/season-2026.json').catch(() => null),
@@ -97,6 +98,7 @@
               player: subject.home.squad?.[9] || match.home.squad[9],
               playerB: subject.away.squad?.[9] || match.away.squad[9],
               model,
+              heroStats,
             },
           })
         }

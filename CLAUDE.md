@@ -112,6 +112,41 @@ Across 1,147 downloaded matches:
 - Tackles run ~25% above a "tackles made" convention (ESPN appears to count
   assists), so do not caption them one-per-tackle.
 
+## The player card headlines ONE number, benchmarked against the shirt
+
+The card used to blow up the first four non-zero stats in a fixed priority
+order. Measured across all 2,438 players with stats, the number it chose sat at
+the **58th percentile of its own match** - a coin flip - and for **149 of the
+212 props it chose METRES, at a median of six**. A hero card for a prop who
+made six metres is what `src/analysis/hero.js` exists to prevent.
+
+Three rules do it, and each was measured:
+
+- **Benchmarks are per SHIRT** (`data/models/hero-stats.json`, p90 per shirt
+  group, built by `npm run benchmarks`). Prop p90 for metres is 18 against a
+  floor of 55, so no prop can ever reach a metres headline - structurally, with
+  no position list to maintain. Props now headline tackles and carries.
+- **Scoring outranks volume.** Ranking on benchmark ratio alone loses all 55
+  two-try performances to busy forwards.
+- **It REFUSES**, for 61% of players, and the existing grid is their card. A
+  confidently wrong hero number is worse than none.
+
+Result: the hero sits at the **96th percentile of its own match** at the median
+and never below the 60th.
+
+**The benchmark ORDERS; it does not gate.** Requiring a value to reach its
+shirt's p90 outright was measured and rejected: acceptance fell 38.6% -> 26.4%
+while the weakest hero's percentile moved by 0.02. The per-stat floors gate.
+
+**There is no perfect-rate tier.** "100% from 14 tackles" can only be reached by
+a player who already cleared the volume floor of 12, so the volume tier fired
+first every time - 0 of 2,438 players ever reached a rate headline. The
+concrete number is the better line anyway.
+
+When a hero fires the shirt-number watermark is NOT drawn: a decorative 460px
+numeral beside the 400px one carrying the message read as two headlines. The
+shirt moves into the position chip.
+
 ## A win-probability curve MUST end where the match ended
 
 80 of the 738 archived scoring timelines do not add up to the final score -
@@ -241,6 +276,7 @@ if it ever happens again.
 | `npm run stress` | Label-collision geometry over every real match |
 | `npm run contrast` | Ink contrast against the backdrop actually rendered |
 | `npm run rank` | Score every match for how worth posting it is |
+| `npm run benchmarks` | Rebuild the per-shirt stat benchmarks for the player card |
 
 Four scripts need the static server running - shots, stress, contrast and e2e,
 which is four of the five steps in `npm run verify` (`npx serve . -l 4321`, or

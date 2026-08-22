@@ -5,7 +5,7 @@
  * setState so one code path decides when to redraw.
  */
 import {
-  loadCatalog, loadCompetition, loadMatch, loadTable, loadModel, loadSeason,
+  loadCatalog, loadCompetition, loadMatch, loadTable, loadModel, loadSeason, loadHeroStats,
 } from './data/client.js'
 import { TIME_ZONES, LOCAL_ZONE, zoneForCompetition, resolveZone } from './data/timezones.js'
 import { buildManualMatch, parseSquadText, parseTableText } from './data/manual.js'
@@ -32,6 +32,7 @@ let state = Object.freeze({
   competitionId: '',
   competition: null,
   model: null,
+  heroStats: null,
   crests: { homeCrest: '', awayCrest: '' },
   match: null,
   table: null,
@@ -95,6 +96,7 @@ function currentOptions() {
     handle: $('handle').value.trim(),
     timeZone: resolveZone($('timezone').value),
     model: state.model,
+    heroStats: state.heroStats,
     dateText: $('date-text').value.trim() || undefined,
     timeText: timeText || undefined,
     timeLabel: timeText ? `${timeText} kick off` : undefined,
@@ -730,10 +732,10 @@ async function start() {
   ]).then(() => document.fonts.ready).catch(() => null)
 
   try {
-    const [catalog, model] = await Promise.all([loadCatalog(), loadModel()])
+    const [catalog, model, heroStats] = await Promise.all([loadCatalog(), loadModel(), loadHeroStats()])
     // The first render must still wait, or it measures the fallback face.
     await fontsReady
-    state = Object.freeze({ ...state, model })
+    state = Object.freeze({ ...state, model, heroStats })
 
     // A competition with no matches in the downloaded window would just be an
     // empty picker - the men's Rugby World Cup is between tournaments.

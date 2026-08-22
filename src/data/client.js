@@ -51,6 +51,14 @@ export const loadModel = () =>
   getJson(`${DATA_ROOT}/models/winprob.json`).catch(() => null)
 
 /**
+ * What a good match looks like for each shirt number, so the player card can
+ * tell a lock's 16 carries from a prop's six metres. Null degrades the card to
+ * scoring headlines and the grid, which is safe rather than wrong.
+ */
+export const loadHeroStats = () =>
+  getJson(`${DATA_ROOT}/models/hero-stats.json`).catch(() => null)
+
+/**
  * Per-team home and away records for one season, built by
  * scripts/build-season-stats.mjs. Absent for competitions whose archive cannot
  * support it, so the caller gets null rather than an exception.
