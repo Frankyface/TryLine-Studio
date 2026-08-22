@@ -71,9 +71,37 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     date: date ? scale(size, 46) : 0,
     time: time ? scale(size, 78) : 0,
   }
-  const stackHeight = Object.values(blocks).reduce((sum, value) => sum + value, 0) + blocks.name
-  const footerTop = box.bottom - scale(size, 120)
-  let cursor = top + Math.max(0, (footerTop - top - stackHeight) / 2)
+  const measure = () => Object.values(blocks).reduce((sum, value) => sum + value, 0) + blocks.name
+  // Drawn first so the stack is centred against where the footer ACTUALLY
+  // starts. A guessed 120px reserve left the kick-off pill - one of the two
+  // things a fixture poster exists to convey - overlapping the divider.
+  const footerTop = drawFooter(ctx, size, theme, {
+    left: [match.venue.name, match.venue.city].filter(Boolean).join(', '),
+    // The competition is already the eyebrow pill at the top; repeating its
+    // abbreviation here just printed the same thing twice.
+    right: options.handle || '',
+  })
+  // Explicit air above the footer, and the GAPS absorb any overflow.
+  //
+  // Measured, the feed stack came to 778px in 746px of space, which is why the
+  // kick-off pill sat on the divider. Hand-tuning the constants would have
+  // fixed this fixture and broken on a longer team name, since the name block
+  // is fitted to the text; shrinking the flexible gaps adapts to both.
+  const stackBottom = footerTop - scale(size, 34)
+  const available = stackBottom - top
+  const overflow = measure() - available
+  if (overflow > 0) {
+    const flexible = blocks.gapAfterCrests + blocks.gapBeforeDate + blocks.versus
+    const keep = Math.max(0.45, 1 - overflow / flexible)
+    blocks.gapAfterCrests *= keep
+    blocks.gapBeforeDate *= keep
+    blocks.versus *= keep
+    // Gaps alone cannot always cover it; the crests give up the rest.
+    const remaining = measure() - available
+    if (remaining > 0) blocks.crests = Math.max(crestBox * 0.7, blocks.crests - remaining)
+  }
+
+  let cursor = top + Math.max(0, (available - measure()) / 2)
 
   drawText(ctx, headline, box.centerX, cursor, {
     size: scale(size, 30),
@@ -87,12 +115,12 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   })
   cursor += blocks.headline
 
-  const crestY = cursor + crestBox / 2
+  const crestY = cursor + blocks.crests / 2
   const crestOffset = scale(size, isStory ? 290 : 310)
-  drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, crestBox, {
+  drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, blocks.crests, {
     ...crestFallback(theme, match.home.color || accent, match.home.abbreviation),
   })
-  drawCrest(ctx, awayCrest, box.centerX + crestOffset, crestY, crestBox, {
+  drawCrest(ctx, awayCrest, box.centerX + crestOffset, crestY, blocks.crests, {
     ...crestFallback(theme, match.away.color || accent, match.away.abbreviation),
   })
   cursor += blocks.crests + blocks.gapAfterCrests
@@ -130,8 +158,4 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     })
   }
 
-  drawFooter(ctx, size, theme, {
-    left: [match.venue.name, match.venue.city].filter(Boolean).join(', '),
-    right: options.handle || match.competition.abbreviation || '',
-  })
 }
