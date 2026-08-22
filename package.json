@@ -15,6 +15,7 @@
     "fit": "node scripts/fit-winprob.mjs",
     "reindex": "node scripts/reindex.mjs",
     "form": "node scripts/derive-form.mjs",
+    "space": "node dev/deadspace.mjs",
     "stress": "node dev/stress-labels.mjs",
     "contrast": "node dev/contrast.mjs",
     "seasons": "node scripts/build-season-stats.mjs",

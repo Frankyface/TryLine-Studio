@@ -99,6 +99,24 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     // Gaps alone cannot always cover it; the crests give up the rest.
     const remaining = measure() - available
     if (remaining > 0) blocks.crests = Math.max(crestBox * 0.7, blocks.crests - remaining)
+  } else if (overflow < 0) {
+    // The mirror case, which did not exist: a 9:16 canvas leaves 300px spare
+    // and the stack simply banked it as two voids, one above the headline and
+    // one under the kick-off pill. Measured, the story matchday was 37% inked
+    // with a 263px dead band. Spend the surplus instead - the crests first,
+    // because they are what a fixture poster is looking at, then the gaps.
+    let surplus = -overflow
+    const crestRoom = Math.min(surplus * 0.55, crestBox * 0.45)
+    blocks.crests += crestRoom
+    surplus -= crestRoom
+
+    const flexible = blocks.gapAfterCrests + blocks.gapBeforeDate + blocks.versus
+    const grow = Math.min(surplus, flexible * 0.9)
+    const factor = 1 + grow / flexible
+    blocks.gapAfterCrests *= factor
+    blocks.gapBeforeDate *= factor
+    blocks.versus *= factor
+    // Whatever is still left stays as centring air, which is what it is for.
   }
 
   let cursor = top + Math.max(0, (available - measure()) / 2)

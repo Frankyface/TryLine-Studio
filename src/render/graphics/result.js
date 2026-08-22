@@ -5,7 +5,7 @@
 import { MATCH_STATUS } from '../../data/schema.js'
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadCrestImage, fitTextSize, truncateText,
+  drawText, drawCrest, loadCrestImage, fitTextSize, inkHeight, truncateText,
   withAlpha, fillRoundRect, drawPill, crestFallback, composite, readableInk,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
@@ -29,8 +29,7 @@ const statusLabel = (match) => {
   return 'Kick off'
 }
 
-function drawScorerColumn(ctx, size, theme, { x, y, width, align, timeline, side, maxRows }) {
-  const lineHeight = scale(size, 34)
+function drawScorerColumn(ctx, size, theme, { x, y, width, align, timeline, side, maxRows, lineHeight }) {
   const rows = summariseScorers(timeline, side).slice(0, maxRows)
   let cursor = y
 
@@ -85,7 +84,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // canvas - 48% of the content box once scheduled matches started carrying a
   // null score instead of 0-0. With nothing to sit below it, the hero block
   // drops to the middle of the space instead.
-  const hasScorers = match.home.score !== null && match.away.score !== null
+  const played = match.home.score !== null && match.away.score !== null
+  const hasScorers = played
   const pillY = top + scale(size, isStory ? 96 : 8)
     + (hasScorers ? 0 : scale(size, isStory ? 300 : 190))
   const isLive = match.status === MATCH_STATUS.LIVE
@@ -100,9 +100,15 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     color: isLive ? readableInk(pillFill) : theme.inkMuted,
   })
 
-  const crestBox = scale(size, isStory ? 330 : 210)
+  // A story is not a wide graphic with bars of nothing at each end. Measured,
+  // the 9:16 result was 37% inked with a 290px dead band, because the score
+  // has to fit BETWEEN the crests - 262px of room, which caps "36-14" at
+  // roughly a 100px face on a canvas 1920 tall. Story therefore stacks into
+  // two columns, one per team, so each number owns its own width.
+  const isColumns = isStory && played
+  const crestBox = scale(size, isStory ? 300 : 210)
   const crestY = pillY + scale(size, 60) + crestBox / 2
-  const crestOffset = scale(size, isStory ? 316 : 348)
+  const crestOffset = scale(size, isColumns ? 232 : (isStory ? 316 : 348))
 
   drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, crestBox, {
     ...crestFallback(theme, match.home.color || accent, match.home.abbreviation),
@@ -111,38 +117,76 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     ...crestFallback(theme, match.away.color || accent, match.away.abbreviation),
   })
 
-  // Score, or the kick-off time when the match has not been played.
-  const played = match.home.score !== null && match.away.score !== null
-  const scoreText = played
-    ? `${match.home.score}-${match.away.score}`
-    : options.timeText || formatKickoffTime(match.kickoff, tz) || 'v'
-  const scoreSize = fitTextSize(ctx, scoreText, crestOffset * 2 - crestBox - scale(size, 40), {
-    max: scale(size, played ? (isStory ? 190 : 150) : 110), min: scale(size, 48), weight: 700,
-  })
-  drawText(ctx, scoreText, box.centerX, crestY + scoreSize * 0.36, {
-    size: scoreSize, weight: 700, color: theme.ink, align: 'center',
-  })
+  const columnWidth = scale(size, 372)
+  let nameY = crestY + crestBox / 2 + scale(size, isStory ? 92 : 62)
 
-  // Team names, sized down individually so a long club name never overflows.
-  const nameY = crestY + crestBox / 2 + scale(size, isStory ? 92 : 62)
-  const nameWidth = scale(size, 400)
-  for (const [side, x, align] of [['home', box.left, 'left'], ['away', box.right, 'right']]) {
-    const team = match[side]
-    const nameSize = fitTextSize(ctx, team.name, nameWidth, {
-      max: scale(size, 52), min: scale(size, 26), weight: 700, uppercase: true,
+  if (isColumns) {
+    // ONE size for both numbers, taken from the wider of the two: a 7 sized to
+    // its own column beside a 36 sized to its would print the losing score
+    // larger than the winning one.
+    const scores = [String(match.home.score), String(match.away.score)]
+    const scoreSize = Math.min(...scores.map((text) => fitTextSize(ctx, text, columnWidth, {
+      max: scale(size, 300), min: scale(size, 96), weight: 700,
+    })))
+    // Anchored on the BASELINE, not the top of the em box: digits carry no
+    // descender, so the baseline IS the bottom of the ink and the name below
+    // can be placed against it. Measured from a top origin instead, the names
+    // printed through the bottom of the numbers.
+    const scoreInk = Math.max(...scores.map((text) =>
+      inkHeight(ctx, text, { size: scoreSize, weight: 700 })))
+    const scoreBaseline = crestY + crestBox / 2 + scale(size, 52) + scoreInk
+
+    for (const [side, x] of [['home', box.centerX - crestOffset], ['away', box.centerX + crestOffset]]) {
+      drawText(ctx, String(match[side].score), x, scoreBaseline, {
+        size: scoreSize, weight: 700, color: theme.ink, align: 'center', baseline: 'alphabetic',
+      })
+    }
+
+    nameY = scoreBaseline + scale(size, 54)
+    for (const [side, x] of [['home', box.centerX - crestOffset], ['away', box.centerX + crestOffset]]) {
+      const team = match[side]
+      const nameSize = fitTextSize(ctx, team.name, columnWidth, {
+        max: scale(size, 48), min: scale(size, 24), weight: 700, uppercase: true,
+      })
+      drawText(ctx, team.name, x, nameY, {
+        size: nameSize, weight: 700, color: theme.ink, align: 'center', uppercase: true, tracking: 1,
+      })
+      if (team.isWinner) {
+        fillRoundRect(ctx, x - scale(size, 32), nameY + scale(size, 16),
+          scale(size, 64), scale(size, 6), 999, accent)
+      }
+    }
+  } else {
+    const scoreText = played
+      ? `${match.home.score}-${match.away.score}`
+      : options.timeText || formatKickoffTime(match.kickoff, tz) || 'v'
+    const scoreSize = fitTextSize(ctx, scoreText, crestOffset * 2 - crestBox - scale(size, 40), {
+      max: scale(size, played ? (isStory ? 190 : 150) : 110), min: scale(size, 48), weight: 700,
     })
-    drawText(ctx, team.name, x, nameY, {
-      size: nameSize, weight: 700, color: theme.ink, align, uppercase: true, tracking: 1,
+    drawText(ctx, scoreText, box.centerX, crestY + scoreSize * 0.36, {
+      size: scoreSize, weight: 700, color: theme.ink, align: 'center',
     })
-    if (team.isWinner && played) {
-      fillRoundRect(ctx, align === 'left' ? x : x - scale(size, 64), nameY + scale(size, 16),
-        scale(size, 64), scale(size, 6), 999, accent)
+
+    // Team names, sized down individually so a long club name never overflows.
+    const nameWidth = scale(size, 400)
+    for (const [side, x, align] of [['home', box.left, 'left'], ['away', box.right, 'right']]) {
+      const team = match[side]
+      const nameSize = fitTextSize(ctx, team.name, nameWidth, {
+        max: scale(size, 52), min: scale(size, 26), weight: 700, uppercase: true,
+      })
+      drawText(ctx, team.name, x, nameY, {
+        size: nameSize, weight: 700, color: theme.ink, align, uppercase: true, tracking: 1,
+      })
+      if (team.isWinner && played) {
+        fillRoundRect(ctx, align === 'left' ? x : x - scale(size, 64), nameY + scale(size, 16),
+          scale(size, 64), scale(size, 6), 999, accent)
+      }
     }
   }
 
   // Scorers, one column per side, centred in whatever space is left so the
   // graphic does not end with a band of dead canvas above the footer.
-  const lineHeight = scale(size, 34)
+  const baseLineHeight = scale(size, 34)
   const cards = played ? cardEvents(match.timeline) : []
   const blockBottom = box.bottom - scale(size, cards.length ? 150 : 110)
   const blockTop = nameY + scale(size, 54)
@@ -150,7 +194,14 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     summariseScorers(match.timeline, 'home').length,
     summariseScorers(match.timeline, 'away').length,
   )
-  const maxRows = Math.max(2, Math.floor((blockBottom - blockTop) / lineHeight))
+  const maxRows = Math.max(2, Math.floor((blockBottom - blockTop) / baseLineHeight))
+  // Rows breathe into space they would otherwise leave under themselves. Five
+  // scorers in room for eight used to centre and bank the difference as a
+  // 167px band above the footer - 15% of a feed canvas - which reads as an
+  // unfinished graphic rather than as deliberate air.
+  const lineHeight = rowsNeeded
+    ? Math.min(baseLineHeight * 1.5, Math.max(baseLineHeight, (blockBottom - blockTop) / rowsNeeded))
+    : baseLineHeight
   const blockHeight = Math.min(rowsNeeded, maxRows) * lineHeight
   // Both formats centre the block. Story used to top-align it, which simply
   // moved a third of the canvas from above the scorers to below them; the
@@ -177,11 +228,11 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     const columnWidth = scale(size, 420)
     drawScorerColumn(ctx, size, theme, {
       x: box.left, y: scorersTop, width: columnWidth, align: 'left',
-      timeline: match.timeline, side: 'home', maxRows,
+      timeline: match.timeline, side: 'home', maxRows, lineHeight,
     })
     drawScorerColumn(ctx, size, theme, {
       x: box.right, y: scorersTop, width: columnWidth, align: 'right',
-      timeline: match.timeline, side: 'away', maxRows,
+      timeline: match.timeline, side: 'away', maxRows, lineHeight,
     })
 
     if (cards.length) {

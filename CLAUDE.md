@@ -147,6 +147,29 @@ When a hero fires the shirt-number watermark is NOT drawn: a decorative 460px
 numeral beside the 400px one carrying the message read as two headlines. The
 shirt moves into the position chip.
 
+## "Letterboxed into 9:16" was true of two graphics, not of the format
+
+The note that the story format was just the feed layout letterboxed sat in the
+handoff as an opinion. `npm run space` measures it - the largest run of
+near-empty pixel rows inside the area each format is allowed to use, with the
+story's 250px safe margins excluded because those are reserved, not dead.
+
+Measured, it was true of exactly two: result (37% inked, a 290px band) and
+matchday (37%, 263px). The other nine sat at 6-10%, which is the spacing
+between sections and not a fault. Everything now sits in a 9-13% band.
+
+The result story stacks into two COLUMNS, one per team, because the score has
+to fit between the crests otherwise - 262px of room, which caps "36-14" at
+about a 100px face on a canvas 1920 tall. Both numbers take the size of the
+wider one, or a 7 beside a 36 prints the losing score larger.
+
+Matchday already shrank its stack to fit an overflow and had no branch for the
+opposite case, so a 9:16 canvas banked ~300px of surplus as two voids. It now
+spends it - crests first, then the flexible gaps.
+
+The threshold in that harness matters: at 24 every row of every graphic scores
+as inked, because the backdrop texture is drawn across all of them.
+
 ## A win-probability curve MUST end where the match ended
 
 80 of the 738 archived scoring timelines do not add up to the final score -
@@ -274,6 +297,7 @@ if it ever happens again.
 | `npm run shots` | Render every graphic to `dev/shots/` |
 | `npm run e2e` | Drive the real app in Chromium |
 | `npm run stress` | Label-collision geometry over every real match |
+| `npm run space` | Dead canvas per graphic and format |
 | `npm run contrast` | Ink contrast against the backdrop actually rendered |
 | `npm run rank` | Score every match for how worth posting it is |
 | `npm run benchmarks` | Rebuild the per-shirt stat benchmarks for the player card |
