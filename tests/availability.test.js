@@ -55,7 +55,7 @@ describe('every graphic declares what it actually needs', () => {
       away: { squad: squad({ metres: 1 }) },
     })
     expect(blockingReason(GRAPHIC_BY_ID.teamsheet, { match: benchOnly }, { side: 'home' }))
-      .toMatch(/starting xv/i)
+      .toMatch(/marked as a starter/i)
   })
 
   it('refuses a player card whose every stat is zero', () => {

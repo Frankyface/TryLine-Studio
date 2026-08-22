@@ -126,6 +126,9 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   })
 
   const starters = team.squad.filter((p) => p.isStarter).slice(0, STARTING_XV)
+  // "Starting XV" over eight names is a claim the sheet is not making. A club
+  // part-way through typing its squad gets an honest heading instead.
+  const startersLabel = starters.length === STARTING_XV ? 'Starting XV' : 'Named so far'
   const bench = team.squad.filter((p) => !p.isStarter)
 
   const listTop = top + crestBox + scale(size, 62)
@@ -138,7 +141,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     const rowHeight = (listBottom - listTop - labelGap * 2 - dividerSpace)
       / (starters.length + bench.length)
 
-    drawSectionLabel(ctx, size, theme, 'Starting XV', box.left, listTop)
+    drawSectionLabel(ctx, size, theme, startersLabel, box.left, listTop)
     let cursor = drawSquadRows(ctx, size, theme, {
       players: starters, x: box.left, y: listTop + labelGap, width: box.width, rowHeight, accent,
       showPosition: true,
@@ -161,7 +164,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     const rightX = box.left + columnWidth + gap
     const rowHeight = (listBottom - listTop - labelGap) / starters.length
 
-    drawSectionLabel(ctx, size, theme, 'Starting XV', box.left, listTop)
+    drawSectionLabel(ctx, size, theme, startersLabel, box.left, listTop)
     drawSquadRows(ctx, size, theme, {
       players: starters, x: box.left, y: listTop + labelGap, width: columnWidth, rowHeight, accent,
       showPosition: true,

@@ -11,7 +11,6 @@
 import { canPlotTeamSeason } from '../analysis/team-season.js'
 import { canPlotSeason } from '../analysis/season.js'
 import { canPlotFortress } from '../analysis/fortress.js'
-import { STARTING_XV } from '../data/schema.js'
 import { pickPlayerStats } from './format.js'
 import { timelineIsComplete, timelineTotal } from '../analysis/winprob.js'
 
@@ -125,8 +124,8 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
     // list into manual entry - produced NaN geometry and a 61% empty canvas.
     if (graphic.meta.requiresStarters
       && squads.some((squad) => !squad.some((player) => player.isStarter))) {
-      return `No player in that squad has a shirt number of ${STARTING_XV} or lower, `
-        + 'so there is no starting XV to lay out.'
+      return 'No player in that squad is marked as a starter, so there is no '
+        + 'team sheet to lay out.'
     }
 
     // Squad-level FIRST: where a whole competition has no stats, saying which
