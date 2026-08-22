@@ -52,6 +52,23 @@ and functionally on a 390x664 phone, and now covered by two e2e checks.
 - Season data goes through the schema like matches and tables do.
 - Handle, theme and chosen source persist between visits.
 
+### Measured performance, 2026-08-22
+
+Live, on a throttled phone (390x844, Fast 3G, 4x CPU): **DOMContentLoaded 2.0s,
+first graphic drawn 3.3s cold**, 45 requests. Warm reload is about 1.1s with
+everything from disk cache.
+
+The payload is dominated by fonts (90 KB) and crests (88 KB); the data itself
+is 4.4 KB because GitHub Pages gzips it - the Top 14 season file is 70 KB on
+disk and **5.4 KB on the wire**, which is why its size was left alone.
+
+Considered and NOT done: self-hosting the two Google fonts. It would remove the
+only third-party origin and save roughly 500-700ms of cold load, but it means
+matching Google's unicode-range subsetting by hand, and getting the files even
+slightly wrong shifts text metrics across all ten graphics. Worth doing as a
+focused piece of work with the label-stress and shots suites as the check, not
+as an aside.
+
 ### Open, deliberately
 
 - **Nobody has posted one of these to Instagram or eyeballed them on a phone.**
