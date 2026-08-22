@@ -239,11 +239,20 @@ basis. A scheduled fixture measures 244-395px where the demo match measures
 fixture was itself judging by one fixture. It now sweeps `--every N` matches
 and prints p50/p90/max per graphic, format and played/scheduled.
 
-Current, over the 144 matches the default `--every 8` sweeps: winprob/story
-31%, result/scheduled 26-27%, result/played 18-25%, matchday 12-16%.
-**A scheduled `result` is sparse by nature** - a pill, two crests, a time and
-two names - and `matchday` is the graphic designed for a fixture. Do not
-inflate one into the other. winprob/story has not been looked at yet.
+**Coverage is taken from what the canvas was ASKED to draw** - text ink boxes,
+crests, and fills that are not full-bleed - not from pixels. The version
+before this called a row empty when no pixel differed sharply from its
+neighbour four across, which measures EDGE DENSITY: the inside of any large
+flat fill read as empty, and winprob/story was reported with a 402px dead band
+of which all 402 rows were painted. It is the area under the curve. The first
+attempt at the fix then counted the backdrop and texture and made everything
+100% covered, so full-bleed spans in EITHER direction are excluded.
+
+Current, over the 144 matches the default `--every 8` sweeps: result/scheduled
+24-26%, result/played 17-23%, matchday 9-15%, table 11-12%, winprob 7-10%,
+everything else 3-8%. **A scheduled `result` is sparse by nature** - a pill,
+two crests, a time and two names - and `matchday` is the graphic designed for
+a fixture. Do not inflate one into the other.
 
 Both this harness and `npm run geometry` ask `blockingReason` whether the app
 would actually offer a graphic, rather than relying on `draw()` throwing. It

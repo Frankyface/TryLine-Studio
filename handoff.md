@@ -374,13 +374,18 @@ differently between the two - but correcting it nearly doubles mark overlaps
 relaxMarks to push marks further from where the team actually is. A distortion
 of position is worse than a distortion of aspect.
 
-## Open, found by the harnesses (2026-08-22)
+## The dead-space metric was measuring the wrong thing (2026-08-22)
 
-`npm run space` now sweeps every graphic through the app's own availability
-gate, and it surfaced one thing nobody has looked at: **winprob/story carries a
-402px median dead band (31% of the box)**, the worst of any graphic. It was
-invisible before because the harness measured one fixture, then two graphics.
-Not investigated yet.
+`npm run space` flagged winprob/story with a 402px dead band, the worst of any
+graphic. Investigated: **all 402 rows are painted.** It is the filled area
+under the win-probability curve, and the metric counted horizontal contrast,
+so the inside of any large flat fill scored as empty.
+
+Coverage now comes from what the canvas was asked to draw rather than from
+pixels. Corrected ranking: result/scheduled 24-26% is genuinely the sparsest,
+winprob is 7-10%, and nothing else exceeds 15%. No graphic needs work on this
+basis; the earlier "winprob needs looking at" line was an artefact of the
+tool.
 
 ## Next, in rough order
 
