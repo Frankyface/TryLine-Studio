@@ -85,9 +85,22 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // null score instead of 0-0. With nothing to sit below it, the hero block
   // drops to the middle of the space instead.
   const played = match.home.score !== null && match.away.score !== null
-  const hasScorers = played
-  const pillY = top + scale(size, isStory ? 96 : 8)
-    + (hasScorers ? 0 : scale(size, isStory ? 300 : 190))
+
+  // An unplayed fixture has no scorers, so the band reserved for them is dead
+  // canvas - 48% of the content box once scheduled matches started carrying a
+  // null score instead of 0-0. A fixed drop of 190/300px fixed that on the
+  // feed and made the story worse: it pushed the block down while leaving
+  // 466px empty above it and 432px below. The block is CENTRED instead, in
+  // the space it actually has, and on a story it grows into it.
+  const crestBox = scale(size, isStory ? (played ? 300 : 380) : 210)
+  const pillTop = top + scale(size, isStory ? 96 : 8)
+  let pillY = pillTop
+  if (!played) {
+    const blockHeight = scale(size, 44) + scale(size, 60) + crestBox
+      + scale(size, isStory ? 92 : 62) + scale(size, 52)
+    const room = (box.bottom - scale(size, 110)) - pillTop
+    pillY = pillTop + Math.max(0, (room - blockHeight) / 2)
+  }
   const isLive = match.status === MATCH_STATUS.LIVE
   const pillFill = isLive
     ? composite('#E5344A', 0.9, theme.bg)
@@ -106,7 +119,6 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // roughly a 100px face on a canvas 1920 tall. Story therefore stacks into
   // two columns, one per team, so each number owns its own width.
   const isColumns = isStory && played
-  const crestBox = scale(size, isStory ? 300 : 210)
   const crestY = pillY + scale(size, 60) + crestBox / 2
   const crestOffset = scale(size, isColumns ? 232 : (isStory ? 316 : 348))
 
@@ -160,12 +172,28 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     const scoreText = played
       ? `${match.home.score}-${match.away.score}`
       : options.timeText || formatKickoffTime(match.kickoff, tz) || 'v'
-    const scoreSize = fitTextSize(ctx, scoreText, crestOffset * 2 - crestBox - scale(size, 40), {
-      max: scale(size, played ? (isStory ? 190 : 150) : 110), min: scale(size, 48), weight: 700,
-    })
-    drawText(ctx, scoreText, box.centerX, crestY + scoreSize * 0.36, {
-      size: scoreSize, weight: 700, color: theme.ink, align: 'center',
-    })
+
+    if (isStory) {
+      // Below the crests, not between them. A kick-off time squeezed into the
+      // 212px between two story crests draws at about a 90px face, which is
+      // small for the one thing a fixture card exists to say.
+      const timeSize = fitTextSize(ctx, scoreText, box.width, {
+        max: scale(size, 200), min: scale(size, 60), weight: 700,
+      })
+      const timeBaseline = crestY + crestBox / 2 + scale(size, 40)
+        + inkHeight(ctx, scoreText, { size: timeSize, weight: 700 })
+      drawText(ctx, scoreText, box.centerX, timeBaseline, {
+        size: timeSize, weight: 700, color: theme.ink, align: 'center', baseline: 'alphabetic',
+      })
+      nameY = timeBaseline + scale(size, 84)
+    } else {
+      const scoreSize = fitTextSize(ctx, scoreText, crestOffset * 2 - crestBox - scale(size, 40), {
+        max: scale(size, played ? 150 : 110), min: scale(size, 48), weight: 700,
+      })
+      drawText(ctx, scoreText, box.centerX, crestY + scoreSize * 0.36, {
+        size: scoreSize, weight: 700, color: theme.ink, align: 'center',
+      })
+    }
 
     // Team names, sized down individually so a long club name never overflows.
     const nameWidth = scale(size, 400)
@@ -189,7 +217,12 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const baseLineHeight = scale(size, 34)
   const cards = played ? cardEvents(match.timeline) : []
   const blockBottom = box.bottom - scale(size, cards.length ? 150 : 110)
-  const blockTop = nameY + scale(size, 54)
+  // The SCORERS header is drawn ABOVE the first row, so the block has to
+  // reserve room for it. It did not: when the rows fill the space there is no
+  // centring slack left to absorb it, and on Northampton 94-33 Bristol - nine
+  // scorers - the header printed across the winner's underline.
+  const headerRoom = scale(size, 34)
+  const blockTop = nameY + scale(size, 54) + headerRoom
   const rowsNeeded = Math.max(
     summariseScorers(match.timeline, 'home').length,
     summariseScorers(match.timeline, 'away').length,
