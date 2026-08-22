@@ -141,6 +141,9 @@ export function truncateText(ctx, text, maxWidth, options = {}) {
 }
 
 /** Fill the canvas with the theme base plus a soft directional wash. */
+/** Strength of the accent glow at its centre, where content sits. */
+export const GLOW_ALPHA = 0.16
+
 export function drawBackdrop(ctx, size, theme, accent) {
   const { width, height } = size
   ctx.fillStyle = theme.bg
@@ -158,7 +161,7 @@ export function drawBackdrop(ctx, size, theme, accent) {
       width * 0.5, height * 0.34, 0,
       width * 0.5, height * 0.34, width * 0.72,
     )
-    glow.addColorStop(0, withAlpha(accent, 0.16))
+    glow.addColorStop(0, withAlpha(accent, GLOW_ALPHA))
     glow.addColorStop(1, withAlpha(accent, 0))
     ctx.fillStyle = glow
     ctx.fillRect(0, 0, width, height)
@@ -411,6 +414,18 @@ export function contrastAccent(color, background, { minRatio = 3.5, fallback } =
     if (contrastRatio(candidate, background) >= minRatio) return candidate
   }
   return fallback || toHex(current)
+}
+
+/**
+ * What a graphic is ACTUALLY drawn on, at the brightest part of the glow.
+ *
+ * Every contrast fault in this project has come from measuring against
+ * `theme.bg`, which nothing ever touches. The backdrop is a wash from bgAlt
+ * through bg and back, with a 16% accent glow over the middle of the canvas -
+ * which is exactly where content goes. Measure against this, not the token.
+ */
+export function pageSurface(theme, accent) {
+  return composite(accent || theme.accent, GLOW_ALPHA, theme.bgAlt || theme.bg)
 }
 
 /**

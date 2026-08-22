@@ -5,7 +5,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider,
-  crestFallback, contrastAccent, composite,
+  crestFallback, contrastAccent, composite, pageSurface,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formLetters } from '../format.js'
@@ -42,8 +42,7 @@ const formColor = (letter, theme) => {
  * across the canvas, so this takes the darker-contrast end of the range.
  */
 function rowBand(theme) {
-  const glowed = composite(theme.accent, 0.16, theme.bgAlt || theme.bg)
-  return composite(theme.ink, 0.04, glowed)
+  return composite(theme.ink, 0.04, pageSurface(theme))
 }
 
 /** Column layout as fractions of the content width, so both formats share it. */

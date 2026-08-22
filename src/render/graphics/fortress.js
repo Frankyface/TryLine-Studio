@@ -9,6 +9,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, truncateText, crestFallback,
+  pageSurface,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { canPlotFortress, fortressRows, fortressHighlights, formatRate } from '../../analysis/fortress.js'
@@ -34,9 +35,9 @@ function drawEnd(ctx, x, y, radius, { accent, theme, hollow, ringWidth }) {
   ctx.beginPath()
   ctx.arc(x, y, radius, 0, Math.PI * 2)
   if (hollow) {
-    // Punched out of the page rather than the connector, so the ring reads as
-    // an outline instead of a disc sitting on a line.
-    ctx.fillStyle = theme.bg
+    // Punched out with the colour actually under it, not theme.bg - over the
+    // accent glow, a bg-filled hole reads as a faint disc rather than a hole.
+    ctx.fillStyle = pageSurface(theme, accent)
     ctx.fill()
     ctx.strokeStyle = accent
     ctx.lineWidth = ringWidth

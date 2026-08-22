@@ -98,8 +98,7 @@ const marks = await page.evaluate(async () => {
 
   for (const theme of Object.values(THEMES)) {
     // What a striped table row looks like once wash, glow and band composite.
-    const glow = P.composite(theme.accent, 0.16, theme.bgAlt || theme.bg)
-    const band = P.composite(theme.ink, 0.04, glow)
+    const band = P.composite(theme.ink, 0.04, P.pageSurface(theme))
     const accent = P.contrastAccent(theme.accent, theme.bg, { fallback: theme.accent })
 
     const add = (mark, colour, against, floor) => rows.push({
@@ -123,11 +122,13 @@ const marks = await page.evaluate(async () => {
     const loss = S.distinctFrom(
       P.contrastAccent('#E5484D', theme.bg, { fallback: theme.inkMuted }), win,
     )
-    add('season win', win, theme.bg, 3)
-    add('season loss', loss, theme.bg, 3)
+    const surface = P.pageSurface(theme, accent)
+    add('season win', win, surface, 3)
+    add('season loss', loss, surface, 3)
+    add('season draw', P.contrastAccent(theme.inkMuted, surface, { minRatio: 3, fallback: theme.ink }), surface, 3)
 
     // The eyebrow pill's own label, on the pill rather than the page.
-    const pill = P.composite(accent, 0.16, theme.bg)
+    const pill = P.composite(accent, 0.16, P.pageSurface(theme, accent))
     add('eyebrow pill', P.contrastAccent(accent, pill, {
       minRatio: 4.5, fallback: P.readableInk(pill),
     }), pill, 4.5)

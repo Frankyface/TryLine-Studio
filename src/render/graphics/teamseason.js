@@ -13,7 +13,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, crestFallback,
-  contrastAccent, truncateText, measureText, fitTextSize,
+  contrastAccent, truncateText, measureText, fitTextSize, pageSurface,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { uniqueTeamLabels } from '../format.js'
@@ -164,7 +164,11 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
     winColour,
     LOSS_PALETTE,
   )
-  const drawColour = withAlpha(theme.ink, 0.45)
+  // A drawn match is a result, so its bar has to read like one. At 45% ink it
+  // measured 2.88:1 on the light theme.
+  const drawColour = contrastAccent(theme.inkMuted, pageSurface(theme, accent), {
+    minRatio: 3, fallback: theme.ink,
+  })
 
   // Deduped first: a club plays most opponents twice, and counting the same
   // abbreviation once per fixture would make every one of them look shared and

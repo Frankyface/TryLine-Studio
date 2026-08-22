@@ -5,7 +5,7 @@
 import { STORY_SAFE_TOP, STORY_SAFE_BOTTOM, FONTS, scale } from './theme.js'
 import {
   drawBackdrop, drawTexture, drawText, drawPill, drawDivider, withAlpha, contrastAccent,
-  measureText, truncateText, composite, readableInk,
+  measureText, truncateText, composite, readableInk, pageSurface,
 } from './primitives.js'
 
 /**
@@ -44,13 +44,13 @@ export function drawFrame(ctx, size, theme, { accent } = {}) {
   ctx.fillRect(0, 0, scale(size, 10), size.height)
 }
 
+/** How strongly the eyebrow pill tints the page behind its own label. */
+const PILL_TINT = 0.16
+
 /**
  * Eyebrow: competition pill on the left, optional round/status on the right.
  * Returns the y coordinate where content can start.
  */
-/** How strongly the eyebrow pill tints the page behind its own label. */
-const PILL_TINT = 0.16
-
 export function drawEyebrow(ctx, size, theme, { label, meta, accent } = {}) {
   const box = contentBox(size)
   const height = scale(size, 48)
@@ -60,7 +60,10 @@ export function drawEyebrow(ctx, size, theme, { label, meta, accent } = {}) {
     // against the page it looked fine while reading 2.56:1 where it actually
     // sat - and this pill is on all ten graphics.
     const base = accent || theme.accent
-    const pillFill = composite(base, PILL_TINT, theme.bg)
+    // Over the glowed surface, not over flat bg - the same correction the form
+    // dots needed. Measured against bg, 19 of 40 theme/graphic combinations
+    // missed the 4.5:1 this very call asks for.
+    const pillFill = composite(base, PILL_TINT, pageSurface(theme, base))
     drawPill(ctx, label, box.left, box.top, {
       size: scale(size, 22),
       height,

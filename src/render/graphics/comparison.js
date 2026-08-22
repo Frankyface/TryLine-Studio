@@ -12,7 +12,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, crestFallback,
-  composite, contrastAccent,
+  composite, contrastAccent, pageSurface,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import {
@@ -170,7 +170,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // colour chosen against the page measured 1.37:1 against the band on the
   // light theme. The pair is re-separated afterwards because moving both
   // toward readable can move them toward each other.
-  const band = composite(theme.ink, 0.04, composite(theme.accent, 0.16, theme.bgAlt || theme.bg))
+  const band = composite(theme.ink, 0.04, pageSurface(theme))
   const raw = seriesColours(theme, { home: match.home, away: match.away })
   const readable = (colour) => contrastAccent(colour, band, { minRatio: 3.2, fallback: theme.ink })
   // Separate FIRST, then lift both clear of the band. Doing it the other way

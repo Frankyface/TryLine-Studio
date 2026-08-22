@@ -36,9 +36,15 @@ content sits. Measured where they land, the inks were 2.93-3.52 - twelve
 token. Same trap caught the eyebrow pill, whose own tint lifts the background
 under its own label.
 
+`pageSurface(theme, accent)` is the one place that knows what a graphic is
+actually drawn on. Use it - every contrast fault in this project has come from
+measuring against `theme.bg`, which nothing ever touches.
+
 `npm run contrast` renders the real backdrop, samples it, and fails under
-4.5:1 or if the three ink tokens collapse into one. It is part of `npm run
-verify`.
+4.5:1 for the ink tokens or 3:1 for the data marks, or if the three ink tokens
+collapse into one. It covers the marks as well as the text BECAUSE it once did
+not: four separate mark faults shipped under a green verify while it checked
+only the three inks.
 
 ## CSS source order is a live trap in this file
 
