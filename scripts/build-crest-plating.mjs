@@ -86,6 +86,10 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
   const DEAD_CELL = 0.15
   const LIVE_CELL = 0.25
   const BAR = 1.5
+  /** Dead pixels in a cell before it counts, so antialiasing is not a hole. */
+  const MIN_CELL_INK = 3
+  /** A blank component must fill this much of its own bounding box. */
+  const MIN_FILL = 0.45
 
   const load = (src) => new Promise((resolve) => {
     const image = new Image()
@@ -99,19 +103,28 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
   canvas.height = BOX
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
 
-  /** Composite a crest pixel over the page and ask if it survives. */
-  const score = (image, surfaceRgb, plateFill) => {
+  /**
+   * The crest's pixels, drawn ONCE with no plate.
+   *
+   * The plated pass used to redraw the crest on top of an opaque plate, which
+   * made every pixel in the box count as ink - so "exposed" ink could only be
+   * found at the canvas rim, and the gate that was meant to reject a useless
+   * plate measured a 6px border instead. 415 of 480 pairs returned the exact
+   * same number, 0.0784, which is precisely that border's share of the box.
+   * The mask is taken from the crest alone and reused for both surfaces; only
+   * what sits BEHIND the crest changes between them.
+   */
+  const pixelsOf = (image) => {
     ctx.clearRect(0, 0, BOX, BOX)
-    if (plateFill) {
-      ctx.fillStyle = plateFill
-      ctx.fillRect(0, 0, BOX, BOX)
-    }
     const ratio = Math.min(BOX / image.width, BOX / image.height)
     const width = image.width * ratio
     const height = image.height * ratio
     ctx.drawImage(image, (BOX - width) / 2, (BOX - height) / 2, width, height)
-    const { data } = ctx.getImageData(0, 0, BOX, BOX)
+    return ctx.getImageData(0, 0, BOX, BOX).data
+  }
 
+  /** Composite a crest pixel over the page and ask if it survives. */
+  const score = (data, surfaceRgb) => {
     const isInk = new Uint8Array(BOX * BOX)
     const isDead = new Uint8Array(BOX * BOX)
     let ink = 0
@@ -178,7 +191,19 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
         if (!cellInk) continue
         const cell = cy * CELLS + cx
         cellDeadArea[cell] = cellDead
-        if (cellDead / (step * step) >= DEAD_CELL && cellLive / cellInk < LIVE_CELL) blank[cell] = 1
+        /**
+         * Measured against the cell's own INK, not against its area.
+         *
+         * Against area, thin line-art can never qualify however invisible it
+         * is - Glasgow Warriors is 9,503 ink pixels in a 90,000-pixel box, so
+         * no cell of it ever reaches 15% dead COVERAGE, and it scored 0.009
+         * while 42% of its exposed ink was dying against the page. Thin
+         * strokes are the first thing to vanish, so a measure that structurally
+         * cannot see them is backwards. A small absolute floor keeps stray
+         * antialiasing from counting as a lost cell.
+         */
+        if (cellDead >= MIN_CELL_INK && cellDead / cellInk >= DEAD_CELL
+          && cellLive / cellInk < LIVE_CELL) blank[cell] = 1
       }
     }
 
@@ -191,11 +216,21 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
       const stack = [start]
       seen[start] = 1
       let area = 0
+      let cells = 0
+      let minX = CELLS
+      let maxX = 0
+      let minY = CELLS
+      let maxY = 0
       while (stack.length) {
         const cell = stack.pop()
         area += cellDeadArea[cell]
+        cells += 1
         const cy = Math.floor(cell / CELLS)
         const cx = cell % CELLS
+        if (cx < minX) minX = cx
+        if (cx > maxX) maxX = cx
+        if (cy < minY) minY = cy
+        if (cy > maxY) maxY = cy
         for (let dy = -1; dy <= 1; dy += 1) {
           for (let dx = -1; dx <= 1; dx += 1) {
             const ny = cy + dy
@@ -206,7 +241,18 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
           }
         }
       }
-      if (area > largest) largest = area
+      /**
+       * A RING is not a missing wordmark.
+       *
+       * The three national flags and Northampton Saints were plated because
+       * their largest blank component is the crest's own dark outline - a rim
+       * one cell thick around the whole badge, which reads as a shaped crest
+       * rather than a lost one. A wordmark fills most of its bounding box; a
+       * rim fills almost none of it.
+       */
+      const spread = (maxX - minX + 1) * (maxY - minY + 1)
+      const filled = cells / Math.max(1, spread)
+      if (filled >= MIN_FILL && area > largest) largest = area
     }
     /**
      * Against TOTAL ink. Dividing by exposed ink instead was tried, to stop a
@@ -249,7 +295,8 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
         out.push({ id: file.id, theme: theme.id, blankArea: 0, platedDead: null, plate: false })
         continue
       }
-      const bare = score(image, surfaceRgb, null)
+      const pixels = pixelsOf(image)
+      const bare = score(pixels, surfaceRgb)
       const needs = bare.blankArea >= threshold
       // The gate: only plate when the crest actually survives ON the plate.
       //
@@ -261,7 +308,8 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
       const plateOver = light
         ? composite('#0B1220', 0.42, surface)
         : composite('#FFFFFF', 0.92, surface)
-      const plated = needs ? score(image, toRgb(plateOver), plateFill) : null
+      // Same crest, different thing behind it - which is what a plate IS.
+      const plated = needs ? score(pixels, toRgb(plateOver)) : null
       out.push({
         id: file.id,
         theme: theme.id,
@@ -295,7 +343,7 @@ const names = existsSync(join(dataDir, 'models', 'team-colours.json'))
   ? JSON.parse(readFileSync(join(dataDir, 'models', 'team-colours.json'), 'utf8')).colours
   : {}
 // Named crests, so a threshold can be argued about with numbers.
-const WATCH = ['25926', '25951', '25932', '25920', '25907']
+const WATCH = ['25926', '25951', '3', '99855', '6', 'aus', 'cro', 'mex', '25907']
 for (const id of WATCH) {
   const mine = rows.filter((row) => row.id === id && row.theme === 'midnight')[0]
   if (mine) {
