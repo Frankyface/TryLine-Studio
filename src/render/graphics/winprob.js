@@ -10,7 +10,9 @@ import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, truncateText, crestFallback,
   contrastAccent, measureText, pageSurface,
 } from '../primitives.js'
-import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
+import {
+  contentBox, drawFrame, drawEyebrow, drawFooter, drawHeadline, headlineLayout, resolveAccent,
+} from '../frame.js'
 import {
   buildWinProbabilityCurve, keyMoments, FULL_TIME, DEFAULT_MODEL,
 } from '../../analysis/winprob.js'
@@ -195,19 +197,21 @@ function drawTeamRow(ctx, size, theme, { team, crest, colour, y, box, align }) {
  * accounted for; a constant height left a quarter of the story blank on the
  * 62% of matches that get no caption.
  */
-export function winprobLayout(size, { showCaption = false } = {}) {
+export function winprobLayout(size, { showCaption = false, headlineHeight = 0 } = {}) {
   const box = contentBox(size)
   const isStory = size.height > size.width
   const top = box.top + scale(size, 48) + scale(size, 34)
 
-  const chartTop = top + scale(size, isStory ? 126 : 92)
+  // The headline is now variable - it wraps to one or two lines depending on
+  // the sentence - so the chart starts below whatever it measured.
+  const chartTop = top + (headlineHeight || scale(size, isStory ? 126 : 92))
   const captionSpace = scale(size, isStory ? 88 : 70)
   const footerTop = box.bottom - scale(size, 60)
   const teamRowSpace = scale(size, isStory ? 104 : 78) + scale(size, 74)
   const axisSpace = scale(size, 44)
   const chartHeight = Math.max(
     scale(size, 260),
-    footerTop - chartTop - axisSpace - teamRowSpace - (showCaption ? captionSpace : 0),
+    footerTop - chartTop - axisSpace - teamRowSpace,
   )
   const gutter = scale(size, 66)
 
@@ -269,9 +273,16 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     accent,
   })
 
-  drawText(ctx, options.headline || 'Win probability', box.left, top + scale(size, 42), {
-    size: scale(size, 58), weight: 700, color: theme.ink, uppercase: true, tracking: 1,
-  })
+  const finding = showCaption && lowest
+    ? `${(homeWon ? match.home : match.away).shortName} were down to `
+      + `${Math.round(lowest.chance * 100)}% at ${lowest.minute}'`
+    : ''
+  const headline = { finding, category: options.headline || 'Win probability' }
+  // Room kept for the scoreline on the right, so a long sentence wraps rather
+  // than running underneath it.
+  const headlineWidth = box.width - scale(size, 150)
+  const headlineTop = top + scale(size, 6)
+  drawHeadline(ctx, size, theme, { ...headline, top: headlineTop, width: headlineWidth })
 
   const [homeCrest, awayCrest] = await Promise.all([
     loadCrestImage(match.home.logo, scale(size, 58)),
@@ -280,12 +291,14 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
 
   // Final score, large, on the right of the title.
   if (played) {
-    drawText(ctx, `${match.home.score}-${match.away.score}`, box.right, top + scale(size, 42), {
+    drawText(ctx, `${match.home.score}-${match.away.score}`, box.right, top + scale(size, 22), {
       size: scale(size, 58), weight: 700, color: theme.ink, align: 'right',
     })
   }
 
-  const layout = winprobLayout(size, { showCaption })
+  const headlineHeight = scale(size, 6)
+    + headlineLayout(ctx, size, { ...headline, width: headlineWidth }).height
+  const layout = winprobLayout(size, { showCaption, headlineHeight })
   const { plot, captionSpace } = layout
 
   // Y axis: who the top and bottom of the chart belong to.
@@ -322,19 +335,6 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   drawTeamRow(ctx, size, theme, {
     team: match.away, crest: awayCrest, colour: colours.away, y: rowsTop, box, align: 'right',
   })
-
-  if (showCaption) {
-    const winner = homeWon ? match.home : match.away
-    const line = `${winner.shortName} were down to ${Math.round(lowest.chance * 100)}% at ${lowest.minute}'`
-    drawText(ctx, line, box.centerX, rowsTop + captionSpace, {
-      size: scale(size, 26),
-      weight: 600,
-      family: FONTS.body,
-      color: theme.inkMuted,
-      align: 'center',
-      baseline: 'middle',
-    })
-  }
 
   const provenance = model.matches
     ? `Model fitted on ${model.matches} matches`

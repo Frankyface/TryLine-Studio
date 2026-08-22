@@ -97,6 +97,89 @@ export function drawEyebrow(ctx, size, theme, { label, meta, accent } = {}) {
 }
 
 /**
+ * The finding as the headline, with the chart's category demoted to a kicker.
+ *
+ * Every chart in this app computes its own finding - "Newcastle were down to
+ * 2% at 66'", "Pau win 92% at home and 31% away" - and every one of them used
+ * to set that in small muted type at the bottom, under a category name like
+ * "WIN PROBABILITY" at 58px. Nobody stops scrolling for the words WIN
+ * PROBABILITY. The chart's job is to prove a claim, so the claim goes first.
+ *
+ * Falls back to the category as the headline when there is no finding, which
+ * is the old layout and still perfectly readable - a chart with nothing
+ * remarkable to say should not pretend otherwise.
+ *
+ * Returns the y where the chart can start.
+ */
+const HEADLINE_MAX_LINES = 2
+
+/**
+ * Fit the headline without drawing it, so a layout can reserve the right
+ * height before anything is painted. Both this and drawHeadline go through
+ * here, so the space reserved is always the space used.
+ */
+export function headlineLayout(ctx, size, { finding, category, width } = {}) {
+  const box = contentBox(size)
+  const isStory = size.height > size.width
+  const available = width || box.width
+  const headline = finding || category || ''
+  const kicker = finding && category ? scale(size, isStory ? 46 : 40) : 0
+
+  if (!headline) return { height: kicker, lines: [], fontSize: 0, kicker }
+
+  const fit = (fontSize) => {
+    const options = {
+      size: fontSize, weight: 700, family: FONTS.display, uppercase: true, tracking: 1,
+    }
+    const lines = ['']
+    for (const word of headline.split(' ')) {
+      const candidate = lines.at(-1) ? `${lines.at(-1)} ${word}` : word
+      if (measureText(ctx, candidate, options) > available && lines.at(-1)) lines.push(word)
+      else lines[lines.length - 1] = candidate
+    }
+    return lines
+  }
+
+  let fontSize = scale(size, isStory ? 74 : 62)
+  let lines = fit(fontSize)
+  while (lines.length > HEADLINE_MAX_LINES && fontSize > scale(size, 30)) {
+    fontSize -= scale(size, 2)
+    lines = fit(fontSize)
+  }
+  lines = lines.slice(0, HEADLINE_MAX_LINES)
+
+  const lineHeight = fontSize * 1.06
+  return { height: kicker + lines.length * lineHeight + scale(size, 16), lines, fontSize, kicker }
+}
+
+export function drawHeadline(ctx, size, theme, { finding, category, top, width } = {}) {
+  const box = contentBox(size)
+  const isStory = size.height > size.width
+  const laid = headlineLayout(ctx, size, { finding, category, width })
+  let cursor = top
+
+  // Both drawn from the TOP, so the kicker cannot sit under the first line of
+  // the headline - with a baseline origin a 62px headline reaches back up past
+  // a kicker 20px above it, and the two overprinted.
+  if (laid.kicker) {
+    drawText(ctx, category, box.left, cursor, {
+      size: scale(size, isStory ? 24 : 21), weight: 700, family: FONTS.body,
+      color: theme.inkFaint, uppercase: true, tracking: 4, baseline: 'top',
+    })
+    cursor += laid.kicker
+  }
+
+  const lineHeight = laid.fontSize * 1.06
+  laid.lines.forEach((line, index) => {
+    drawText(ctx, line, box.left, cursor + index * lineHeight, {
+      size: laid.fontSize, weight: 700, family: FONTS.display,
+      uppercase: true, tracking: 1, color: theme.ink, baseline: 'top',
+    })
+  })
+  return top + laid.height
+}
+
+/**
  * Footer: hairline, left credit, right handle.
  * The right-hand text wins the space; the left is truncated to fit beside it,
  * because a long venue name or column legend would otherwise run underneath it.
