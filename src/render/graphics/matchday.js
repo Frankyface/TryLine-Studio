@@ -58,8 +58,10 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // Measure the stack first, then centre it in the space between eyebrow and footer.
   const crestBox = scale(size, isStory ? 300 : 240)
   const nameSize = Math.min(
-    fitTextSize(ctx, match.home.name, box.width, { max: scale(size, 82), min: scale(size, 34), weight: 700, uppercase: true }),
-    fitTextSize(ctx, match.away.name, box.width, { max: scale(size, 82), min: scale(size, 34), weight: 700, uppercase: true }),
+    // Measured with the tracking they are drawn with, or the fit is short by
+    // a pixel a letter and a long club name overruns the box.
+    fitTextSize(ctx, match.home.name, box.width, { max: scale(size, 82), min: scale(size, 34), weight: 700, uppercase: true, tracking: 1 }),
+    fitTextSize(ctx, match.away.name, box.width, { max: scale(size, 82), min: scale(size, 34), weight: 700, uppercase: true, tracking: 1 }),
   )
   const blocks = {
     headline: scale(size, 30) + scale(size, 46),

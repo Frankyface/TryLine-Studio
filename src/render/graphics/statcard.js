@@ -121,8 +121,11 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
       size: scale(size, 42), weight: 500, color: theme.inkMuted, uppercase: true, tracking: 4,
     })
   }
+  // Fitted WITH the tracking it is drawn with. Without it the measurement is
+  // short by a pixel per letter, and Feinberg-Mngomezulu and Champion de
+  // Crespigny drew past the right edge of the content box.
   const surnameSize = fitTextSize(ctx, surname, box.width, {
-    max: scale(size, 108), min: scale(size, 44), weight: 700, uppercase: true,
+    max: scale(size, 108), min: scale(size, 44), weight: 700, uppercase: true, tracking: 1,
   })
   // Leading set from the surname's own size rather than a fixed 74: at the
   // largest fitted size the two names' boxes overlapped by 3px, which is tight

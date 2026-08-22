@@ -158,7 +158,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     for (const [side, x] of [['home', box.centerX - crestOffset], ['away', box.centerX + crestOffset]]) {
       const team = match[side]
       const nameSize = fitTextSize(ctx, team.name, columnWidth, {
-        max: scale(size, 48), min: scale(size, 24), weight: 700, uppercase: true,
+        max: scale(size, 48), min: scale(size, 24), weight: 700, uppercase: true, tracking: 1,
       })
       drawText(ctx, team.name, x, nameY, {
         size: nameSize, weight: 700, color: theme.ink, align: 'center', uppercase: true, tracking: 1,
@@ -200,7 +200,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     for (const [side, x, align] of [['home', box.left, 'left'], ['away', box.right, 'right']]) {
       const team = match[side]
       const nameSize = fitTextSize(ctx, team.name, nameWidth, {
-        max: scale(size, 52), min: scale(size, 26), weight: 700, uppercase: true,
+        max: scale(size, 52), min: scale(size, 26), weight: 700, uppercase: true, tracking: 1,
       })
       drawText(ctx, team.name, x, nameY, {
         size: nameSize, weight: 700, color: theme.ink, align, uppercase: true, tracking: 1,
