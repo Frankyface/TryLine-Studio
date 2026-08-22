@@ -11,6 +11,7 @@ import {
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate, formatKickoffTime } from '../format.js'
+import { worldKickoffLine } from '../kickoffs.js'
 
 export const meta = Object.freeze({
   id: 'matchday',
@@ -49,6 +50,11 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const headline = options.headline || 'Matchday'
   const date = options.dateText || formatMatchDate(match.kickoff, tz)
   const time = options.timeText ?? formatKickoffTime(match.kickoff, tz)
+  // A fixture card is read in more than one country. The pill keeps the time
+  // where the match is; these are the same moment elsewhere.
+  const worldLine = options.worldClocks === false
+    ? ''
+    : worldKickoffLine(match.kickoff, tz.timeZone)
 
   // Measure the stack first, then centre it in the space between eyebrow and footer.
   const crestBox = scale(size, isStory ? 300 : 240)
@@ -67,6 +73,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     gapBeforeDate: scale(size, isStory ? 86 : 62),
     date: date ? scale(size, 46) : 0,
     time: time ? scale(size, 78) : 0,
+    // The other zones sit under the pill, and only when there are any.
+    world: time && worldLine ? scale(size, 44) : 0,
   }
   const measure = () => Object.values(blocks).reduce((sum, value) => sum + value, 0) + blocks.name
   // Drawn first so the stack is centred against where the footer ACTUALLY
@@ -150,10 +158,12 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const crestY = cursor + blocks.crests / 2
   const crestOffset = scale(size, isStory ? 290 : 310)
   drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, blocks.crests, {
-    ...crestFallback(theme, match.home.color || accent, match.home.abbreviation),
+    ...crestFallback(theme, match.home.color || accent, match.home.abbreviation,
+      { logo: match.home.logo }),
   })
   drawCrest(ctx, awayCrest, box.centerX + crestOffset, crestY, blocks.crests, {
-    ...crestFallback(theme, match.away.color || accent, match.away.abbreviation),
+    ...crestFallback(theme, match.away.color || accent, match.away.abbreviation,
+      { logo: match.away.logo }),
   })
   cursor += blocks.crests + blocks.gapAfterCrests
 
@@ -188,6 +198,12 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
       fill: withAlpha(accent, 0.16),
       color: contrastAccent(accent, pillFill, { minRatio: 4.5, fallback: readableInk(pillFill) }),
     })
+    if (worldLine) {
+      drawText(ctx, worldLine, box.centerX, cursor + scale(size, 56) + scale(size, 26), {
+        size: scale(size, 22), weight: 600, family: FONTS.body,
+        color: theme.inkFaint, align: 'center', baseline: 'middle', tracking: 2, uppercase: true,
+      })
+    }
   }
 
 }

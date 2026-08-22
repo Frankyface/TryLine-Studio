@@ -6,9 +6,10 @@
  */
 import {
   loadCatalog, loadCompetition, loadMatch, loadTable, loadModel, loadSeason, loadHeroStats,
-  loadTeamColours,
+  loadTeamColours, loadCrestPlating,
 } from './data/client.js'
 import { TIME_ZONES, LOCAL_ZONE, zoneForCompetition, resolveZone } from './data/timezones.js'
+import { zoneForVenue } from './data/venue-zones.js'
 import { buildManualMatch, parseSquadText, parseTableText } from './data/manual.js'
 import { readCrestFile } from './data/crest.js'
 import { loadManualState, saveManualState, clearManualState, PERSISTED_FIELDS } from './data/manual-store.js'
@@ -17,6 +18,7 @@ import { SIZES, THEME_LIST, THEMES } from './render/theme.js'
 import { GRAPHICS, GRAPHIC_BY_ID, renderGraphic } from './render/index.js'
 import { exportOne, exportSet } from './export/png.js'
 import { blockingReason, usesSide } from './render/availability.js'
+import { setCrestPlating } from './render/primitives.js'
 import { teamsWithTimeline } from './analysis/team-season.js'
 import { byDrama } from './analysis/notable.js'
 import { formatMatchDate } from './render/format.js'
@@ -146,6 +148,24 @@ function syncAccentChoices() {
   }
 }
 
+/**
+ * The zone the main kick-off time is told in.
+ *
+ * Where the MATCH is, not where the competition's audience is. The URC spans
+ * Ireland, Wales, Scotland, Italy and South Africa, so a Stormers home game in
+ * Cape Town was announced in London time. The venue city gives the real answer
+ * for all 1,076 archived matches that carry one; anything else falls back to
+ * the competition default rather than guessing.
+ *
+ * A zone the user picked themselves always wins - that is what the control is
+ * for.
+ */
+function mainZone() {
+  const picked = resolveZone($('timezone').value)
+  if ($('timezone').dataset.touched) return picked
+  return zoneForVenue(state.match?.venue) || picked
+}
+
 function currentOptions() {
   const timeText = $('time-text').value.trim()
   return {
@@ -156,7 +176,7 @@ function currentOptions() {
     playerB: opposingPlayer(),
     accent: chosenAccent(),
     handle: $('handle').value.trim(),
-    timeZone: resolveZone($('timezone').value),
+    timeZone: mainZone(),
     model: state.model,
     heroStats: state.heroStats,
     dateText: $('date-text').value.trim() || undefined,
@@ -794,9 +814,11 @@ async function start() {
   ]).then(() => document.fonts.ready).catch(() => null)
 
   try {
-    const [catalog, model, heroStats, teamColours] = await Promise.all([
-      loadCatalog(), loadModel(), loadHeroStats(), loadTeamColours(),
+    const [catalog, model, heroStats, teamColours, plating] = await Promise.all([
+      loadCatalog(), loadModel(), loadHeroStats(), loadTeamColours(), loadCrestPlating(),
     ])
+    // Before the first render, or the first card drawn uses the old rule.
+    setCrestPlating(plating)
     // The first render must still wait, or it measures the fallback face.
     await fontsReady
     state = Object.freeze({ ...state, model, heroStats, teamColours })

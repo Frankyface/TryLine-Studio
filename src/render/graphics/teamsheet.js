@@ -115,7 +115,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const crestBox = scale(size, isStory ? 150 : 128)
   const crestInset = 0
   drawCrest(ctx, crest, box.left + crestInset + crestBox / 2, top + crestBox / 2, crestBox, {
-    ...crestFallback(theme, accent, team.abbreviation),
+    ...crestFallback(theme, accent, team.abbreviation, { logo: team.logo }),
   })
 
   const headX = box.left + crestInset + crestBox + scale(size, 30)

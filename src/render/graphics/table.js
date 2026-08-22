@@ -137,7 +137,7 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
       size: valueSize, weight: 700, color: theme.inkMuted, align: 'right', baseline: 'middle',
     })
     drawCrest(ctx, crests[index], box.left + scale(size, 52), middle, crestBox, {
-      ...crestFallback(theme, accent, row.team.abbreviation),
+      ...crestFallback(theme, accent, row.team.abbreviation, { logo: row.team.logo }),
     })
 
     const nameOptions = { size: valueSize, weight: 600, family: FONTS.body }

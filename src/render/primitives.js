@@ -284,11 +284,18 @@ export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
       // crest needs rescuing, and on a light page only a very pale one. A
       // symmetric test plated most crests on chalk while missing near-black
       // on midnight. The thresholds are tuned against the real crest set.
-      const crestLuminance = imageLuminance(image)
-      const pageIsDark = fallback.plate.pageLuminance < 0.5
-      const tooDark = fallback.plate.tooDark ?? CREST_TOO_DARK
-      const tooPale = fallback.plate.tooPale ?? CREST_TOO_PALE
-      const vanishes = pageIsDark ? crestLuminance < tooDark : crestLuminance > tooPale
+      // The precomputed answer where there is one, the old mean-luminance
+      // test where there is not.
+      let vanishes
+      if (fallback.plate.decided !== undefined) {
+        vanishes = fallback.plate.decided
+      } else {
+        const crestLuminance = imageLuminance(image)
+        const pageIsDark = fallback.plate.pageLuminance < 0.5
+        const tooDark = fallback.plate.tooDark ?? CREST_TOO_DARK
+        const tooPale = fallback.plate.tooPale ?? CREST_TOO_PALE
+        vanishes = pageIsDark ? crestLuminance < tooDark : crestLuminance > tooPale
+      }
       const padding = box * 0.06
       if (vanishes) {
         // Shaped to the image, not to a circle. drawContained fits the crest
@@ -345,8 +352,22 @@ export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
  * Fallback styling for a missing crest, tuned to the theme so the monogram is
  * visible on a light page as well as a dark one.
  */
-export function crestFallback(theme, color, label, { tooDark, tooPale } = {}) {
+/**
+ * Crests that need a plate, per theme, from `npm run plating`.
+ *
+ * Set once at start-up by the app. Without it `drawCrest` falls back to the
+ * mean-luminance test, which is a safe degradation rather than a wrong one -
+ * it plates less, which is what shipped for months.
+ */
+let platingTable = null
+export const setCrestPlating = (table) => { platingTable = table?.plating || null }
+
+/** The crest id is the tail of its mirrored path: assets/crests/25907. */
+const crestId = (logo) => String(logo || '').split('/').pop().split('@')[0]
+
+export function crestFallback(theme, color, label, { tooDark, tooPale, logo } = {}) {
   const pageLuminance = luminance(theme.bg)
+  const listed = platingTable?.[crestId(logo)]
   return {
     label,
     solid: withAlpha(color || theme.ink, 0.18),
@@ -356,6 +377,19 @@ export function crestFallback(theme, color, label, { tooDark, tooPale } = {}) {
       pageLuminance,
       tooDark,
       tooPale,
+      /**
+       * Decided ahead of time where the table knows this crest.
+       *
+       * The mean-luminance test it replaces cannot see the case that matters:
+       * a crest can average bright while the part carrying the club's name is
+       * invisible. Ulster is a bright red hand over a near-black "ULSTER" and
+       * Edinburgh a red castle over a dark blue "EDINBURGH" - both averaged
+       * clear of the bar, neither was plated, and on every dark theme you
+       * could not read either club's name. `npm run plating` measures the
+       * largest connected region of the crest that goes blank against the page
+       * it actually lands on.
+       */
+      decided: listed ? listed.includes(theme.id) : undefined,
       // The light-theme fill was too weak to rescue anything it was applied to.
       fill: pageLuminance < 0.5 ? 'rgba(255,255,255,0.92)' : 'rgba(11,18,32,0.42)',
     },

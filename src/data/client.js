@@ -80,3 +80,11 @@ export async function loadTable(competitionId, season) {
  */
 export const loadTeamColours = () =>
   getJson(`${DATA_ROOT}/models/team-colours.json`).catch(() => null)
+
+/**
+ * Which crests need a plate on which theme, from `npm run plating`.
+ * Null falls back to the mean-luminance test inside `drawCrest`, which plates
+ * less rather than wrongly.
+ */
+export const loadCrestPlating = () =>
+  getJson(`${DATA_ROOT}/models/crest-plating.json`).catch(() => null)

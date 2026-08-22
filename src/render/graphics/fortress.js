@@ -222,7 +222,7 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     }
 
     drawCrest(ctx, crests[index], box.left + crestBox / 2, y, crestBox,
-      crestFallback(theme, accent, row.team.abbreviation))
+      crestFallback(theme, accent, row.team.abbreviation, { logo: row.team.logo }))
 
     const nameOptions = { size: valueSize, weight: 600, family: FONTS.body }
     const name = truncateText(ctx, row.team.shortName, nameWidth - crestBox - scale(size, 34), nameOptions)

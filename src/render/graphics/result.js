@@ -174,10 +174,12 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const crestOffset = crestOffsetFor(isColumns)
 
   drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, crestBox, {
-    ...crestFallback(theme, match.home.color || accent, match.home.abbreviation),
+    ...crestFallback(theme, match.home.color || accent, match.home.abbreviation,
+      { logo: match.home.logo }),
   })
   drawCrest(ctx, awayCrest, box.centerX + crestOffset, crestY, crestBox, {
-    ...crestFallback(theme, match.away.color || accent, match.away.abbreviation),
+    ...crestFallback(theme, match.away.color || accent, match.away.abbreviation,
+      { logo: match.away.logo }),
   })
 
   const columnWidth = scale(size, 372)

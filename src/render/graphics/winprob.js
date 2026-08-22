@@ -175,7 +175,7 @@ function drawTeamRow(ctx, size, theme, { team, crest, colour, y, box, align }) {
   const crestBox = scale(size, 58)
   const x = align === 'right' ? box.right - crestBox / 2 : box.left + crestBox / 2
   drawCrest(ctx, crest, x, y, crestBox, {
-    ...crestFallback(theme, colour, team.abbreviation),
+    ...crestFallback(theme, colour, team.abbreviation, { logo: team.logo }),
   })
 
   const textX = align === 'right' ? box.right - crestBox - scale(size, 18) : box.left + crestBox + scale(size, 18)

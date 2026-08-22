@@ -23,6 +23,7 @@
 
   <script type="module">
     import { renderGraphic, GRAPHICS } from '../src/render/index.js'
+    import { setCrestPlating } from '../src/render/primitives.js'
     import { adaptSummary, adaptStandings } from '../src/data/espn.js'
     import { createTable, createSeason } from '../src/data/schema.js'
     import { teamsWithTimeline } from '../src/analysis/team-season.js'
@@ -41,11 +42,12 @@
       await document.fonts.load('600 40px "Inter"')
       await document.fonts.ready
 
-      const [summary, standings, model, heroStats, comeback, contrast, rawSeason, rawSeasonTable] = await Promise.all([
+      const [summary, standings, model, heroStats, plating, comeback, contrast, rawSeason, rawSeasonTable] = await Promise.all([
         load('../tests/fixtures/espn-summary-fra-ire-2026.json'),
         load('../data/267979/table-2026.json').catch(() => load('../tests/fixtures/espn-standings-urc-2026.json')),
         load('../data/models/winprob.json').catch(() => null),
         load('../data/models/hero-stats.json').catch(() => null),
+        load('../data/models/crest-plating.json').catch(() => null),
         load('../tests/fixtures/match-comeback.json').catch(() => null),
         load('../tests/fixtures/match-contrast.json').catch(() => null),
         load('../data/270559/season-2026.json').catch(() => null),
@@ -54,6 +56,7 @@
         // table silently skips every check the graphic makes.
         load('../data/270559/table-2026.json').catch(() => null),
       ])
+      setCrestPlating(plating)
       const match = adaptSummary(summary)
       // data/ files are already normalised; the fixture is raw ESPN.
       const table = standings.rows

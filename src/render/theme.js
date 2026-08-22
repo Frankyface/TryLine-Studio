@@ -127,6 +127,48 @@ export const THEMES = Object.freeze({
     accentInk: '#190630',
     panel: '#190E2A',
   }),
+  // Brighter still. The inks on a light theme have to go DARKER than a dark
+  // theme's go light: `inkFaint` labels axis ticks and column headings, so it
+  // is content and needs 4.5:1 against a near-white page, not a soft grey.
+  sunrise: Object.freeze({
+    id: 'sunrise',
+    label: 'Sunrise',
+    bg: '#FFF4E8',
+    bgAlt: '#FFFBF5',
+    ink: '#2A1608',
+    inkMuted: '#5B3A1E',
+    inkFaint: '#6A472A',
+    line: '#F0DCC4',
+    accent: '#C2410C',
+    accentInk: '#FFFFFF',
+    panel: '#FFFFFF',
+  }),
+  mint: Object.freeze({
+    id: 'mint',
+    label: 'Mint',
+    bg: '#EEF9F2',
+    bgAlt: '#F9FFFB',
+    ink: '#0A2318',
+    inkMuted: '#245140',
+    inkFaint: '#2F5C4A',
+    line: '#CFE8DA',
+    accent: '#0F766E',
+    accentInk: '#FFFFFF',
+    panel: '#FFFFFF',
+  }),
+  sky: Object.freeze({
+    id: 'sky',
+    label: 'Sky',
+    bg: '#EEF4FD',
+    bgAlt: '#F9FCFF',
+    ink: '#0B1B33',
+    inkMuted: '#274264',
+    inkFaint: '#324D70',
+    line: '#D3E2F5',
+    accent: '#1D4ED8',
+    accentInk: '#FFFFFF',
+    panel: '#FFFFFF',
+  }),
 })
 
 export const THEME_LIST = Object.freeze(Object.values(THEMES))

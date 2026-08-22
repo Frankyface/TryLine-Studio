@@ -96,7 +96,8 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
   const nameLeft = box.left + crestBox + scale(size, 26)
 
   drawCrest(ctx, crest, box.left + crestBox / 2, top + crestBox / 2, crestBox,
-    crestFallback(theme, accent, timeline.team.abbreviation || timeline.team.name))
+    crestFallback(theme, accent, timeline.team.abbreviation || timeline.team.name,
+      { logo: timeline.team.logo }))
 
   drawText(ctx, timeline.team.name, nameLeft, top + scale(size, isStory ? 44 : 38), {
     size: scale(size, isStory ? 62 : 54), weight: 700, family: FONTS.display,
