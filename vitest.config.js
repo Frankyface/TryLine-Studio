@@ -15,7 +15,8 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      include: ['src/data/**/*.js', 'src/render/format.js', 'src/render/labels.js', 'src/render/series.js', 'src/analysis/**/*.js'],
+      include: ['src/data/**/*.js', 'src/render/format.js', 'src/render/labels.js', 'src/render/series.js',
+        'src/render/availability.js', 'src/render/crest-sizes.js', 'src/analysis/**/*.js'],
       // Excluded because they are browser-only shells rather than logic, and
       // the e2e suite drives both against a real browser:
       //   client.js - a thin fetch wrapper over the static data files

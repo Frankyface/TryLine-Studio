@@ -55,13 +55,13 @@ const tableRowFor = (table, teamName) => {
 }
 
 /**
- * Can this team's season be drawn honestly?
+ * Can this team's season be drawn at all?
  * Returns a reason string when it cannot, so the UI can say why.
  *
- * The league table is the cross-check. The archive holds one Gallagher
- * Premiership fixture fewer than the table records for Saracens, and a
- * timeline missing a match it does not know is missing is exactly the silent
- * gap this graphic must never draw.
+ * This refuses only what cannot be drawn honestly under any label: no team, too
+ * few matches, or a match with no score. An archive that is merely SHORT still
+ * draws - seasonScope states the gap on the graphic instead, because refusing
+ * cost 10 of 14 Top 14 clubs and 9 of 16 in the URC.
  */
 export function canPlotTeamSeason(season, teamName, { table } = {}) {
   if (!season || !season.teams?.length) return 'No season data for that competition.'
@@ -130,7 +130,7 @@ export function teamSeasonTimeline(season, teamName) {
 
   let running = 0
   const matches = [...(entry.matches || [])]
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .sort((a, b) => (a.date < b.date ? -1 : (a.date > b.date ? 1 : 0)))
     .map((match) => {
       const margin = match.for - match.against
       running += margin

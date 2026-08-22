@@ -205,7 +205,7 @@ function fillSeasonTeamSelect(season) {
   const previous = select.value
   const teams = teamsWithTimeline(season)
 
-  select.innerHTML = ''
+  select.replaceChildren()
   for (const team of teams) {
     const option = document.createElement('option')
     option.value = team.name
@@ -521,8 +521,10 @@ function applySource(source) {
   document.querySelector('[data-panel="manual"]').hidden = source === 'live'
 
   if (source === 'manual') {
-    // Drop the live competition's data outright when entering manual mode.
-    setState({ source, table: null, season: null })
+    // Drop the live competition's data outright when entering manual mode -
+    // the match too, or the render this triggers paints the live fixture under
+    // the "My own team" UI before readManualForm supersedes it.
+    setState({ source, match: null, table: null, season: null })
     readManualForm()
     return
   }
