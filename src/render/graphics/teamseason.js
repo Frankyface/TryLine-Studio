@@ -13,7 +13,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, crestFallback,
-  contrastAccent, truncateText, measureText,
+  contrastAccent, truncateText, measureText, fitTextSize,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { uniqueTeamLabels } from '../format.js'
@@ -182,6 +182,23 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
     .map((label) => measureText(ctx, label, labelOptions)))
   const rotateLabels = widestLabel > slot * 0.86
 
+  // The margin number was never measured at all, only the opponent label was.
+  // Story is tighter than feed in both directions - wider padding and a bigger
+  // font - so a 26-match season of two-digit wins ran the whole number row
+  // into itself there while feed was clean.
+  const marginOptions = {
+    size: scale(size, isStory ? 22 : 19), weight: 700, family: FONTS.body,
+  }
+  const widestMargin = Math.max(...matches
+    .map((match) => measureText(ctx, signed(match.margin), marginOptions)))
+  if (widestMargin > slot * 0.92) {
+    marginOptions.size = fitTextSize(ctx, matches
+      .map((match) => signed(match.margin))
+      .sort((a, b) => b.length - a.length)[0], slot * 0.92, {
+      ...marginOptions, max: marginOptions.size, min: scale(size, 12), step: 1,
+    })
+  }
+
   matches.forEach((match, index) => {
     const centreX = track.left + slot * index + slot / 2
     // A draw has a zero margin and would draw nothing at all, so every bar
@@ -197,8 +214,7 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
     // The margin, outside the bar so a short bar never hides its own number.
     drawText(ctx, signed(match.margin), centreX,
       isLoss ? track.zero + height + scale(size, 26) : track.zero - height - scale(size, 12), {
-        size: scale(size, isStory ? 22 : 19), weight: 700, family: FONTS.body,
-        align: 'center', color: theme.inkMuted,
+        ...marginOptions, align: 'center', color: theme.inkMuted,
       })
 
     // Opponent on the opposite side of the axis from the bar, so the two never
@@ -211,10 +227,16 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
       // labels ran into each other as unreadable compounds ("CASSTA",
       // "RACBAY"). Turned on their side they always fit, and nothing is
       // dropped to make room.
+      // Rotated, the label runs perpendicular into whatever room the floating
+      // zero line left. Unclamped, a club that barely won pushes zero to the
+      // top of the plot and its loss labels run up through the identity block.
+      const run = isLoss
+        ? Math.abs(track.zero - chartTop) - scale(size, 20)
+        : Math.abs(chartBottom - track.zero) - scale(size, 20)
       ctx.save()
       ctx.translate(centreX, isLoss ? track.zero - scale(size, 14) : track.zero + scale(size, 14))
       ctx.rotate(-Math.PI / 2)
-      drawText(ctx, `${label} ${venue}`, 0, 0, {
+      drawText(ctx, truncateText(ctx, `${label} ${venue}`, Math.max(scale(size, 30), run), labelOptions), 0, 0, {
         ...labelOptions,
         align: isLoss ? 'left' : 'right',
         baseline: 'middle',

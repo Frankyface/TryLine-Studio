@@ -8,7 +8,8 @@
 import { STARTING_XV } from '../../data/schema.js'
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider, crestFallback,
+  drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider,
+  crestFallback, contrastAccent,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate } from '../format.js'
@@ -42,13 +43,18 @@ function drawSquadRows(ctx, size, theme, { players, x, y, width, rowHeight, acce
   const positionWidth = showPosition ? scale(size, 62) : 0
   let cursor = y
 
+  const numberColour = contrastAccent(accent, theme.bg, { minRatio: 4.5, fallback: theme.ink })
+
   for (const player of players) {
     const middle = cursor + rowHeight / 2
 
     drawText(ctx, player.jersey ?? '-', x + numberWidth, middle, {
       size: nameSize * 1.18,
       weight: 700,
-      color: accent,
+      // The shirt number is information, not decoration, and it sits over the
+      // backdrop glow. resolveAccent only guarantees 3.5:1 against flat bg,
+      // which left a red team colour at 2.88:1 on the light theme.
+      color: numberColour,
       align: 'right',
       baseline: 'middle',
     })

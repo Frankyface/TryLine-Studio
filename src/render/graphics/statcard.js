@@ -86,7 +86,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     drawText(ctx, String(player.jersey), box.right + scale(size, 30), top + numberSize * 0.72, {
       size: numberSize,
       weight: 700,
-      color: withAlpha(accent, isLightTheme ? 0.06 : 0.13),
+      color: withAlpha(accent, isLightTheme ? 0.16 : 0.13),
       align: 'right',
     })
   }
