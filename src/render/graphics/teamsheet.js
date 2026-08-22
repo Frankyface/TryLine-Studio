@@ -9,7 +9,7 @@ import { STARTING_XV } from '../../data/schema.js'
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider,
-  crestFallback, contrastAccent,
+  crestFallback, contrastAccent, pageSurface,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate } from '../format.js'
@@ -19,6 +19,8 @@ export const meta = Object.freeze({
   label: 'Team sheet',
   description: 'The matchday 23 by shirt number.',
   needs: 'match',
+  requiresStarters: true,
+  usesTeamColour: true,
   usesSide: true,
   requiresSquad: true,
 })
@@ -43,7 +45,7 @@ function drawSquadRows(ctx, size, theme, { players, x, y, width, rowHeight, acce
   const positionWidth = showPosition ? scale(size, 62) : 0
   let cursor = y
 
-  const numberColour = contrastAccent(accent, theme.bg, { minRatio: 4.5, fallback: theme.ink })
+  const numberColour = contrastAccent(accent, pageSurface(theme, accent), { minRatio: 4.5, fallback: theme.ink })
 
   for (const player of players) {
     const middle = cursor + rowHeight / 2

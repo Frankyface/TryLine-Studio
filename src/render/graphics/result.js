@@ -19,6 +19,7 @@ export const meta = Object.freeze({
   label: 'Result',
   description: 'Final or live score with the scorers.',
   needs: 'match',
+  usesTeamColour: true,
   requiresSquad: false,
 })
 
@@ -55,7 +56,13 @@ function drawScorerColumn(ctx, size, theme, { x, y, width, align, timeline, side
 
 export async function draw(ctx, { match, size, theme, options = {} }) {
   const tz = { timeZone: options.timeZone }
-  const accent = resolveAccent(theme, { accent: options.accent })
+  // The club's own colour, from whichever side they picked. Without a team
+  // passed here "Use team colour" was silently inert - it is on by default and
+  // was doing nothing on seven of the ten graphics, including this one.
+  const accent = resolveAccent(theme, {
+    accent: options.accent,
+    team: match[options.side === 'away' ? 'away' : 'home'],
+  })
   const box = contentBox(size)
   const isStory = size.height > size.width
 
@@ -174,6 +181,10 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const attendance = formatAttendance(match.venue.attendance)
   drawFooter(ctx, size, theme, {
     left: venueParts.join('  -  '),
-    right: attendance ? `${attendance} in` : match.season.display || '',
+    // The handle wins the right-hand slot when there is one. This is the most
+    // reshared post of the week and it was the one graphic carrying no
+    // attribution at all, even with the slot otherwise empty.
+    right: options.handle
+      || (attendance ? `${attendance} in` : match.season.display || ''),
   })
 }

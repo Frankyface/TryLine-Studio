@@ -330,8 +330,10 @@ check('renders a manual result', /Old Boys/.test(manualStatus), manualStatus)
 await page.click('[data-graphic="winprob"]')
 await page.waitForTimeout(1200)
 const triesOnly = await statusText()
-check('refuses a club swing chart from tries alone',
-  /wrong scoreline/i.test(triesOnly), triesOnly)
+// The message must name BOTH numbers - a club has no other way to find the
+// discrepancy, and the old generic wording sent them looking for an app fault.
+check('refuses a club swing chart from tries alone, and says by how much',
+  /adds up to \d+-\d+/.test(triesOnly) && /score says \d+-\d+/.test(triesOnly), triesOnly)
 
 // 27 = 2 tries(10) + 1 conversion(2) + 5 penalties(15)
 // 22 = 3 tries(15) + 2 conversions(4) + 1 penalty(3)
@@ -341,7 +343,7 @@ await page.fill('#m-away-scores', 'C 26, C 61, P 45')
 await page.waitForTimeout(1400)
 const withKicks = await statusText()
 check('draws a club swing chart once the kicks add up',
-  await canvasHasContent('canvas-feed') && !/wrong scoreline/i.test(withKicks), withKicks)
+  await canvasHasContent('canvas-feed') && !/adds up to/i.test(withKicks), withKicks)
 
 // Leave the panel on a match graphic - the crest check below reads one.
 await page.click('[data-graphic="result"]')

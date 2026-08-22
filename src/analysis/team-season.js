@@ -116,8 +116,29 @@ export function seasonCoverage(timeline, table) {
 export function seasonScope(timeline, table) {
   const { recorded, expected, tablePlayed } = seasonCoverage(timeline, table)
   if (expected > recorded) return `${recorded} OF ${expected} MATCHES RECORDED`
+
+  // Counts alone are not enough. Where the archive is short one league fixture
+  // AND holds one play-off, the totals match while the RECORD does not: Bath's
+  // chart read WON 12 beside a league table from the same app reading W13. Ten
+  // of 51 club-seasons were silently in that state, six of them disagreeing on
+  // wins. So the record itself is compared, not just how many matches it has.
+  const row = tableRowFor(table, timeline?.team?.name)
+  if (row && recordDiffers(timeline, row)) return 'INCLUDING PLAY-OFFS'
   if (tablePlayed && recorded > tablePlayed) return 'INCLUDING PLAY-OFFS'
   return ''
+}
+
+/** Does the drawn record disagree with the league table's, in any component? */
+function recordDiffers(timeline, row) {
+  const matches = timeline?.matches || []
+  const won = matches.filter((m) => m.result === RESULTS.WIN).length
+  const lost = matches.filter((m) => m.result === RESULTS.LOSS).length
+  const drawn = matches.filter((m) => m.result === RESULTS.DRAW).length
+  const differs = (a, b) => Number.isFinite(b) && a !== b
+  return differs(matches.length, row.played)
+    || differs(won, row.won)
+    || differs(lost, row.lost)
+    || differs(drawn, row.drawn)
 }
 
 /**

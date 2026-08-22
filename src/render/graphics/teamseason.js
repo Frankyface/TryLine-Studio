@@ -27,6 +27,7 @@ export const meta = Object.freeze({
   label: 'Season so far',
   description: 'One club, every result in order, by winning margin.',
   needs: 'season',
+  usesTeamColour: true,
   requiresTeam: true,
 })
 
@@ -309,7 +310,7 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
         align: 'center',
         // At 0.9 alpha over a 3.5:1 accent this landed at 3.01:1. It is 20px
         // body text, so it needs the body-text bar.
-        color: contrastAccent(accent, theme.bg, { minRatio: 4.5, fallback: theme.ink }),
+        color: contrastAccent(accent, pageSurface(theme, accent), { minRatio: 4.5, fallback: theme.ink }),
       })
   }
 }

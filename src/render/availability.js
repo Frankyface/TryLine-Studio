@@ -10,7 +10,9 @@
  */
 import { canPlotTeamSeason } from '../analysis/team-season.js'
 import { canPlotSeason } from '../analysis/season.js'
-import { timelineIsComplete } from '../analysis/winprob.js'
+import { canPlotFortress } from '../analysis/fortress.js'
+import { STARTING_XV } from '../data/schema.js'
+import { timelineIsComplete, timelineTotal } from '../analysis/winprob.js'
 
 /** A team sheet with no numbers on it is a list of names, not a stat source. */
 export const squadHasStats = (squad = []) =>
@@ -32,7 +34,10 @@ export function usesSide(graphic, options = {}) {
 
 /** The sides whose squads must be present for this graphic to draw. */
 function requiredSides(graphic, options) {
-  if (!usesSide(graphic, options)) return ['home', 'away']
+  // A head-to-head needs both squads whichever mode it is in - player mode
+  // still draws one player from each side. Checking only the chosen side let
+  // the gate pass on a one-sided match that draw() then refused.
+  if (!usesSide(graphic, options) || graphic.meta.comparesSides) return ['home', 'away']
   return [options.side === 'away' ? 'away' : 'home']
 }
 
@@ -68,6 +73,10 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
     // The table is passed as the cross-check: it knows how many matches a team
     // actually played, and the archive is occasionally short by one.
     if (graphic.meta.requiresTeam) return canPlotTeamSeason(season, options.team, { table })
+    // Fortress was the one season graphic whose gate never asked its own
+    // analysis: a season where too few teams carry a rate passed the gate and
+    // threw in draw().
+    if (graphic.meta.requiresRatedTeams) return canPlotFortress(season)
     return ''
   }
 
@@ -83,8 +92,17 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
     // won. A chart showing France losing 41-46 beside a scoreline reading
     // 48-46 is worse than no chart, and a footnote does not undo it.
     if (!timelineIsComplete(match)) {
-      return 'That match has an incomplete scoring timeline, so the curve would '
-        + 'end on the wrong scoreline.'
+      // Say WHICH number is wrong. The app knows both, and a club entering its
+      // own scoring has no other way to find the discrepancy - the generic
+      // message sent them looking for a fault in the app.
+      const derived = timelineTotal(match)
+      const entered = `${match.home?.score ?? '-'}-${match.away?.score ?? '-'}`
+      return source === 'manual'
+        ? `Your scoring adds up to ${derived.home}-${derived.away}, but the score `
+          + `says ${entered}. Add the missing conversions, penalties or drop goals.`
+        : `That match has an incomplete scoring timeline - it adds up to `
+          + `${derived.home}-${derived.away} against a final score of ${entered}, `
+          + 'so the curve would end on the wrong scoreline.'
     }
   }
 
@@ -96,6 +114,24 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
         ? 'Type your team sheet into the Home squad box above.'
         : 'No squad recorded for that match. Tick "only matches with squads", or enter the team yourself.'
     }
+    // A team sheet is laid out from the starting XV, and divides by how many
+    // there are. A squad of replacements only - reachable by pasting a bench
+    // list into manual entry - produced NaN geometry and a 61% empty canvas.
+    if (graphic.meta.requiresStarters
+      && squads.some((squad) => !squad.some((player) => player.isStarter))) {
+      return `No player in that squad has a shirt number of ${STARTING_XV} or lower, `
+        + 'so there is no starting XV to lay out.'
+    }
+
+    // The player being drawn has to have numbers, not merely somebody in the
+    // squad. 44 of the 2,438 gate-open players drew the empty card the meta
+    // says was fixed - a replacement on for two minutes has all-zero stats.
+    if (graphic.meta.requiresPlayer && graphic.meta.requiresStats && options.player) {
+      if (!Object.keys(options.player.stats || {}).length) {
+        return 'That player has no match numbers recorded, so the card would be empty.'
+      }
+    }
+
     if (graphic.meta.requiresStats && squads.some((squad) => !squadHasStats(squad))) {
       return source === 'manual'
         ? 'Player stats cannot come from manual entry - the form has no place to put them.'

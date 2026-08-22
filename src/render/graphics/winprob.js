@@ -8,7 +8,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, truncateText, crestFallback,
-  contrastAccent, measureText,
+  contrastAccent, measureText, pageSurface,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import {
@@ -23,6 +23,7 @@ export const meta = Object.freeze({
   label: 'Win probability',
   description: 'How the match swung, minute by minute.',
   needs: 'match',
+  usesTeamColour: true,
   requiresSquad: false,
   // Without scoring events the curve is a flat line to 50% next to a real
   // scoreline - quietly wrong rather than absent.
@@ -228,7 +229,13 @@ export function winprobLayout(size, { showCaption = false } = {}) {
 
 export async function draw(ctx, { match, size, theme, options = {} }) {
   const model = options.model || DEFAULT_MODEL
-  const accent = resolveAccent(theme, { accent: options.accent })
+  // The club's own colour, from whichever side they picked. Without a team
+  // passed here "Use team colour" was silently inert - it is on by default and
+  // was doing nothing on seven of the ten graphics, including this one.
+  const accent = resolveAccent(theme, {
+    accent: options.accent,
+    team: match[options.side === 'away' ? 'away' : 'home'],
+  })
   const colours = seriesColours(theme, { home: match.home, away: match.away, accent: options.accent })
   const box = contentBox(size)
   const isStory = size.height > size.width
@@ -291,7 +298,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
       size: scale(size, 19),
       weight: 700,
       family: FONTS.body,
-      color: colour === theme.inkFaint ? theme.inkFaint : contrastAccent(colour, theme.bg, { minRatio: 4.5, fallback: theme.ink }),
+      color: colour === theme.inkFaint ? theme.inkFaint : contrastAccent(colour, pageSurface(theme, accent), { minRatio: 4.5, fallback: theme.ink }),
       align: 'right',
       baseline: 'middle',
     })

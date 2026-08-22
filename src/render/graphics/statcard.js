@@ -15,6 +15,7 @@ export const meta = Object.freeze({
   label: 'Player card',
   description: 'One player and their match numbers.',
   needs: 'match',
+  usesTeamColour: true,
   usesSide: true,
   requiresSquad: true,
   requiresPlayer: true,

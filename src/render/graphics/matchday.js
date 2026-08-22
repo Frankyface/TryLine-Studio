@@ -7,6 +7,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, fitTextSize, withAlpha, drawPill, crestFallback,
+  pageSurface, contrastAccent, composite, readableInk,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate, formatKickoffTime } from '../format.js'
@@ -16,14 +17,27 @@ export const meta = Object.freeze({
   label: 'Matchday',
   description: 'Fixture announcement - date, time and venue.',
   needs: 'match',
+  usesTeamColour: true,
   requiresSquad: false,
 })
 
 export async function draw(ctx, { match, size, theme, options = {} }) {
   const tz = { timeZone: options.timeZone }
-  const accent = resolveAccent(theme, { accent: options.accent })
+  // The club's own colour, from whichever side they picked. Without a team
+  // passed here "Use team colour" was silently inert - it is on by default and
+  // was doing nothing on seven of the ten graphics, including this one.
+  const accent = resolveAccent(theme, {
+    accent: options.accent,
+    team: match[options.side === 'away' ? 'away' : 'home'],
+  })
   const box = contentBox(size)
   const isStory = size.height > size.width
+  // Both of these were the raw accent with no contrast check at all - and a
+  // club colour now reaches them by default, so "VERSUS" measured 2.66:1 with
+  // Connacht green. The pill has its own tint on top of that.
+  const surface = pageSurface(theme, accent)
+  const readableAccent = contrastAccent(accent, surface, { minRatio: 4.5, fallback: theme.ink })
+  const pillFill = composite(accent, 0.16, surface)
 
   drawFrame(ctx, size, theme, { accent })
   const top = drawEyebrow(ctx, size, theme, {
@@ -90,7 +104,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   cursor += blocks.name
 
   drawText(ctx, 'versus', box.centerX, cursor + blocks.versus / 2, {
-    size: scale(size, 23), weight: 600, family: FONTS.body, color: accent,
+    size: scale(size, 23), weight: 600, family: FONTS.body, color: readableAccent,
     align: 'center', baseline: 'middle', tracking: 6, uppercase: true,
   })
   cursor += blocks.versus
@@ -111,7 +125,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   if (time) {
     drawPill(ctx, options.timeLabel || `${time} kick off`, box.centerX, cursor, {
       size: scale(size, 24), height: scale(size, 56), align: 'center',
-      fill: withAlpha(accent, 0.16), color: accent,
+      fill: withAlpha(accent, 0.16),
+      color: contrastAccent(accent, pillFill, { minRatio: 4.5, fallback: readableInk(pillFill) }),
     })
   }
 

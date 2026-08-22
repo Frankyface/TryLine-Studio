@@ -10,8 +10,10 @@ import { describe, it, expect } from 'vitest'
 import { blockingReason, squadHasStats, usesSide } from '../src/render/availability.js'
 import { GRAPHICS, GRAPHIC_BY_ID } from '../src/render/index.js'
 
-const player = (stats = {}) => ({ name: 'A Player', jersey: 1, stats })
-const squad = (stats) => Array.from({ length: 23 }, () => player(stats))
+const player = (stats = {}, jersey = 1) => ({
+  name: 'A Player', jersey, isStarter: jersey <= 15, stats,
+})
+const squad = (stats) => Array.from({ length: 23 }, (_, i) => player(stats, i + 1))
 
 const matchWith = (overrides = {}) => ({
   home: { name: 'Home', shortName: 'Home', score: 20, squad: [], ...overrides.home },
@@ -40,10 +42,29 @@ describe('every graphic declares what it actually needs', () => {
 
   it.each(GRAPHICS.filter((g) => g.meta.needs === 'match').map((g) => [g.meta.id, g]))(
     '%s draws from a complete match', (_id, graphic) => {
-      const options = { side: 'home', mode: 'players' }
+      const options = { side: 'home', mode: 'players', player: player({ metres: 40 }) }
       expect(blockingReason(graphic, { match: full }, options)).toBe('')
     },
   )
+
+  it('refuses a squad with no starting XV in it', () => {
+    // Reachable by pasting only a bench list into manual entry, and it divided
+    // by zero: NaN geometry and a 61% empty canvas.
+    const benchOnly = matchWith({
+      home: { squad: Array.from({ length: 8 }, (_, i) => player({ metres: 1 }, i + 16)) },
+      away: { squad: squad({ metres: 1 }) },
+    })
+    expect(blockingReason(GRAPHIC_BY_ID.teamsheet, { match: benchOnly }, { side: 'home' }))
+      .toMatch(/starting xv/i)
+  })
+
+  it('refuses a player card for a player with no numbers', () => {
+    // 44 of the 2,438 gate-open players drew the empty card the meta claims to
+    // have fixed - the gate checked the SQUAD, not the player being drawn.
+    const options = { side: 'home', player: player({}, 22) }
+    expect(blockingReason(GRAPHIC_BY_ID.statcard, { match: full }, options))
+      .toMatch(/no match numbers/i)
+  })
 
   it.each(GRAPHICS.filter((g) => g.meta.requiresSquad).map((g) => [g.meta.id, g]))(
     '%s blocks when the squad is empty', (_id, graphic) => {
@@ -109,18 +130,30 @@ describe('the side only gates what the side changes', () => {
       .toBe(blockingReason(comparison, { match: full }, options('away')))
   })
 
-  it('lets the side matter again in player mode', () => {
+  it('needs both squads in player mode too, because it draws one from each', () => {
+    // This previously asserted that one squad was enough, which locked in a
+    // gate that reported available while draw() refused.
     const homeOnly = matchWith({ home: { squad: squad({ metres: 1 }) }, away: { squad: [] } })
     const comparison = GRAPHIC_BY_ID.comparison
     expect(usesSide(comparison, { mode: 'players' })).toBe(true)
     expect(blockingReason(comparison, { match: homeOnly }, { mode: 'players', side: 'home' }))
-      .toBe('')
+      .not.toBe('')
   })
 })
 
 describe('table and season graphics', () => {
   const table = { rows: [{ team: { name: 'A' } }], competition: {}, season: {} }
-  const season = { teams: [], competition: {}, season: {} }
+  // Eight rated teams, which is what the home-advantage chart needs to draw.
+  const season = {
+    competition: {},
+    season: {},
+    teams: Array.from({ length: 8 }, (_, i) => ({
+      team: { name: `Team ${i}` },
+      home: { played: 9, won: 6, drawn: 0, lost: 3 },
+      away: { played: 9, won: 3, drawn: 0, lost: 6 },
+      homeWinRate: 0.66, awayWinRate: 0.33,
+    })),
+  }
 
   it('blocks a table graphic with no table, and names manual mode differently', () => {
     const graphic = GRAPHIC_BY_ID.table

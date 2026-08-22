@@ -10,6 +10,10 @@
  *    it has no club badge, matching on the abbreviation, so Perpignan ("Union
  *    Sportive Arlequins") are served the United States flag - on a French
  *    league chart. A flag is only ever right when the team is a country.
+ *  - A literal 0-0 on an UNPLAYED fixture. ESPN sends "0" for both sides on
+ *    every match that has not kicked off, and unplayed fixtures sit at the top
+ *    of the match list, so the first thing a new user saw was a result card
+ *    reading 0-0 in 200pt type. Null is what "not played" means.
  *
  * Usage: node scripts/repair-data.mjs [--check]
  */
@@ -37,6 +41,7 @@ function readJson(path) {
 }
 
 const stripped = new Map()
+let unplayed = 0
 
 /** Returns the side unchanged, or a copy with a wrongly-flagged crest removed. */
 function repairSide(side, competitionId) {
@@ -59,8 +64,16 @@ for (const competitionId of readdirSync(dataDir)) {
     const match = readJson(path)
     if (!match) continue
 
-    const home = repairSide(match.home, competitionId)
-    const away = repairSide(match.away, competitionId)
+    let home = repairSide(match.home, competitionId)
+    let away = repairSide(match.away, competitionId)
+
+    // An unplayed fixture has no score.
+    if (match.status === 'scheduled' && (home.score !== null || away.score !== null)) {
+      home = { ...home, score: null }
+      away = { ...away, score: null }
+      unplayed += 1
+    }
+
     if (home === match.home && away === match.away) continue
 
     if (!checkOnly) writeFileSync(path, `${JSON.stringify({ ...match, home, away })}${NL}`)
@@ -97,6 +110,9 @@ if (stripped.size) {
   for (const [name, flag] of stripped) process.stdout.write(`  ${name} was using ${flag}${NL}`)
 } else {
   process.stdout.write(`No club team is using a country flag.${NL}`)
+}
+if (unplayed) {
+  process.stdout.write(`${unplayed} unplayed fixture(s) had a literal 0-0 score removed${NL}`)
 }
 process.stdout.write(checkOnly
   ? `${filesChanged} file(s) would change - nothing written${NL}`

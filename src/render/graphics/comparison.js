@@ -27,6 +27,8 @@ export const meta = Object.freeze({
   label: 'Match stats',
   description: 'Team or player head-to-head.',
   needs: 'match',
+  comparesSides: true,
+  usesTeamColour: true,
   // Player mode lists one side's squad; team mode aggregates both and draws
   // the same thing whichever is picked.
   usesSide: (options = {}) => options.mode === 'players',
@@ -165,7 +167,13 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     throw new Error('No player stats recorded for that match - ESPN only publishes them for internationals.')
   }
 
-  const accent = resolveAccent(theme, { accent: options.accent })
+  // The club's own colour, from whichever side they picked. Without a team
+  // passed here "Use team colour" was silently inert - it is on by default and
+  // was doing nothing on seven of the ten graphics, including this one.
+  const accent = resolveAccent(theme, {
+    accent: options.accent,
+    team: match[options.side === 'away' ? 'away' : 'home'],
+  })
   // Lifted clear of the ROW BAND, which is what a bar is drawn on - a series
   // colour chosen against the page measured 1.37:1 against the band on the
   // light theme. The pair is re-separated afterwards because moving both

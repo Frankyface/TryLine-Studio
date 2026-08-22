@@ -120,7 +120,15 @@ async function render() {
   const comparingPlayers = graphic.meta.id === 'comparison' && $('mode').value === 'players'
   // Shown only where the graphic actually reads it. It was previously visible
   // on four graphics whose output is byte-identical either way.
+  // The Team select also picks WHOSE colour to use, so a two-team graphic
+  // needs it whenever the team colour is in play.
+  const teamColourOn = graphic.meta.usesTeamColour && $('accent-auto').checked
   document.querySelector('[data-option="side"]').hidden = !usesSide(graphic, options)
+    && !(teamColourOn && graphic.meta.needs === 'match')
+
+  // Hidden where there is no single team to take a colour from - a league
+  // table has no club of its own.
+  document.querySelector('[data-option="accent-auto"]').hidden = !graphic.meta.usesTeamColour
   document.querySelector('[data-option="season-team"]').hidden = !graphic.meta.requiresTeam
   document.querySelector('[data-option="mode"]').hidden = graphic.meta.id !== 'comparison'
   syncGraphicChips(options)

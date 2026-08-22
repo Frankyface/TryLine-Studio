@@ -19,6 +19,7 @@ export const meta = Object.freeze({
   label: 'Home advantage',
   description: 'Every club, home win rate against away win rate.',
   needs: 'season',
+  requiresRatedTeams: true,
   requiresSquad: false,
 })
 

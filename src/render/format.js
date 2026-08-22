@@ -150,7 +150,16 @@ export function summariseScorers(timeline = [], side) {
   const byPlayer = new Map()
 
   for (const event of bySide) {
-    const name = event.player.shortName || event.player.name || timelineMark(event.type)
+    const named = event.player?.shortName || event.player?.name || ''
+
+    // A scoring event with nobody's name on it is not a scorer. Manual entry
+    // takes kicks without a kicker, and falling back to the event type put an
+    // entry reading "PEN 44" in the try-scorer column, which looks like a
+    // player called Pen. A penalty try is the exception: it genuinely has no
+    // scorer and belongs in the list.
+    if (!named && event.type !== SCORE_EVENTS.PENALTY_TRY) continue
+
+    const name = named || timelineMark(event.type)
     if (!byPlayer.has(name)) {
       byPlayer.set(name, [])
       order.push(name)

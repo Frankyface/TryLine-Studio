@@ -108,7 +108,21 @@ const statusFrom = (statusType = {}) => {
 const logoFrom = (team = {}) =>
   team.logo || team.logos?.[0]?.href || (team.id ? TEAM_LOGO(team.id) : '')
 
-const teamFrom = (competitor = {}, competitionId = '') => {
+/**
+ * A match that has not kicked off has no score.
+ *
+ * ESPN sends a literal "0" for both sides on every unplayed fixture - 364 of
+ * the 1,147 archived matches. Taken at face value that drew a result card
+ * reading 0-0 in 200pt type under a "KICK OFF" pill, and unplayed fixtures are
+ * the TOP of the match list, so it was the first thing a new user saw. Null is
+ * what "not played" means, and every graphic already handles it: manual entry
+ * with the score left blank has always drawn a proper fixture card.
+ */
+const scoreFrom = (competitor, status) => (
+  status === MATCH_STATUS.SCHEDULED ? null : num(competitor.score)
+)
+
+const teamFrom = (competitor = {}, competitionId = '', status = '') => {
   const team = competitor.team || {}
   return {
     id: String(team.id ?? ''),
@@ -117,7 +131,7 @@ const teamFrom = (competitor = {}, competitionId = '') => {
     abbreviation: team.abbreviation || '',
     logo: crestFor(logoFrom(team), competitionId),
     color: team.color ? `#${String(team.color).replace(/^#/, '')}` : '',
-    score: num(competitor.score),
+    score: scoreFrom(competitor, status),
     isWinner: Boolean(competitor.winner),
   }
 }
@@ -213,6 +227,7 @@ export function adaptEvent(event = {}, league = {}, season = {}) {
   const home = competitors.find((c) => c.homeAway === 'home') || competitors[0] || {}
   const away = competitors.find((c) => c.homeAway === 'away') || competitors[1] || {}
   const attendance = num(competition.attendance)
+  const matchStatus = statusFrom(competition.status?.type || event.status?.type)
 
   return createMatch({
     id: String(event.id ?? ''),
@@ -226,15 +241,15 @@ export function adaptEvent(event = {}, league = {}, season = {}) {
     season: { year: season.year, display: season.displayName || '' },
     round: event.notes?.[0]?.headline || competition.notes?.[0]?.headline || '',
     kickoff: event.date || competition.date || '',
-    status: statusFrom(competition.status?.type || event.status?.type),
+    status: matchStatus,
     statusDetail: competition.status?.type?.detail || event.status?.type?.detail || '',
     venue: {
       name: competition.venue?.fullName || '',
       city: competition.venue?.address?.city || '',
       attendance: attendance === 0 ? null : attendance,
     },
-    home: teamFrom(home, leagueId),
-    away: teamFrom(away, leagueId),
+    home: teamFrom(home, leagueId, matchStatus),
+    away: teamFrom(away, leagueId, matchStatus),
     timeline: timelineFrom(competition.details, competitors),
   })
 }
@@ -265,6 +280,7 @@ export function adaptSummary(payload = {}) {
   const squads = squadsFrom(payload.rosters)
   const attendance = num(payload.gameInfo?.attendance)
   const leagueId = header.league?.slug || header.league?.midsizeName || ''
+  const matchStatus = statusFrom(competition.status?.type)
 
   return createMatch({
     id: String(header.id ?? ''),
@@ -281,15 +297,15 @@ export function adaptSummary(payload = {}) {
       display: header.season?.displayName || String(header.season?.year ?? ''),
     },
     kickoff: competition.date || '',
-    status: statusFrom(competition.status?.type),
+    status: matchStatus,
     statusDetail: competition.status?.type?.detail || '',
     venue: {
       name: payload.gameInfo?.venue?.fullName || '',
       city: payload.gameInfo?.venue?.address?.city || '',
       attendance: attendance === 0 ? null : attendance,
     },
-    home: { ...teamFrom(home, leagueId), squad: squads.home },
-    away: { ...teamFrom(away, leagueId), squad: squads.away },
+    home: { ...teamFrom(home, leagueId, matchStatus), squad: squads.home },
+    away: { ...teamFrom(away, leagueId, matchStatus), squad: squads.away },
     timeline: timelineFrom(competition.details, competitors),
   })
 }

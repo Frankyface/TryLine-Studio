@@ -83,6 +83,18 @@ export function timelineIsComplete(match) {
   return last.home === finalHome && last.away === finalAway
 }
 
+/**
+ * What the timeline itself adds up to, whatever the recorded score says.
+ * Exposed so a caller can tell someone WHICH number is wrong rather than only
+ * that something is.
+ */
+export function timelineTotal(match) {
+  const steps = scoreSteps(match)
+  if (!steps.length) return { home: 0, away: 0 }
+  const last = steps[steps.length - 1]
+  return { home: last.home, away: last.away }
+}
+
 /** Score after `minute` minutes have been played. */
 export function scoreAtMinute(steps, minute) {
   let home = 0
