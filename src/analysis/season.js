@@ -31,12 +31,17 @@ export function canPlotSeason(table) {
   if (table.partial) {
     return 'That table is a single pool, not the whole competition, so a season plot would mislead.'
   }
+  // Worded so it does not read as "come back later". A Six Nations is five
+  // games and four teams short by design - waiting will not change it, and
+  // the old wording implied it would.
   if (table.rows.length < MIN_TEAMS_FOR_SEASON) {
-    return `Only ${table.rows.length} teams in that table - too few to plot a season.`
+    return `Only ${table.rows.length} teams in this competition - a season plot `
+      + 'needs a league, not a tournament pool.'
   }
   const fewest = Math.min(...table.rows.map((row) => row.played ?? 0))
   if (fewest < MIN_GAMES_FOR_SEASON) {
-    return `Some teams have played only ${fewest} games - too few for a per-game rate.`
+    return `Just ${fewest} games each here - a per-game rate needs a longer `
+      + 'league season than this competition plays.'
   }
   if (table.rows.some((row) => row.pointsFor === null || row.pointsAgainst === null)) {
     return 'That table has no points for/against.'

@@ -256,11 +256,18 @@ export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
       const tooPale = fallback.plate.tooPale ?? CREST_TOO_PALE
       const vanishes = pageIsDark ? crestLuminance < tooDark : crestLuminance > tooPale
       if (vanishes) {
+        // Shaped to the image, not to a circle. drawContained fits the crest
+        // inside a SQUARE box, so a wide wordmark spans the full width while a
+        // circle of radius 0.53*box only covers it within a narrow band -
+        // "NEWCASTLE FALCONS" came out with the ends sliced off and the final
+        // S sitting on bare navy.
+        const ratio = Math.min(box / image.width, box / image.height)
+        const padding = box * 0.06
+        const width = image.width * ratio + padding * 2
+        const height = image.height * ratio + padding * 2
         ctx.save()
-        ctx.beginPath()
-        ctx.arc(centerX, centerY, (box / 2) * 1.06, 0, Math.PI * 2)
-        ctx.fillStyle = fallback.plate.fill
-        ctx.fill()
+        fillRoundRect(ctx, centerX - width / 2, centerY - height / 2,
+          width, height, Math.min(width, height) * 0.22, fallback.plate.fill)
         ctx.restore()
       }
     }

@@ -50,13 +50,13 @@ describe('canPlotSeason', () => {
 
   it('refuses a table with too few games per team', () => {
     const short = tableOf(Array.from({ length: 10 }, (_, i) => team(`Team ${i}`, 4, 100, 100)))
-    expect(canPlotSeason(short)).toMatch(/only 4 games/i)
+    expect(canPlotSeason(short)).toMatch(/4 games each/i)
     expect(MIN_GAMES_FOR_SEASON).toBeGreaterThan(4)
   })
 
   it('refuses a table with too few teams', () => {
     const tiny = tableOf(Array.from({ length: 4 }, (_, i) => team(`Team ${i}`, 18, 400, 400)))
-    expect(canPlotSeason(tiny)).toMatch(/too few/i)
+    expect(canPlotSeason(tiny)).toMatch(/needs a league/i)
     expect(MIN_TEAMS_FOR_SEASON).toBeGreaterThan(4)
   })
 

@@ -17,7 +17,6 @@ import {
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { uniqueTeamLabels } from '../format.js'
-import { distinctFrom, chroma, MIN_CHROMA } from '../series.js'
 import {
   canPlotTeamSeason, teamSeasonTimeline, teamSeasonHeadline, marginBounds, seasonScope, RESULTS,
 } from '../../analysis/team-season.js'
@@ -31,13 +30,21 @@ export const meta = Object.freeze({
 })
 
 /**
- * Substitutes for the loss colour when the accent is too close to red.
+ * Win and loss are SEMANTIC, and pinned before anything else touches them.
  *
- * Green is deliberately absent: on the bloodwood theme the accent IS red, so
- * the furthest colour from it is green - and green defeats, red wins reads
- * backwards to anyone glancing at it.
+ * They used to be derived from the accent - the accent for wins, and whatever
+ * in a palette sat furthest from it for losses. On the bloodwood theme, whose
+ * accent is red, that drew wins in red and losses in blue. It did the same for
+ * any club whose colour is red: Crusaders, Munster, Toulouse, Lions, Ulster,
+ * Bayonne, Wales. Leicester's biggest win of the season was the tallest RED
+ * bar on the canvas.
+ *
+ * In sport these two colours are the most loaded there are, and a chart that
+ * inverts them says the opposite of the truth at a glance. No accent, and no
+ * separation pass, gets to override that - branding does not outrank meaning.
  */
-const LOSS_PALETTE = Object.freeze(['#4FA8FF', '#B388FF', '#F5C518', '#FF6B7D'])
+const WIN_INK = '#25D07A'
+const LOSS_INK = '#E5484D'
 
 /** A drawn match has a zero margin, so it needs a visible stub of its own. */
 const DRAW_STUB = 6
@@ -154,16 +161,11 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
   // accent. Measured: on bloodwood the two read 1.21:1 against each other, and
   // a red accent made them the same colour outright - a whole season in one
   // shade. distinctFrom substitutes only when they are genuinely too close.
-  // An achromatic accent (grey, white, near-black) cannot be separated from
-  // anything by hue, so nothing in the palette gets far enough away from it.
-  // The same rule the two-series charts use applies: too little colour to be a
-  // series colour means fall back to the theme's own.
-  const winColour = chroma(accent) < MIN_CHROMA ? theme.accent : accent
-  const lossColour = distinctFrom(
-    contrastAccent('#E5484D', theme.bg, { fallback: theme.inkMuted }),
-    winColour,
-    LOSS_PALETTE,
-  )
+  // Lifted for readability against the surface, never swapped for something
+  // else: green stays green and red stays red on every theme.
+  const surface = pageSurface(theme, accent)
+  const winColour = contrastAccent(WIN_INK, surface, { minRatio: 3, fallback: theme.ink })
+  const lossColour = contrastAccent(LOSS_INK, surface, { minRatio: 3, fallback: theme.ink })
   // A drawn match is a result, so its bar has to read like one. At 45% ink it
   // measured 2.88:1 on the light theme.
   const drawColour = contrastAccent(theme.inkMuted, pageSurface(theme, accent), {

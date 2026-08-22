@@ -65,7 +65,8 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
       return 'Home and away records cannot come from manual entry - this one needs a full league season.'
     }
     if (!season) {
-      return 'No home and away records for that season. Try another season, or a league that plays home and away.'
+      return 'No home and away records here - this needs a league where every '
+        + 'club hosts and travels, not a tour or a tournament.'
     }
     // A per-team chart needs a team, and needs that team to have enough of a
     // season to be worth drawing. Asking the analysis keeps the gate and the
