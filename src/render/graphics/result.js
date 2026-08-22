@@ -6,7 +6,7 @@ import { MATCH_STATUS } from '../../data/schema.js'
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, fitTextSize, truncateText,
-  withAlpha, fillRoundRect, drawPill, crestFallback,
+  withAlpha, fillRoundRect, drawPill, crestFallback, composite, readableInk,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import {
@@ -71,14 +71,20 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     loadCrestImage(match.away.logo, scale(size, 250)),
   ])
 
-  // Status pill, centred above the score.
+  // Status pill, centred above the score. The ink is chosen against the pill
+  // it lands on, not assumed: white on the 90% live red measured 3.86:1 on the
+  // light theme, and a live pill is the one a fan stares at.
   const pillY = top + scale(size, isStory ? 96 : 8)
+  const isLive = match.status === MATCH_STATUS.LIVE
+  const pillFill = isLive
+    ? composite('#E5344A', 0.9, theme.bg)
+    : composite(theme.ink, 0.08, theme.bg)
   drawPill(ctx, statusLabel(match), box.centerX, pillY, {
     size: scale(size, 21),
     height: scale(size, 44),
     align: 'center',
-    fill: match.status === MATCH_STATUS.LIVE ? withAlpha('#E5344A', 0.9) : withAlpha(theme.ink, 0.08),
-    color: match.status === MATCH_STATUS.LIVE ? '#FFFFFF' : theme.inkMuted,
+    fill: isLive ? withAlpha('#E5344A', 0.9) : withAlpha(theme.ink, 0.08),
+    color: isLive ? readableInk(pillFill) : theme.inkMuted,
   })
 
   const crestBox = scale(size, isStory ? 330 : 210)
