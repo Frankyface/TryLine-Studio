@@ -17,7 +17,8 @@
  *   1. Nothing is drawn outside the CANVAS. Never acceptable.
  *   2. Nothing is drawn outside the CONTENT BOX, bar the deliberate bleeds
  *      listed in ALLOWED_BLEED. Those are few and each says why.
- *   3. No two pieces of text overlap each other.
+ *   3. No two pieces of text overlap each other, and no text is printed over
+ *      a filled bar such as the winner's underline.
  *
  * Row stripes and the backdrop are excluded by width - they are full-bleed by
  * design. Crest plates need no special case: `drawCrest` pads inward, so a
@@ -78,7 +79,41 @@ for (const competition of readdirSync(dataDir)) {
     if (file.startsWith('season-')) seasons.push(JSON.parse(readFileSync(`${dir}/${file}`, 'utf8')))
   }
 }
-const sampled = matches.filter((_, index) => index % every === 0)
+/**
+ * Every Nth match PLUS the extremes of everything that drives layout.
+ *
+ * Uniform sampling is the wrong instrument here. The heading that bit a notch
+ * out of the winner's accent bar did so on two matches in 1,147 - both of them
+ * scorer-heavy - and `--every 30` sailed past it twice. Layout faults live at
+ * the ends of distributions, so the ends are always in the sample: the longest
+ * names, the most scorers, the biggest scores, the fixtures with no kick-off
+ * time, the finished matches with no timeline.
+ */
+const extremesOf = (list, score, count = 3) => [...list]
+  .map((match) => ({ match, key: score(match) }))
+  .filter((entry) => Number.isFinite(entry.key))
+  .sort((a, b) => b.key - a.key)
+  .slice(0, count)
+  .map((entry) => entry.match)
+
+const scorerCount = (match) => (match.timeline || [])
+  .filter((event) => event.player).length
+const nameLength = (match) => Math.max(
+  String(match.home?.name || '').length,
+  String(match.away?.name || '').length,
+)
+const totalScore = (match) => (match.home?.score ?? 0) + (match.away?.score ?? 0)
+
+const chosen = new Map()
+for (const match of matches.filter((_, index) => index % every === 0)) chosen.set(match.id, match)
+for (const match of [
+  ...extremesOf(matches, scorerCount),
+  ...extremesOf(matches, nameLength),
+  ...extremesOf(matches, totalScore),
+  ...extremesOf(matches, (match) => (match.home?.score === null ? 1 : 0), 3),
+  ...extremesOf(matches, (match) => (match.home?.score !== null && !(match.timeline || []).length ? 1 : 0), 3),
+]) chosen.set(match.id, match)
+const sampled = [...chosen.values()]
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 900, height: 700 } })
@@ -87,16 +122,21 @@ page.on('pageerror', (error) => pageErrors.push(String(error)))
 await page.goto('http://localhost:4321/dev/preview?only=result', { waitUntil: 'networkidle' })
 
 const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, allowed, theme, TOLERANCE]) => {
-  const [{ GRAPHICS, renderGraphic }, schema, themeModule, { contentBox }, primitives] = await Promise.all([
+  const [{ GRAPHICS, renderGraphic }, schema, themeModule, { contentBox },
+    { blockingReason }, primitives] = await Promise.all([
     import('/src/render/index.js'), import('/src/data/schema.js'),
-    import('/src/render/theme.js'), import('/src/render/frame.js'), import('/src/render/primitives.js'),
+    import('/src/render/theme.js'), import('/src/render/frame.js'),
+    import('/src/render/availability.js'), import('/src/render/primitives.js'),
   ])
   const canvas = document.createElement('canvas')
 
   let ink = []
+  let bars = []
   const realFill = CanvasRenderingContext2D.prototype.fillText
   const realImage = CanvasRenderingContext2D.prototype.drawImage
   const realRect = CanvasRenderingContext2D.prototype.fillRect
+  const realPathFill = CanvasRenderingContext2D.prototype.fill
+  const restore = []
 
   /**
    * The box a draw actually paints into, in CANVAS coordinates.
@@ -148,6 +188,78 @@ const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, all
     return realImage.call(this, image, ...rest)
   }
 
+  /**
+   * Filled bars, so that text drawn OVER one is visible to this harness.
+   *
+   * A review found the SCORERS heading biting a notch out of the winner's
+   * accent bar - and the guard could not see it, because the bar is a filled
+   * rounded rect and only text was being compared against text. Small fills
+   * only: row stripes, panels and the backdrop are full-bleed by design.
+   */
+  // The path being built, tracked point by point: `roundRect` here is drawn
+  // with moveTo/arcTo rather than the canvas primitive, so wrapping
+  // `ctx.roundRect` sees nothing at all - which is why the first version of
+  // this check reported zero bars on a card that visibly has one.
+  let path = null
+  const extend = (context, x, y) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    const point = mapped(context.getTransform(), x, y, x, y)
+    if (!path) path = { left: point.left, right: point.right, top: point.top, bottom: point.bottom }
+    else {
+      path.left = Math.min(path.left, point.left)
+      path.right = Math.max(path.right, point.right)
+      path.top = Math.min(path.top, point.top)
+      path.bottom = Math.max(path.bottom, point.bottom)
+    }
+  }
+  const realBegin = CanvasRenderingContext2D.prototype.beginPath
+  const realMove = CanvasRenderingContext2D.prototype.moveTo
+  const realLine = CanvasRenderingContext2D.prototype.lineTo
+  const realArcTo = CanvasRenderingContext2D.prototype.arcTo
+  const realArc = CanvasRenderingContext2D.prototype.arc
+  restore.push(() => {
+    CanvasRenderingContext2D.prototype.beginPath = realBegin
+    CanvasRenderingContext2D.prototype.moveTo = realMove
+    CanvasRenderingContext2D.prototype.lineTo = realLine
+    CanvasRenderingContext2D.prototype.arcTo = realArcTo
+    CanvasRenderingContext2D.prototype.arc = realArc
+  })
+  CanvasRenderingContext2D.prototype.beginPath = function patched() {
+    path = null
+    return realBegin.call(this)
+  }
+  CanvasRenderingContext2D.prototype.moveTo = function patched(x, y) {
+    extend(this, x, y)
+    return realMove.call(this, x, y)
+  }
+  CanvasRenderingContext2D.prototype.lineTo = function patched(x, y) {
+    extend(this, x, y)
+    return realLine.call(this, x, y)
+  }
+  CanvasRenderingContext2D.prototype.arcTo = function patched(x1, y1, x2, y2, r) {
+    extend(this, x1, y1)
+    extend(this, x2, y2)
+    return realArcTo.call(this, x1, y1, x2, y2, r)
+  }
+  CanvasRenderingContext2D.prototype.arc = function patched(x, y, r, ...rest) {
+    extend(this, x - r, y - r)
+    extend(this, x + r, y + r)
+    return realArc.call(this, x, y, r, ...rest)
+  }
+  CanvasRenderingContext2D.prototype.fill = function patched(...rest) {
+    if (path) {
+      const width = path.right - path.left
+      const height = path.bottom - path.top
+      // A FLAT bar specifically - the winner's underline is 64x6. A monogram
+      // disc is square and a pill is tall, and text sitting on either of those
+      // is the whole point of drawing them, so both are excluded by shape
+      // rather than by name.
+      const flat = height <= 20 && width >= height * 3 && width <= 400
+      if (flat) bars.push({ kind: 'bar', what: 'bar', size: width, ...path })
+    }
+    return realPathFill.apply(this, rest)
+  }
+
   const results = []
   const violations = []
 
@@ -172,6 +284,24 @@ const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, all
       const outside = Math.max(box.left - item.left, item.right - box.right)
       if (outside > TOLERANCE) {
         violations.push({ rule: 'outside-box', graphic, label, by: +outside.toFixed(1), what: item.what })
+      }
+    }
+
+    // Text over a filled bar. The winner's underline on a result card is one,
+    // and a heading printed a notch out of it on a real match.
+    for (const text of ink.filter((item) => item.kind === 'text' && item.what.trim())) {
+      for (const bar of bars) {
+        const overlapX = Math.min(text.right, bar.right) - Math.max(text.left, bar.left)
+        const overlapY = Math.min(text.bottom, bar.bottom) - Math.max(text.top, bar.top)
+        if (overlapX > 1 && overlapY > 1) {
+          violations.push({
+            rule: 'text-on-bar',
+            graphic,
+            label,
+            by: +Math.min(overlapX, overlapY).toFixed(1),
+            what: `"${text.what}" on a bar`,
+          })
+        }
       }
     }
 
@@ -216,13 +346,19 @@ const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, all
           options.player = squad.find((p) => Object.keys(p.stats || {}).length) || squad[0]
           options.playerB = (item.match.away?.squad || [])[0]
         }
+        // The APP's gate, not whether draw() happens to throw. Relying on the
+        // throw rendered graphics in states the app never offers - a team
+        // sheet with no squad draws a header over an empty card - and then
+        // measured them as though they were real output.
+        if (blockingReason(graphic, { ...item, source: 'espn' }, options)) continue
         ink = []
+        bars = []
         try {
           await renderGraphic(canvas, graphic.meta.id, {
             ...item, size, theme: themeModule.THEMES[theme], options,
           })
         } catch (error) {
-          continue // refused by its own gate: not a geometry question
+          continue
         }
         drawn += 1
         check(graphic.meta.id, size, `${item.id}/${key}`)
@@ -233,6 +369,8 @@ const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, all
   CanvasRenderingContext2D.prototype.fillText = realFill
   CanvasRenderingContext2D.prototype.drawImage = realImage
   CanvasRenderingContext2D.prototype.fillRect = realRect
+  CanvasRenderingContext2D.prototype.fill = realPathFill
+  for (const undo of restore) undo()
   return { results, violations }
 }, [sampled, tables, seasons, ALLOWED_BLEED, themeId, TOLERANCE])
 
@@ -253,7 +391,7 @@ for (const violation of report.violations) {
   byRule.get(violation.rule).push(violation)
 }
 
-for (const rule of ['off-canvas', 'outside-box', 'text-overlap']) {
+for (const rule of ['off-canvas', 'outside-box', 'text-overlap', 'text-on-bar']) {
   const found = byRule.get(rule) || []
   process.stdout.write(`${rule.padEnd(14)}${String(found.length).padStart(6)}${NL}`)
   const worst = [...found].sort((a, b) => b.by - a.by).slice(0, 6)

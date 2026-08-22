@@ -46,6 +46,19 @@ destructured, so every comparison was against `undefined` and it reported a
 clean sweep on a 47px breach. It looked exactly like a working guard. Break
 something on purpose and confirm it goes red.
 
+**It samples the EXTREMES, not just every Nth match.** Layout faults live at
+the ends of distributions: the heading that notched the accent bar did it on
+two matches in 1,147, both scorer-heavy, and uniform sampling walked past it
+twice. The sample always includes the longest names, the most scorers, the
+biggest scores, the fixtures with no kick-off time and the finished matches
+with no timeline.
+
+**Text over a filled BAR is checked too**, because text-versus-text could not
+see the notch: the winner's underline is a filled path. Bars are identified by
+shape - flat, under 20px tall and at least 3x as wide - so a monogram disc and
+a pill, where text on top is the entire point, are excluded without a list of
+names to maintain.
+
 The tolerance (0.8px) sits between two MEASURED numbers - a 0.7px artefact
 where a right-aligned column anchors exactly on `box.right`, and the smallest
 real fault seen, a 1.1px axis label. It was 1.2px for a while and masked that
@@ -226,10 +239,17 @@ basis. A scheduled fixture measures 244-395px where the demo match measures
 fixture was itself judging by one fixture. It now sweeps `--every N` matches
 and prints p50/p90/max per graphic, format and played/scheduled.
 
-Current, over 144 matches: result/scheduled is the worst at 26-28% of the box,
-result/played 18-25%, matchday 12-15%. **A scheduled `result` is sparse by
-nature** - a pill, two crests, a time and two names - and `matchday` is the
-graphic designed for a fixture. Do not inflate one into the other.
+Current, over the 144 matches the default `--every 8` sweeps: winprob/story
+31%, result/scheduled 26-27%, result/played 18-25%, matchday 12-16%.
+**A scheduled `result` is sparse by nature** - a pill, two crests, a time and
+two names - and `matchday` is the graphic designed for a fixture. Do not
+inflate one into the other. winprob/story has not been looked at yet.
+
+Both this harness and `npm run geometry` ask `blockingReason` whether the app
+would actually offer a graphic, rather than relying on `draw()` throwing. It
+does not throw: a team sheet with no squad renders a header over an empty card
+quite happily, and measuring that reported a 1,079px dead band for a graphic
+nobody can reach in that state.
 
 Two constants decide the answer and only one of them is obvious. THRESHOLD=90
 separates ink from the backdrop texture (at 24 every row of every graphic
@@ -259,14 +279,25 @@ matchdays, and their plates 77.6px out, over the accent hairline. A plate is
 the crest box plus 6% of padding each side, so `offset + box * 0.53` is what
 has to fit inside `box.right`.
 
-**Do not reserve room for the SCORERS header.** It looks necessary and is not:
-the header is centred (ink x 481-595 always) and the winner's underline is
-drawn at the box edges or under a column centre (x 72-136 / 944-1008 /
-276-340 / 740-804), so they cannot intersect at any size or score. Reserving
-34px for a collision that cannot happen cost exactly one row of scorers, and
-16 real cards that had listed every scorer stopped doing so - silently, under
-a heading reading SCORERS. Where the list genuinely does not fit, the heading
-now says how many are missing (7 renders in the archive).
+**Do not reserve room for the SCORERS header, and keep that heading SHORT.**
+Reserving 34px for a collision that cannot happen cost exactly one row of
+scorers: 14 renders across 16 matches that had listed every scorer stopped
+doing so, silently, under a heading reading SCORERS.
+
+The reasoning that justified the revert was right about the word and wrong as
+a rule, and the wrong half went into this file as settled fact. "SCORERS"
+alone measures x 481-595 and cannot reach the winner's underline at x 276-340
+or 944-1008 - true, and I then widened the heading to "SCORERS - 1 MORE NOT
+SHOWN", which measures x 327-753 and bit a 5px notch out of the accent bar on
+Clermont 84-31 Montauban. **A centred label is only clear of things at the
+edges while it stays narrow. That is a property of the text, not of the
+position**, and writing the first down as an invariant is what made the second
+look safe.
+
+Where a column does not fit, its LAST slot says `+N more` instead of holding
+one more name - inside the column, because floating it under both ran it
+through the cards line and putting it in the heading is what caused the notch.
+Each column counts its own, since they truncate independently.
 
 **A block is centred against the drawing, not against a model of it.** The
 first attempt summed a whole pill (`drawPill` anchors on its TOP, so only the

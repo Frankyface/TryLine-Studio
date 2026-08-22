@@ -374,6 +374,14 @@ differently between the two - but correcting it nearly doubles mark overlaps
 relaxMarks to push marks further from where the team actually is. A distortion
 of position is worse than a distortion of aspect.
 
+## Open, found by the harnesses (2026-08-22)
+
+`npm run space` now sweeps every graphic through the app's own availability
+gate, and it surfaced one thing nobody has looked at: **winprob/story carries a
+402px median dead band (31% of the box)**, the worst of any graphic. It was
+invisible before because the harness measured one fixture, then two graphics.
+Not investigated yet.
+
 ## Next, in rough order
 
 1. Cam's phone check - do these read well in the Instagram feed and story

@@ -21,24 +21,36 @@
  *    empty. At 0 or 1 every gap collapses to zero, because the accent hairline
  *    the frame paints at x <= 10 puts a step on every row.
  *
+ * The default sample is the one the numbers in CLAUDE.md were measured from.
+ * Change it and those numbers stop reproducing from the documented command,
+ * which is how they came to be quoted against a sample nobody could re-run.
+ *
  * Usage: node dev/deadspace.mjs [--every N]   (needs the static server on :4321)
  */
 import { chromium } from 'playwright'
-import { readFileSync, readdirSync, existsSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 
 const NL = String.fromCharCode(10)
 const arg = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`)
   return index === -1 ? fallback : process.argv[index + 1]
 }
-const every = Number(arg('every', '6'))
+const every = Number(arg('every', '8'))
 
 const matches = []
+const tables = []
+const seasons = []
 for (const competition of readdirSync('data')) {
-  const dir = `data/${competition}/matches`
-  if (!existsSync(dir)) continue
+  const dir = `data/${competition}`
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) continue
+  if (existsSync(`${dir}/matches`)) {
+    for (const file of readdirSync(`${dir}/matches`)) {
+      matches.push(JSON.parse(readFileSync(`${dir}/matches/${file}`, 'utf8')))
+    }
+  }
   for (const file of readdirSync(dir)) {
-    matches.push(JSON.parse(readFileSync(`${dir}/${file}`, 'utf8')))
+    if (file.startsWith('table-')) tables.push(JSON.parse(readFileSync(`${dir}/${file}`, 'utf8')))
+    if (file.startsWith('season-')) seasons.push(JSON.parse(readFileSync(`${dir}/${file}`, 'utf8')))
   }
 }
 const sample = matches.filter((_, index) => index % every === 0)
@@ -49,10 +61,12 @@ const errors = []
 page.on('pageerror', (error) => errors.push(String(error)))
 await page.goto('http://localhost:4321/dev/preview?only=result', { waitUntil: 'networkidle' })
 
-const rows = await page.evaluate(async (raws) => {
-  const [{ renderGraphic }, { createMatch }, theme, { contentBox }] = await Promise.all([
+const rows = await page.evaluate(async ([raws, tableRaws, seasonRaws]) => {
+  const [{ GRAPHICS, renderGraphic }, { createMatch, createTable }, theme, { contentBox },
+    { blockingReason }] = await Promise.all([
     import('/src/render/index.js'), import('/src/data/schema.js'),
     import('/src/render/theme.js'), import('/src/render/frame.js'),
+    import('/src/render/availability.js'),
   ])
   const THRESHOLD = 90
   const EMPTY_ROW = 3
@@ -90,18 +104,63 @@ const rows = await page.evaluate(async (raws) => {
   for (const raw of raws) {
     const match = createMatch(raw)
     const played = raw.home?.score !== null && raw.away?.score !== null
-    for (const graphic of ['result', 'matchday']) {
+    const squad = match.home?.squad || []
+    for (const graphic of GRAPHICS) {
+      // Every graphic that works from a match. The tables and seasons do not
+      // vary with the fixture, so they are swept separately below.
+      if (graphic.meta.needs !== 'match') continue
+      const options = {
+        handle: '@tryline',
+        side: 'home',
+        player: squad.find((entry) => Object.keys(entry.stats || {}).length) || squad[0],
+        playerB: (match.away?.squad || [])[0],
+      }
+      // The app's own gate: without it a team sheet with no squad renders a
+      // header over an empty card and reports a 1,079px dead band.
+      if (blockingReason(graphic, { match, source: 'espn' }, options)) continue
       for (const key of ['feed', 'story']) {
         const size = theme.SIZES[key]
-        await renderGraphic(canvas, graphic, {
-          match, size, theme: theme.THEMES.midnight, options: { handle: '@tryline' },
+        try {
+          await renderGraphic(canvas, graphic.meta.id, {
+            match,
+            size,
+            theme: theme.THEMES.midnight,
+            options,
+          })
+        } catch (error) {
+          continue // refused by its own gate, which is not a dead-space question
+        }
+        out.push({
+          graphic: graphic.meta.id,
+          format: key,
+          kind: played ? 'played' : 'scheduled',
+          ...measure(size),
         })
-        out.push({ graphic, format: key, kind: played ? 'played' : 'scheduled', ...measure(size) })
+      }
+    }
+  }
+  for (const [items, needs] of [[tableRaws, 'table'], [seasonRaws, 'season']]) {
+    for (const raw of items) {
+      const made = needs === 'table' ? { table: createTable(raw) } : { season: raw }
+      for (const graphic of GRAPHICS) {
+        if (graphic.meta.needs !== needs) continue
+        if (blockingReason(graphic, { ...made, source: 'espn' }, {})) continue
+        for (const key of ['feed', 'story']) {
+          const size = theme.SIZES[key]
+          try {
+            await renderGraphic(canvas, graphic.meta.id, {
+              ...made, size, theme: theme.THEMES.midnight, options: { handle: '@tryline' },
+            })
+          } catch (error) {
+            continue
+          }
+          out.push({ graphic: graphic.meta.id, format: key, kind: needs, ...measure(size) })
+        }
       }
     }
   }
   return out
-}, sample)
+}, [sample, tables, seasons])
 
 await browser.close()
 

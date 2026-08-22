@@ -30,7 +30,18 @@ const statusLabel = (match) => {
 }
 
 function drawScorerColumn(ctx, size, theme, { x, y, width, align, timeline, side, maxRows, lineHeight }) {
-  const rows = summariseScorers(timeline, side).slice(0, maxRows)
+  const all = summariseScorers(timeline, side)
+  // When the list does not fit, the LAST slot says how many are missing rather
+  // than holding one more name. A card headed SCORERS that quietly drops a man
+  // who scored is the silent gap this project refuses everywhere else, and the
+  // two columns truncate independently, so each says its own count.
+  //
+  // The note lives in the column, not under both of them: floating it below
+  // put it through the cards line, and appending it to the centred heading
+  // made that heading wide enough to bite into the winner's accent bar.
+  const overflows = all.length > maxRows
+  const rows = all.slice(0, overflows ? Math.max(1, maxRows - 1) : maxRows)
+  const missing = all.length - rows.length
   let cursor = y
 
   for (const row of rows) {
@@ -45,6 +56,18 @@ function drawScorerColumn(ctx, size, theme, { x, y, width, align, timeline, side
       weight: 500,
       family: FONTS.body,
       color: theme.ink,
+      align,
+      baseline: 'top',
+    })
+    cursor += lineHeight
+  }
+
+  if (missing > 0) {
+    drawText(ctx, `+${missing} more`, x, cursor, {
+      size: scale(size, 23),
+      weight: 600,
+      family: FONTS.body,
+      color: theme.inkFaint,
       align,
       baseline: 'top',
     })
@@ -227,10 +250,15 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     const nameWidth = scale(size, 400)
     for (const [side, x, align] of [['home', box.left, 'left'], ['away', box.right, 'right']]) {
       const team = match[side]
-      const nameSize = fitTextSize(ctx, team.name, nameWidth, {
+      const nameOptions = {
         max: scale(size, 52), min: scale(size, 26), weight: 700, uppercase: true, tracking: 1,
-      })
-      drawText(ctx, team.name, x, nameY, {
+      }
+      const nameSize = fitTextSize(ctx, team.name, nameWidth, nameOptions)
+      // Ellipsed at the floor, as the columns branch is: a 36-character single
+      // token drew 454.8px into a 400px slot, and the comment over there
+      // claimed both branches did this when only one did.
+      const name = truncateText(ctx, team.name, nameWidth, { ...nameOptions, size: nameSize })
+      drawText(ctx, name, x, nameY, {
         size: nameSize, weight: 700, color: theme.ink, align, uppercase: true, tracking: 1,
       })
       if (team.isWinner && played) {
@@ -297,20 +325,23 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     })
   }
 
-  // `rowsNeeded`, not `timeline.length`: a timeline can carry cards and no
-  // scorers - reachable from manual entry, where a club types a yellow card
-  // and no try - and that drew the heading over an empty block.
+  // `rowsNeeded`, not `timeline.length`: a timeline can carry events but no
+  // NAMED scorers, and that drew the heading over an empty block. Manual entry
+  // is the way in - not via cards, which it cannot produce at all, but via
+  // `parseScoreEventsText`, which leaves `player: null` when a club types
+  // "P 20, P 44" with no tries.
   if (played && rowsNeeded) {
-    // A card headed SCORERS that omits a man who scored is exactly the silent
-    // gap this project refuses everywhere else: 14 scorers in room for 13 used
-    // to drop the last name with nothing to show for it. Say how many are
-    // missing, per side, because the two columns truncate independently.
-    const missing = ['home', 'away']
-      .map((side) => Math.max(0, summariseScorers(match.timeline, side).length - shownRows))
-      .reduce((most, count) => Math.max(most, count), 0)
-    const heading = missing ? `Scorers  -  ${missing} more not shown` : 'Scorers'
-
-    drawText(ctx, heading, box.centerX, scorersTop - scale(size, 26), {
+    // The heading stays SHORT and centred, and the count of anyone missing
+    // goes BELOW the last row instead.
+    //
+    // It did not, and the reason is worth keeping: "SCORERS" alone measures
+    // x 481-595, which cannot reach the winner's underline at x 276-340 or
+    // 944-1008 - so it looked safe to widen. "SCORERS - 1 MORE NOT SHOWN"
+    // measures x 327-753, and on Clermont 84-31 Montauban it bit a 5px notch
+    // out of the accent bar. A centred label is only clear of things at the
+    // edges while it stays narrow, and that is a property of the text, not of
+    // the position.
+    drawText(ctx, 'Scorers', box.centerX, scorersTop - scale(size, 26), {
       size: scale(size, 19), weight: 700, family: FONTS.body,
       color: theme.inkFaint, align: 'center', tracking: 4, uppercase: true,
     })
@@ -341,10 +372,11 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     }
   }
 
-  // The date is only in the footer when the block above is not already
-  // carrying it, which it is on an unplayed fixture.
-  const venueParts = [match.venue.name, kickoffDate ? '' : formatMatchDate(match.kickoff, tz)]
-    .filter(Boolean)
+  // The date drops out of the footer when the block above is carrying it -
+  // unless the venue is missing too, which would leave the footer with nothing
+  // on the left at all. 20 archived fixtures have no venue name.
+  const footerDate = kickoffDate && match.venue.name ? '' : formatMatchDate(match.kickoff, tz)
+  const venueParts = [match.venue.name, footerDate].filter(Boolean)
   const attendance = formatAttendance(match.venue.attendance)
   drawFooter(ctx, size, theme, {
     left: venueParts.join('  -  '),
