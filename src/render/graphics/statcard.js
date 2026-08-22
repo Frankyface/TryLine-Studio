@@ -10,7 +10,7 @@ import {
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { pickPlayerStats, formatMatchDate } from '../format.js'
-import { heroStat, heroRank } from '../../analysis/hero.js'
+import { heroStat, heroRank, squadPointsAgree } from '../../analysis/hero.js'
 
 export const meta = Object.freeze({
   id: 'statcard',
@@ -83,7 +83,12 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // the watermark was a decorative 460px numeral competing with the 400px one
   // that carries the message - "10" beside "13", neither obviously the point.
   // The shirt then rides in the position chip, which loses nothing.
-  const hero = heroStat(player, { benchmarks: options.heroStats?.benchmarks })
+  const hero = heroStat(player, {
+    benchmarks: options.heroStats?.benchmarks,
+    // Never assumed: heroStat defaults this to true, and nothing passed it, so
+    // the reconciliation gate its own comment promised did not exist.
+    squadPointsReconcile: squadPointsAgree(team.squad, team.score),
+  })
 
   // Shirt number as a watermark - the card's visual anchor.
   // Story used to run 560px, whose descender was clipped by the first stat tile.
@@ -143,14 +148,13 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
 
   const gridTop = nameTop + scale(size, 180)
   const gridBottom = box.bottom - scale(size, 110)
+  const gridStats = pickPlayerStats(player, isStory ? 8 : 6)
 
   // ONE number when the player has one worth showing, the grid when they do
   // not. Four equal tiles gave equal billing to four non-events; measured, the
   // first tile sat at the 58th percentile of its own match and chose METRES
   // for 149 of 212 props at a median of six. 39% of players clear the bar.
-  // A long name pushes the grid down; below this there is no room for a hero
-  // number AND the three lines under it, and the grid degrades more gracefully.
-  if (hero && gridBottom - gridTop > scale(size, 320)) {
+  if (hero) {
     const heroValue = String(hero.value)
     const labelSize = scale(size, isStory ? 42 : 36)
     const rankSize = scale(size, isStory ? 32 : 27)
@@ -160,7 +164,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     // rather than the three lines under it being pushed off the card.
     const support = pickPlayerStats(player, 4).filter((entry) => entry.key !== hero.key).slice(0, 3)
     const supportTop = gridBottom
-    const rank = heroRank(match, player, hero)
+    const rank = heroRank(match, hero)
     const rankTop = supportTop - (rank ? rankSize + scale(size, 22) : 0)
     const labelTop = rankTop - labelSize - scale(size, 16)
 
@@ -216,10 +220,9 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
         align: 'right', uppercase: true, tracking: 2, baseline: 'alphabetic',
       })
     })
-  } else if (pickPlayerStats(player, isStory ? 8 : 6).length) {
+  } else if (gridStats.length) {
     drawStatGrid(ctx, size, theme, {
-      stats: pickPlayerStats(player, isStory ? 8 : 6),
-      x: box.left, y: gridTop, width: box.width, height: gridBottom - gridTop, accent,
+      stats: gridStats, x: box.left, y: gridTop, width: box.width, height: gridBottom - gridTop, accent,
     })
   } else {
     drawText(ctx, 'No stats recorded', box.left, gridTop + scale(size, 40), {

@@ -194,8 +194,7 @@ function drawTeamRow(ctx, size, theme, { team, crest, colour, y, box, align }) {
  * box the graphic draws. A second copy of these numbers silently drifts.
  *
  * The chart takes whatever is left once the fixed furniture below it is
- * accounted for; a constant height left a quarter of the story blank on the
- * 62% of matches that get no caption.
+ * accounted for; a constant height left a quarter of the story blank.
  */
 export function winprobLayout(size, { headlineHeight = 0 } = {}) {
   const box = contentBox(size)
@@ -245,10 +244,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const curve = buildWinProbabilityCurve(match, model)
   const moments = keyMoments(match, model, isStory ? 4 : 3)
 
-  // Whether the comeback caption will be drawn has to be known BEFORE the plot
-  // is sized, or the chart leaves a blank band wherever the caption is skipped.
   const played = match.home.score !== null && match.away.score !== null
-
 
   drawFrame(ctx, size, theme, { accent })
   const top = drawEyebrow(ctx, size, theme, {

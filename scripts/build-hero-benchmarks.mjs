@@ -78,10 +78,14 @@ const benchmarks = {}
 for (const [key, values] of samples) {
   const [group, stat] = key.split('|')
   benchmarks[group] = benchmarks[group] || {}
-  // p90 for the shirt, never below the stat's own floor - a benchmark under
-  // the floor would let a weak number through on a quiet position.
-  const floor = HERO_STATS.find((entry) => entry.key === stat)?.floor ?? 0
-  benchmarks[group][stat] = Math.max(floor, percentile(values, 0.9))
+  // The RAW p90, never clamped up to the stat's floor.
+  //
+  // Clamping looked safe and was the opposite: it left 148 of these 170 cells
+  // equal to the floor exactly, so `value / benchmark` collapsed to
+  // `value / floor` and the minimum qualifying number scored a perfect 1.0.
+  // The reader consuming this file decides eligibility by comparing the p90
+  // against the floor, which it can only do if the two are still distinct.
+  benchmarks[group][stat] = percentile(values, 0.9)
 }
 
 const payload = {
@@ -92,10 +96,17 @@ const payload = {
 
 process.stdout.write(`${players} player performances across ${Object.keys(benchmarks).length} shirt groups${NL}`)
 for (const group of Object.keys(benchmarks).sort()) {
-  const shown = ['metres', 'tackles', 'carries', 'passes']
+  // 'carries' is called `runs` in the feed; asking for the wrong key printed
+  // "carries -" on every row of this table.
+  const shown = ['metres', 'tackles', 'runs', 'passes']
     .map((stat) => `${stat} ${benchmarks[group][stat] ?? '-'}`)
     .join('  ')
-  process.stdout.write(`  ${group.padEnd(6)}${shown}${NL}`)
+  // Which stats this shirt can actually headline with - the p90 has to clear
+  // the floor, or the benchmark is not judging anything.
+  const eligible = HERO_STATS
+    .filter((stat) => (benchmarks[group][stat.key] ?? 0) > stat.floor)
+    .map((stat) => stat.key)
+  process.stdout.write(`  ${group.padEnd(6)}${shown.padEnd(46)}headlines: ${eligible.join(' ') || 'scoring only'}${NL}`)
 }
 
 if (checkOnly) {

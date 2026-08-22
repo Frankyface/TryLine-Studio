@@ -122,21 +122,47 @@ made six metres is what `src/analysis/hero.js` exists to prevent.
 
 Three rules do it, and each was measured:
 
-- **Benchmarks are per SHIRT** (`data/models/hero-stats.json`, p90 per shirt
-  group, built by `npm run benchmarks`). Prop p90 for metres is 18 against a
-  floor of 55, so no prop can ever reach a metres headline - structurally, with
-  no position list to maintain. Props now headline tackles and carries.
+- **Benchmarks are per SHIRT** (`data/models/hero-stats.json`, the raw p90 per
+  shirt group, built by `npm run benchmarks`), and a stat may only headline for
+  a shirt whose OWN p90 clears that stat's floor. Prop p90 for metres is 18
+  against a floor of 55, so metres is not a prop headline at any value.
+  The eligibility this produces reads like the game: props and hookers headline
+  tackles, locks tackles and carries, flankers add rucks won, scrum-halves
+  passes and kicks, wings and full-backs metres and carries, and replacements
+  scoring only.
+
+  **Never clamp the stored p90 up to the floor.** It did, which left 148 of the
+  170 cells equal to the floor exactly - so `value / benchmark` was
+  `value / floor`, and the minimum qualifying number scored a perfect 1.0.
+  Mauls, offloads, clean breaks and defenders beaten have NO shirt whose p90
+  reaches their floor, so they always scored 1.0 and always won: Oscar Jegou
+  headlined "3 MAULS WON" in a match where he made 15 tackles. Storing the raw
+  p90 and gating on it removed all 21 headlines of three or less and cost 6
+  points of acceptance.
 - **Scoring outranks volume.** Ranking on benchmark ratio alone loses all 55
   two-try performances to busy forwards.
 - **It REFUSES**, for 61% of players, and the existing grid is their card. A
   confidently wrong hero number is worse than none.
 
-Result: the hero sits at the **96th percentile of its own match** at the median
-and never below the 60th.
+Result: the hero sits at the **93rd percentile of its own match** at the median
+and never below the 60th, on 32.5% of players.
 
-**The benchmark ORDERS; it does not gate.** Requiring a value to reach its
-shirt's p90 outright was measured and rejected: acceptance fell 38.6% -> 26.4%
-while the weakest hero's percentile moved by 0.02. The per-stat floors gate.
+**A scoring headline is gated on the squad's points reconciling with the
+scoreline**, and the caller must pass it - `squadPointsReconcile` defaults to
+true, so a caller that forgets silently loses the gate. That is exactly what
+happened: nothing passed it, and 8 cards were reachable on the 4 squads ESPN
+is 7 points short on, including a 4-try "Most in the match" on France 48-46
+England - the match this project already refuses to draw a win curve for.
+
+**A rank says JOINT at every position, not just first.** 59 of 209 "2nd most"
+cards and 44 of 101 "3rd most" cards had another player on the identical
+number; two Italy players printed "2nd most of the 46" on 19 tackles from the
+same match. The `Top N%` line counts to the END of the tie block for the same
+reason.
+
+**Requiring the VALUE to reach the p90** (as opposed to requiring the p90 to
+be a real benchmark) was measured and rejected separately: it cut acceptance to
+17.2% for no gain in the weakest card.
 
 **There is no perfect-rate tier.** "100% from 14 tackles" can only be reached by
 a player who already cleared the volume floor of 12, so the volume tier fired

@@ -9,9 +9,20 @@
  *
  * Three ideas make it work:
  *
- *  - Benchmarks are per SHIRT, because a prop and a winger are not comparable.
- *    Prop p90 for metres is 18; the floor is 55. No prop can ever reach a
- *    metres headline, and no position list has to be maintained to say so.
+ *  - Benchmarks are per SHIRT, because a prop and a winger are not comparable,
+ *    and a stat may only headline for a shirt whose OWN p90 clears the stat's
+ *    floor. Prop p90 for metres is 12; the floor is 55, so metres is not a
+ *    prop headline at any value, and no position list says so by hand.
+ *
+ *    That eligibility rule is load-bearing, not decoration. The benchmark file
+ *    used to clamp each p90 up to the floor, which left 148 of its 170 cells
+ *    equal to the floor exactly - so `value / benchmark` was `value / floor`
+ *    and the minimum qualifying number scored a perfect 1.0. Four stats
+ *    (mauls, offloads, clean breaks, defenders beaten) have no shirt whose p90
+ *    reaches their floor at all, so they always scored 1.0 and always won:
+ *    Oscar Jegou headlined "3 MAULS WON" in a match where he made 15 tackles.
+ *    Measured, the rule removes all 21 headlines of three or less while
+ *    keeping 32.6% of players, against 38.6% before.
  *  - Scoring outranks volume. A brace must never lose to a tackle count, and
  *    ranking on benchmark ratio alone loses all 55 two-try performances.
  *  - The benchmark ORDERS, it does not gate: requiring a value to reach its
@@ -75,6 +86,22 @@ const value = (player, key) => {
 }
 
 /**
+ * Whether a squad's own stat lines add up to the score it was given.
+ *
+ * ESPN drops a converted try in 4 of the 106 team-matches that carry stats,
+ * always by exactly 7, which means an unrecorded scorer exists in that squad.
+ * A scoring headline is the one claim that cannot survive it: "Most in the
+ * match" is only true if every try is accounted for. Eight cards were reachable
+ * on the four bad squads, including a 4-try card on France 48-46 England - the
+ * match this project already refuses to draw a win curve for.
+ */
+export function squadPointsAgree(squad, score) {
+  if (!Array.isArray(squad) || !Number.isFinite(score)) return false
+  const summed = squad.reduce((total, player) => total + (value(player, 'points') ?? 0), 0)
+  return summed === score
+}
+
+/**
  * The hero number for one player, or null when nothing clears the bar.
  * `benchmarks` is data/models/hero-stats.json; without it only scoring and
  * perfect rates can fire, which is a safe degradation rather than a wrong one.
@@ -102,12 +129,15 @@ export function heroStat(player, { benchmarks, squadPointsReconcile = true } = {
 
   if (table) {
     const best = HERO_STATS
-      .map((stat) => ({ stat, found: value(player, stat.key) }))
-      .filter((entry) => entry.found !== null && entry.found >= entry.stat.floor)
-      .map((entry) => ({
-        ...entry,
-        score: entry.found / Math.max(table[entry.stat.key] ?? entry.stat.floor, entry.stat.floor),
-      }))
+      .map((stat) => ({ stat, found: value(player, stat.key), par: table[stat.key] }))
+      // Above the floor AND judged against a real benchmark: where this shirt's
+      // p90 does not itself clear the floor, the stat is not one this shirt
+      // headlines with, whatever the number.
+      .filter((entry) => entry.found !== null
+        && entry.found >= entry.stat.floor
+        && Number.isFinite(entry.par)
+        && entry.par > entry.stat.floor)
+      .map((entry) => ({ ...entry, score: entry.found / entry.par }))
       .sort((a, b) => b.score - a.score)[0]
     if (best) {
       return Object.freeze({
@@ -124,7 +154,7 @@ export function heroStat(player, { benchmarks, squadPointsReconcile = true } = {
  * Reads from the match, so it is a fact about this game and not a percentile
  * the viewer has to take on trust.
  */
-export function heroRank(match, player, hero) {
+export function heroRank(match, hero) {
   if (!hero) return ''
 
   const everyone = [...(match?.home?.squad || []), ...(match?.away?.squad || [])]
@@ -139,12 +169,19 @@ export function heroRank(match, player, hero) {
   // number of players that were never on the pitch.
   const field = everyone.length
 
+  // JOINT at every rank, not only at the top. 59 of 209 "2nd most" cards and
+  // 44 of 101 "3rd most" cards had another player on the same number - two
+  // players in Italy 18-15 Scotland both printed "2nd most of the 46" on 19
+  // tackles, in the same match, from the same graphic.
+  const joint = equal > 1 ? 'Joint ' : ''
   if (better === 0) return equal > 1 ? 'Joint most in the match' : 'Most in the match'
-  if (better === 1) return `2nd most of the ${field}`
-  if (better === 2) return `3rd most of the ${field}`
+  if (better === 1) return `${joint}2nd most of the ${field}`
+  if (better === 2) return `${joint}3rd most of the ${field}`
 
   // A share is only worth printing while it still reads as "top". Real cards
   // run 9-33%; anything past that is a rank the card is better off not making.
-  const share = Math.round(((better + 1) / field) * 100)
+  // Counted to the END of the tie block: taken at its best position, a player
+  // level with seven others read "Top 24%" when the block runs to 37%.
+  const share = Math.round(((better + equal) / field) * 100)
   return share <= TOP_SHARE ? `Top ${share}% of the ${field}` : ''
 }

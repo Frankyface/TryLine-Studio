@@ -58,7 +58,18 @@ function drawEnd(ctx, x, y, radius, { accent, theme, hollow, ringWidth }) {
   ctx.restore()
 }
 
-function drawScale(ctx, size, theme, track) {
+/** Club-name type as a fraction of its row. */
+const NAME_SHARE = 0.42
+
+const AVERAGE_LABEL = 'LEAGUE AVG'
+const averageOptions = (size) => ({
+  size: scale(size, 16), weight: 700, family: FONTS.body, tracking: 2, uppercase: true,
+})
+
+function drawScale(ctx, size, theme, track, { averageX = null } = {}) {
+  const averageHalf = averageX === null
+    ? 0
+    : measureText(ctx, AVERAGE_LABEL, averageOptions(size)) / 2
   for (const level of [0, 0.25, 0.5, 0.75, 1]) {
     const x = track.left + track.width * level
     const isEnd = level === 0 || level === 1
@@ -72,14 +83,37 @@ function drawScale(ctx, size, theme, track) {
     ctx.stroke()
     ctx.restore()
 
+    // A tick gives way to the league average rather than printing over it:
+    // the average is the only line on this chart a reader has to find.
+    const tickOptions = { size: scale(size, 18), weight: 600, family: FONTS.body, tracking: 0 }
+    const tickHalf = measureText(ctx, `${level * 100}%`, tickOptions) / 2
+    if (averageX !== null && Math.abs(averageX - x) < tickHalf + averageHalf + scale(size, 12)) continue
+
     drawText(ctx, `${level * 100}%`, x, track.top - scale(size, 18), {
-      size: scale(size, 18),
-      weight: 600,
-      family: FONTS.body,
+      ...tickOptions,
       color: theme.inkFaint,
       align: 'center',
       baseline: 'bottom',
     })
+  }
+
+  // Labelled where the line is, rather than explained in the footer, which
+  // printed "home sides win 68%" under a headline reading THE HOME SIDE WINS
+  // 68% OF THE TIME. It sits ABOVE the track with the other scale labels: put
+  // below it, it overlapped the strongest-club caption on 3 of 10 renders,
+  // worst by 40px on Major League Rugby - and a lower league average pulls it
+  // further left into that sentence, so the leagues with the least home
+  // advantage collided hardest.
+  if (averageX !== null) {
+    drawText(ctx, AVERAGE_LABEL,
+      Math.min(Math.max(averageX, track.left + averageHalf), track.right - averageHalf),
+      track.top - scale(size, 18), {
+        ...averageOptions(size),
+        // inkMuted, not the accent: `resolveAccent` only promises 3.5:1 and
+        // the alpha took it under, measuring 3.74:1 on chalk. The ink tokens
+        // are the ones `npm run contrast` actually guards.
+        color: theme.inkMuted, align: 'center', baseline: 'bottom',
+      })
   }
 }
 
@@ -139,7 +173,13 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
   // smaller than the footer. Rows are DROPPED instead of squeezed: the footer
   // already says "top N of M", so a shorter list is stated, and an unreadable
   // one is not.
-  const MIN_ROW = scale(size, 34)
+  // Derived from the type size it exists to protect, not guessed. Club names
+  // draw at `min(22, rowHeight * 0.42)`, so a 34px floor still yielded 14.3px
+  // - the cap never bound, no row was ever dropped for any possible input, and
+  // URC and Top 14 club names measured 15.32px on the real render, smaller
+  // than the 20px footer. 17px of name needs 17 / 0.42 = 40.5px of row.
+  const MIN_NAME = scale(size, 17)
+  const MIN_ROW = MIN_NAME / NAME_SHARE
   const rows = allRows.slice(0, Math.max(6, Math.floor((listBottom - listTop) / MIN_ROW)))
   const rowHeight = (listBottom - listTop) / rows.length
 
@@ -151,38 +191,27 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     get width() { return this.right - this.left },
   }
 
-  drawScale(ctx, size, theme, track)
+  const averageX = highlights.leagueHomeWinRate === null
+    ? null
+    : track.left + track.width * highlights.leagueHomeWinRate
+  drawScale(ctx, size, theme, track, { averageX })
 
   // The league's own average, so a club's gap is read against its peers.
-  if (highlights.leagueHomeWinRate !== null) {
-    const x = track.left + track.width * highlights.leagueHomeWinRate
+  if (averageX !== null) {
     ctx.save()
     ctx.strokeStyle = withAlpha(accent, 0.55)
     ctx.lineWidth = 2
     ctx.setLineDash([2, 6])
     ctx.beginPath()
-    ctx.moveTo(x, track.top)
-    ctx.lineTo(x, track.bottom)
+    ctx.moveTo(averageX, track.top)
+    ctx.lineTo(averageX, track.bottom)
     ctx.stroke()
     ctx.restore()
-
-    // Labelled where it is, rather than explained in the footer. The footer
-    // said "home sides win 68%" beside a headline reading "THE HOME SIDE WINS
-    // 68% OF THE TIME", and spelling it out there instead ran the legend past
-    // the width and truncated "gap in points".
-    const label = 'LEAGUE AVG'
-    const half = measureText(ctx, label, { size: scale(size, 16), family: FONTS.body, tracking: 2 }) / 2
-    drawText(ctx, label,
-      Math.min(Math.max(x, track.left + half), track.right - half),
-      track.bottom + scale(size, 26), {
-        size: scale(size, 16), weight: 700, family: FONTS.body,
-        color: withAlpha(accent, 0.85), align: 'center', baseline: 'middle', tracking: 2,
-      })
   }
 
   const crests = await Promise.all(rows.map((row) => loadCrestImage(row.team.logo, scale(size, 36))))
   const crestBox = Math.min(scale(size, 36), rowHeight * 0.72)
-  const valueSize = Math.min(scale(size, 22), rowHeight * 0.42)
+  const valueSize = Math.min(scale(size, 22), rowHeight * NAME_SHARE)
 
   rows.forEach((row, index) => {
     const y = listTop + index * rowHeight + rowHeight / 2
