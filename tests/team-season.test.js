@@ -120,6 +120,21 @@ describe('what the chart says it is missing', () => {
       .toBe('8 OF 9 MATCHES RECORDED')
   })
 
+  it('never mistakes a lagging league table for play-offs', () => {
+    // A table one round behind the scoreboard feed exceeds nothing but its own
+    // staleness, and claiming play-offs for every club would be plainly wrong.
+    // The fixture count is what tells them apart: mid-season the competition
+    // still lists more fixtures than the archive holds, so the gap note fires
+    // first and the play-offs branch is never reached.
+    const lagging = timelineOf(eight, { fixtures: 18 })
+    expect(seasonScope(lagging, tableOf(3))).toBe('8 OF 18 MATCHES RECORDED')
+
+    // The genuine article: the archive holds everything the competition lists,
+    // and more than the table's regular-season count.
+    const playoffs = timelineOf(eight, { fixtures: 8 })
+    expect(seasonScope(playoffs, tableOf(6))).toMatch(/play-offs/i)
+  })
+
   it('says nothing when there is no table and no fixture count', () => {
     expect(seasonScope(teamSeasonTimeline(seasonOf(eight), 'Alpha'), null)).toBe('')
   })
