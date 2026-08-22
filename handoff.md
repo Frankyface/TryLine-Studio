@@ -349,13 +349,32 @@ the season tiebreak compared floats exactly and never ran; and the win-prob
 headline printed "down to 0%" for a side that won. The headline geometry now
 has tests and `frame.js` is inside the coverage gate.
 
+## Story format measured, and mostly not a problem (2026-08-22)
+
+"The story is the feed layout letterboxed into 9:16" was an opinion in this
+file for weeks. `npm run space` turns it into a number - the largest run of
+near-empty pixel rows inside the area each format may use, story safe margins
+excluded - and it was true of two graphics, not of the format: result (37%
+inked, 290px band) and matchday (37%, 263px). The other nine measured 6-10%.
+
+Result now stacks into two columns on story, one per team, because the score
+otherwise has to fit between the crests in 262px. Matchday had a branch to
+shrink its stack on overflow and none for surplus, so it banked 300px as two
+voids. Scorer rows now breathe rather than centring and leaving a band above
+the footer. Everything sits in a 9-13% band; nothing else needed touching.
+
+Also investigated and DECLINED, with the numbers, in docs/decisions.md: making
+the attack-v-defence scatter equal-aspect. The plot is 1.81:1 on feed and
+0.70:1 on story while the data is near-square, so the same season does read
+differently between the two - but correcting it nearly doubles mark overlaps
+(59 to 112 pairs) and drops the worst gap from 9px to 4px, which forces
+relaxMarks to push marks further from where the team actually is. A distortion
+of position is worse than a distortion of aspect.
+
 ## Next, in rough order
 
 1. Cam's phone check - do these read well in the Instagram feed and story
    frames? Still the only item needing a human.
-2. The STORY format, generally. The player card is now designed for 9:16 - its
-   number grows into the room rather than being letterboxed - and the other
-   graphics are not. That is the clearest remaining design gap.
-3. Deeper analysis beyond what is built: scoring-run charts. Rugby has no
+2. Deeper analysis beyond what is built: scoring-run charts. Rugby has no
    shot-chart equivalent in free
    data - no coordinates, no possession-level play-by-play.

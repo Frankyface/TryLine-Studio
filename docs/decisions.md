@@ -118,3 +118,18 @@ floor of 12, so the volume tier fires first by construction - 0 of 2,438
 players in the archive ever reached a rate headline. Raising the rate's floor
 cannot help, because the volume floor sits below it. The concrete number is the
 better headline; the rate belongs in the supporting row.
+
+**2026-08-22 - The attack-v-defence scatter stays unequal-aspect. Investigated
+and declined.** Both axes are the same unit (points per game), so equal scaling
+is the textbook call, and the chart is not: the plot box is 1.81:1 on feed and
+0.70:1 on story while the data spans are near-square (median ratio 1.02 across
+14 real tables). The same season therefore reads differently in the two images
+a user posts together. Correcting it - by padding the bounds or by shrinking
+the box, which compress horizontal separation identically - was measured over
+every real table: pre-relaxation mark overlaps rise from 59 to 112 pairs on
+feed, and the worst pairwise gap falls from 9px to 4px. That load lands on
+relaxMarks, which would push more marks further from where the team actually
+is. A mark drawn where the club is not is a worse fault than an axis that
+exaggerates attack differences, especially on a chart whose readings are
+"which quadrant" and "how extreme". Re-open only with a layout that buys the
+aspect back without crowding.
