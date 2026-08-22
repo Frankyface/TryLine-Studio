@@ -13,14 +13,14 @@ import { toRgb } from './primitives.js'
 const SERIES_PALETTE = Object.freeze(['#25D07A', '#F5C518', '#4FA8FF', '#FF6B7D', '#B388FF'])
 
 /** Minimum channel spread before a colour counts as a colour rather than a grey. */
-const MIN_CHROMA = 95
+export const MIN_CHROMA = 95
 
 /**
  * Two series must be obviously different, not merely measurably different.
  * A lower bar let theme-blue pass against navy (distance 61) and the two areas
  * still read as one colour.
  */
-const MIN_SEPARATION = 115
+export const MIN_SEPARATION = 115
 
 /** Shared parser, so a 3-digit hex expands the same way everywhere. */
 const rgbOf = (hex) => toRgb(hex) || [0, 0, 0]
@@ -43,6 +43,23 @@ export function colourDistance(a, b) {
 export function chroma(hex) {
   const [r, g, b] = rgbOf(hex)
   return Math.max(r, g, b) - Math.min(r, g, b)
+}
+
+/**
+ * A colour guaranteed to read as different from `reference`.
+ *
+ * The season chart drew wins in the user's accent and losses in a fixed red,
+ * with a comment promising the loss colour "must survive a user-chosen accent"
+ * and nothing implementing it. On the bloodwood theme the two measured 1.21:1
+ * against each other, and picking a red accent made them literally the same
+ * colour - an entire season in one shade, with bar direction the only thing
+ * left to read it by.
+ */
+export function distinctFrom(colour, reference, fallbackPool = SERIES_PALETTE) {
+  if (colourDistance(colour, reference) >= MIN_SEPARATION) return colour
+  return fallbackPool
+    .slice()
+    .sort((a, b) => colourDistance(b, reference) - colourDistance(a, reference))[0]
 }
 
 /**

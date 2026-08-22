@@ -8,7 +8,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { seriesColours, colourDistance, chroma } from '../src/render/series.js'
+import { seriesColours, colourDistance, chroma, distinctFrom, MIN_SEPARATION,
+} from '../src/render/series.js'
 import { THEME_LIST, THEMES } from '../src/render/theme.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -130,5 +131,35 @@ describe('every real team colour, on every theme', () => {
       }
     }
     expect(failures.slice(0, 3)).toEqual([])
+  })
+})
+
+describe('distinctFrom', () => {
+  it('keeps a colour that is already far enough away', () => {
+    expect(distinctFrom('#25D07A', '#FF4D5E')).toBe('#25D07A')
+  })
+
+  it('substitutes when two colours are the same', () => {
+    // The real case: a red accent beside a red loss bar drew a whole season in
+    // one shade, with bar direction the only thing left to read it by.
+    const substitute = distinctFrom('#E5484D', '#E5484D')
+    expect(substitute).not.toBe('#E5484D')
+    expect(colourDistance(substitute, '#E5484D')).toBeGreaterThanOrEqual(MIN_SEPARATION)
+  })
+
+  it('substitutes when two colours are merely close', () => {
+    // bloodwood's accent against the loss red measured 16 apart.
+    const substitute = distinctFrom('#E5484D', '#FF4D5E')
+    expect(colourDistance(substitute, '#FF4D5E')).toBeGreaterThan(colourDistance('#E5484D', '#FF4D5E'))
+  })
+
+  it('honours a caller-supplied pool', () => {
+    const pool = ['#4FA8FF', '#B388FF']
+    expect(pool).toContain(distinctFrom('#E5484D', '#E5484D', pool))
+  })
+
+  it('picks the furthest option in the pool, not just any', () => {
+    const pool = ['#FF5560', '#0000FF']
+    expect(distinctFrom('#E5484D', '#E5484D', pool)).toBe('#0000FF')
   })
 })

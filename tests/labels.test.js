@@ -3,6 +3,7 @@
  * the curve on 68% of real matches, so the rules here are load-bearing.
  */
 import { describe, it, expect } from 'vitest'
+import { composite, contrastRatio } from '../src/render/primitives.js'
 import {
   placeLabel, rectsOverlap, segmentHitsRect, polylineHitsRect,
 } from '../src/render/labels.js'
@@ -160,5 +161,36 @@ describe('placeLabel', () => {
 
   it('works with no bounds given', () => {
     expect(() => placeLabel({ anchorX: 0, anchorY: 0, width: 10, height: 10 })).not.toThrow()
+  })
+})
+
+/**
+ * Translucent fills have to be measured against what they land on, not against
+ * the token. The eyebrow pill is the accent at 16% over the page: measured
+ * against the PAGE it passed, while its text read 2.56:1 against the pill it
+ * was actually sitting on - on all ten graphics.
+ */
+describe('composite', () => {
+  it('returns the backdrop at zero alpha', () => {
+    expect(composite('#FFFFFF', 0, '#000000')).toBe('#000000')
+  })
+
+  it('returns the colour at full alpha', () => {
+    expect(composite('#FFFFFF', 1, '#000000').toLowerCase()).toBe('#ffffff')
+  })
+
+  it('lands halfway at half alpha', () => {
+    expect(composite('#FFFFFF', 0.5, '#000000')).toBe('#808080')
+  })
+
+  it('is what makes the pill measurable', () => {
+    // A 16% white tint over black is nowhere near white, so text measured
+    // against white would be wrong by a mile.
+    const fill = composite('#FFFFFF', 0.16, '#000000')
+    expect(contrastRatio('#FFFFFF', fill)).toBeLessThan(contrastRatio('#FFFFFF', '#000000'))
+  })
+
+  it('falls back to the backdrop for an unreadable colour', () => {
+    expect(composite('not-a-colour', 0.5, '#123456')).toBe('#123456')
   })
 })

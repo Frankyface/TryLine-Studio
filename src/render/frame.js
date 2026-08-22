@@ -5,7 +5,7 @@
 import { STORY_SAFE_TOP, STORY_SAFE_BOTTOM, FONTS, scale } from './theme.js'
 import {
   drawBackdrop, drawTexture, drawText, drawPill, drawDivider, withAlpha, contrastAccent,
-  measureText, truncateText,
+  measureText, truncateText, composite, readableInk,
 } from './primitives.js'
 
 /**
@@ -48,15 +48,24 @@ export function drawFrame(ctx, size, theme, { accent } = {}) {
  * Eyebrow: competition pill on the left, optional round/status on the right.
  * Returns the y coordinate where content can start.
  */
+/** How strongly the eyebrow pill tints the page behind its own label. */
+const PILL_TINT = 0.16
+
 export function drawEyebrow(ctx, size, theme, { label, meta, accent } = {}) {
   const box = contentBox(size)
   const height = scale(size, 48)
   if (label) {
+    // The pill's own tint lifts the background under its text, so the accent
+    // has to clear the bar against the PILL, not against the page. Measured
+    // against the page it looked fine while reading 2.56:1 where it actually
+    // sat - and this pill is on all ten graphics.
+    const base = accent || theme.accent
+    const pillFill = composite(base, PILL_TINT, theme.bg)
     drawPill(ctx, label, box.left, box.top, {
       size: scale(size, 22),
       height,
-      fill: withAlpha(accent || theme.accent, 0.16),
-      color: accent || theme.accent,
+      fill: withAlpha(base, PILL_TINT),
+      color: contrastAccent(base, pillFill, { minRatio: 4.5, fallback: readableInk(pillFill) }),
     })
   }
   if (meta) {

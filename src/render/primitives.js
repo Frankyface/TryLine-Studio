@@ -401,6 +401,21 @@ export function contrastAccent(color, background, { minRatio = 3.5, fallback } =
 }
 
 /**
+ * The colour a translucent fill actually ends up as, over a known backdrop.
+ *
+ * Needed because contrast has to be measured against what is on the canvas,
+ * not against the token. The eyebrow pill is the accent at 16% over the page,
+ * and measuring the accent against the PAGE said it passed while the text
+ * measured 2.56:1 against the pill it was actually sitting on.
+ */
+export function composite(color, alpha, background) {
+  const top = toRgb(color)
+  const under = toRgb(background)
+  if (!top || !under) return background
+  return toHex(top.map((channel, index) => channel * alpha + under[index] * (1 - alpha)))
+}
+
+/**
  * Whichever ink actually reads better on this background.
  *
  * A fixed 0.55 flip point was wrong: white on white breaks even against dark
