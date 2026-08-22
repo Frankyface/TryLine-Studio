@@ -671,7 +671,13 @@ async function start() {
       $('competition').append(option)
     }
     $('data-age').textContent = `Data refreshed ${formatMatchDate(catalog.updated, { withYear: true })}`
-    await selectCompetition(available[0].id)
+    // Open on the competition with the most recent completed match. The list
+    // is alphabetical for finding things, but alphabetical FIRST was a tour
+    // that finished over a year ago, which made the archive look dead.
+    const freshest = [...available]
+      .sort((a, b) => String(b.latest || '').localeCompare(String(a.latest || '')))[0]
+    $('competition').value = freshest.id
+    await selectCompetition(freshest.id)
 
     // Restored last, so a club that works from its own team lands on its own
     // team. The manual fields are already back from storage by this point; the

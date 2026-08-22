@@ -79,6 +79,15 @@ const rebuilt = readdirSync(dataDir)
     detailed: (index.matches || []).filter((match) => match.hasDetail).length,
     withStats: index.withStats ?? 0,
     tables: index.tables || [],
+    // The most recent match actually PLAYED. The app opens on the competition
+    // with the newest one, because opening on a tour that finished a year ago
+    // - which is what sorting by name gave - makes the whole archive look
+    // stale before the user has touched anything.
+    latest: (index.matches || [])
+      .filter((match) => match.status === 'final')
+      .map((match) => match.kickoff)
+      .sort()
+      .at(-1) || '',
   }))
   .sort((a, b) => String(a.name).localeCompare(String(b.name)))
 

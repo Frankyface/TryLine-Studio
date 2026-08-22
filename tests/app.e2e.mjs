@@ -100,9 +100,16 @@ check('story canvas is drawn', await canvasHasContent('canvas-story'))
 await page.screenshot({ path: join(shotDir, 'app-start.png') })
 
 // Only matches with player stats, so every stat-based graphic has data.
-// ESPN publishes stat lines for internationals only, never for club rugby.
+// ESPN publishes stat lines for internationals only, never for club rugby, so
+// the competition the app happens to open on may have none - find one that has.
 await page.check('#only-stats')
-await page.waitForTimeout(300)
+await page.waitForTimeout(400)
+const competitionCount = await page.locator('#competition option').count()
+for (let index = 0; index < competitionCount; index += 1) {
+  if (await page.locator('#match option').count() > 0) break
+  await page.selectOption('#competition', { index })
+  await page.waitForTimeout(1600)
+}
 await page.selectOption('#match', { index: 0 })
 await waitForOk()
 const statMatches = await page.locator('#match option').count()
@@ -448,10 +455,10 @@ check('the chosen source survives a reload',
   restoredSource.active === 'manual' && restoredSource.manualVisible,
   JSON.stringify(restoredSource))
 
-// The preview is sticky on desktop and must NOT be on a phone: taller than the
-// viewport, it pins over the whole control rail and every chip, select and
-// button stops responding. This shipped, because the override was written
-// above the rule it overrides and silently lost the source-order tie.
+// On a phone the preview is pinned so you can see what you are editing, but it
+// MUST stay short enough not to cover the rail. Pinned and full height is what
+// shipped once: every chip, select and button stopped responding. The invariant
+// is the reachability and the cap, not any particular CSS position.
 const phone = await browser.newPage({ viewport: { width: 390, height: 664 } })
 await phone.goto(baseUrl, { waitUntil: 'networkidle' })
 await phone.waitForTimeout(1500)
@@ -464,15 +471,16 @@ const reach = await phone.evaluate(() => {
     const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
     return el === hit || el.contains(hit) ? 'ok' : 'blocked'
   }
+  const stage = document.querySelector('.stage').getBoundingClientRect()
   return {
-    position: getComputedStyle(document.querySelector('.stage')).position,
+    stageShare: stage.height / window.innerHeight,
     chip: probe('[data-graphic="table"]'),
     exportButton: probe('#export-set'),
     matchList: probe('#match'),
   }
 })
 check('every control is reachable at phone width',
-  reach.position === 'static' && reach.chip === 'ok'
+  reach.stageShare <= 0.45 && reach.chip === 'ok'
     && reach.exportButton === 'ok' && reach.matchList === 'ok',
   JSON.stringify(reach))
 

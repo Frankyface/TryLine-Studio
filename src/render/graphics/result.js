@@ -151,6 +151,18 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // bigger hero block above is what actually fills the space.
   const scorersTop = blockTop + Math.max(0, (blockBottom - blockTop - blockHeight) / 2)
 
+  // 45 of the 783 finished matches in the archive have no timeline at all, and
+  // the band reserved for scorers was simply left blank - 448px, 48% of the
+  // content height, on a card that otherwise looks finished. Say why it is
+  // empty, the way the player card already does.
+  if (played && !match.timeline.length) {
+    drawText(ctx, 'Scorers not recorded', box.centerX, (blockTop + blockBottom) / 2, {
+      size: scale(size, 24), weight: 600, family: FONTS.body,
+      color: theme.inkFaint, align: 'center', baseline: 'middle',
+      tracking: 2, uppercase: true,
+    })
+  }
+
   if (played && match.timeline.length) {
     drawText(ctx, 'Scorers', box.centerX, scorersTop - scale(size, 26), {
       size: scale(size, 19), weight: 700, family: FONTS.body,

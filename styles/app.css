@@ -356,18 +356,34 @@ select:disabled { opacity: 0.45; cursor: not-allowed; }
    taller than the viewport pinned over the whole control rail - every chip,
    select and button unclickable on any phone or portrait tablet. */
 @media (max-width: 900px) {
-  /* The preview must come first. Below the controls it sits a full screen
-     down, so you would be adjusting a graphic you cannot see. */
+  /* The preview comes first AND stays put, capped at a third of the screen.
+     Static, it sat above 1,000px of form, so every edit was made blind to the
+     picture it changed. Sticky WITHOUT the cap is what covered the whole
+     control rail - the cap is the part that makes this safe, so if you change
+     it, re-run the phone hit-test in tests/app.e2e.mjs. */
   .stage {
-    position: static;
+    position: sticky;
+    top: 0;
     order: -1;
+    max-height: 34vh;
+    overflow: hidden;
+    padding-bottom: 6px;
+    background: var(--bg);
+    box-shadow: 0 10px 20px -12px rgba(0, 0, 0, 0.7);
+    z-index: 2;
   }
 
+  /* Side by side, so the pinned band stays short. Both formats still visible,
+     which is the point - a club posts the pair. */
   .previews {
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 12px;
   }
 
-  .preview canvas { width: min(420px, 86vw); }
-  .preview--story canvas { width: min(300px, 58vw); }
+  .preview canvas { width: min(200px, 44vw); }
+  .preview--story canvas { width: min(112px, 25vw); }
+  .preview figcaption { font-size: 9px; }
+  .status { font-size: 12px; }
 }
