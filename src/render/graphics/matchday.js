@@ -46,11 +46,6 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     accent,
   })
 
-  const [homeCrest, awayCrest] = await Promise.all([
-    loadCrestImage(match.home.logo, scale(size, 300)),
-    loadCrestImage(match.away.logo, scale(size, 300)),
-  ])
-
   const headline = options.headline || 'Matchday'
   const date = options.dateText || formatMatchDate(match.kickoff, tz)
   const time = options.timeText ?? formatKickoffTime(match.kickoff, tz)
@@ -108,7 +103,16 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     // with a 263px dead band. Spend the surplus instead - the crests first,
     // because they are what a fixture poster is looking at, then the gaps.
     let surplus = -overflow
-    const crestRoom = Math.min(surplus * 0.55, crestBox * 0.45)
+    // Bounded by the WIDTH as well as the surplus. Growing on height alone put
+    // both crests 51.5px outside the content box on all 1,147 story renders,
+    // and their plates 77.6px out - over the accent hairline the frame paints
+    // at x <= 10. The plate is the crest box plus 6% of padding each side.
+    const sideRoom = (box.right - box.centerX - scale(size, 290)) / 0.53
+    const crestRoom = Math.max(0, Math.min(
+      surplus * 0.55,
+      crestBox * 0.45,
+      sideRoom - blocks.crests,
+    ))
     blocks.crests += crestRoom
     surplus -= crestRoom
 
@@ -134,6 +138,14 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     uppercase: true,
   })
   cursor += blocks.headline
+
+  // Loaded at the size finally settled on, not the size first asked for: the
+  // stack can grow the crest, and the mirror is meant to be handed the number
+  // actually drawn.
+  const [homeCrest, awayCrest] = await Promise.all([
+    loadCrestImage(match.home.logo, blocks.crests),
+    loadCrestImage(match.away.logo, blocks.crests),
+  ])
 
   const crestY = cursor + blocks.crests / 2
   const crestOffset = scale(size, isStory ? 290 : 310)

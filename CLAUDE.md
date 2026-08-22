@@ -181,16 +181,34 @@ When a hero fires the shirt-number watermark is NOT drawn: a decorative 460px
 numeral beside the 400px one carrying the message read as two headlines. The
 shirt moves into the position chip.
 
-## "Letterboxed into 9:16" was true of two graphics, not of the format
+## Dead canvas: measure it over MATCHES, never over the demo fixture
 
-The note that the story format was just the feed layout letterboxed sat in the
-handoff as an opinion. `npm run space` measures it - the largest run of
-near-empty pixel rows inside the area each format is allowed to use, with the
-story's 250px safe margins excluded because those are reserved, not dead.
+`npm run space` measures the largest run of near-empty pixel rows inside each
+format's content box. The first version of it drove `dev/preview.html`, which
+renders exactly one match - so it reported one fixture as if it were the
+archive, and "nothing sits outside a 9-13% band" went into this file on that
+basis. A scheduled fixture measures 244-395px where the demo match measures
+124. The harness that existed to stop this project judging a chart by one
+fixture was itself judging by one fixture. It now sweeps `--every N` matches
+and prints p50/p90/max per graphic, format and played/scheduled.
 
-Measured, it was true of exactly two: result (37% inked, a 290px band) and
-matchday (37%, 263px). The other nine sat at 6-10%, which is the spacing
-between sections and not a fault. Everything now sits in a 9-13% band.
+Current, over 144 matches: result/scheduled is the worst at 26-28% of the box,
+result/played 18-25%, matchday 12-15%. **A scheduled `result` is sparse by
+nature** - a pill, two crests, a time and two names - and `matchday` is the
+graphic designed for a fixture. Do not inflate one into the other.
+
+Two constants decide the answer and only one of them is obvious. THRESHOLD=90
+separates ink from the backdrop texture (at 24 every row of every graphic
+scores as inked); anything from 45 to 160 gives the same answer. The
+load-bearing one is EMPTY_ROW=3: at 0 or 1 every gap collapses to zero,
+because the accent hairline the frame paints at x <= 10 puts a step on every
+row of every canvas.
+
+The window is the CONTENT BOX in both formats. It used to exclude the story's
+250px safe margins but include the feed's 72px pad, which put 8 of 11 feed
+rows' "largest gap" in the canvas margin rather than the layout.
+
+## The result card, and two ways to get its story format wrong
 
 The result story stacks into two COLUMNS, one per team, because the score has
 to fit between the crests otherwise - 262px of room, which caps "36-14" at
@@ -201,8 +219,28 @@ Matchday already shrank its stack to fit an overflow and had no branch for the
 opposite case, so a 9:16 canvas banked ~300px of surplus as two voids. It now
 spends it - crests first, then the flexible gaps.
 
-The threshold in that harness matters: at 24 every row of every graphic scores
-as inked, because the backdrop texture is drawn across all of them.
+**Crest growth is bounded by the WIDTH, not just the surplus.** Growing on
+height alone put both crests 51.5px outside the content box on all 1,147 story
+matchdays, and their plates 77.6px out, over the accent hairline. A plate is
+the crest box plus 6% of padding each side, so `offset + box * 0.53` is what
+has to fit inside `box.right`.
+
+**Do not reserve room for the SCORERS header.** It looks necessary and is not:
+the header is centred (ink x 481-595 always) and the winner's underline is
+drawn at the box edges or under a column centre (x 72-136 / 944-1008 /
+276-340 / 740-804), so they cannot intersect at any size or score. Reserving
+34px for a collision that cannot happen cost exactly one row of scorers, and
+16 real cards that had listed every scorer stopped doing so - silently, under
+a heading reading SCORERS. Where the list genuinely does not fit, the heading
+now says how many are missing (7 renders in the archive).
+
+**A block is centred against the drawing, not against a model of it.** The
+first attempt summed a whole pill (`drawPill` anchors on its TOP, so only the
+part below `pillY` is in the block) and a name block that hangs ABOVE its
+baseline, and missed the kick-off line entirely. That over-counted the feed by
+96px and under-counted the story by 80, and pushed the feed's worst dead band
+from 283px to 319 - a regression shipped inside a commit about fixing dead
+space.
 
 ## A win-probability curve MUST end where the match ended
 
@@ -331,7 +369,7 @@ if it ever happens again.
 | `npm run shots` | Render every graphic to `dev/shots/` |
 | `npm run e2e` | Drive the real app in Chromium |
 | `npm run stress` | Label-collision geometry over every real match |
-| `npm run space` | Dead canvas per graphic and format |
+| `npm run space` | Dead canvas per graphic, format and played/scheduled, swept over matches |
 | `npm run contrast` | Ink contrast against the backdrop actually rendered |
 | `npm run rank` | Score every match for how worth posting it is |
 | `npm run benchmarks` | Rebuild the per-shirt stat benchmarks for the player card |

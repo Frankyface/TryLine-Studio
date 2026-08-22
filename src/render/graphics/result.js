@@ -72,34 +72,62 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     accent,
   })
 
-  const [homeCrest, awayCrest] = await Promise.all([
-    loadCrestImage(match.home.logo, scale(size, 250)),
-    loadCrestImage(match.away.logo, scale(size, 250)),
-  ])
-
-  // Status pill, centred above the score. The ink is chosen against the pill
-  // it lands on, not assumed: white on the 90% live red measured 3.86:1 on the
-  // light theme, and a live pill is the one a fan stares at.
-  // An unplayed fixture has no scorers, so the band reserved for them is dead
-  // canvas - 48% of the content box once scheduled matches started carrying a
-  // null score instead of 0-0. With nothing to sit below it, the hero block
-  // drops to the middle of the space instead.
   const played = match.home.score !== null && match.away.score !== null
 
+  // Crests are sized to the room BESIDE the score, not to a number that looked
+  // generous: 380 put both of them 50px outside the content box on all 364
+  // scheduled fixtures, and their plates 72.8px out, over the accent hairline
+  // the frame paints down the left edge. A plate is the crest box plus 6% of
+  // padding each side, so that is what has to fit.
+  const crestOffsetFor = (columns) => scale(size, columns ? 232 : (isStory ? 316 : 348))
+  const crestRoom = (box.right - box.centerX - crestOffsetFor(isStory && played)) / 0.53
+  const crestBox = Math.min(scale(size, isStory ? (played ? 300 : 380) : 210), crestRoom)
+
+  const [homeCrest, awayCrest] = await Promise.all([
+    loadCrestImage(match.home.logo, crestBox),
+    loadCrestImage(match.away.logo, crestBox),
+  ])
+
+  // The kick-off text is needed BEFORE the block can be placed, because on a
+  // story it sits below the crests and its height is part of what is centred.
+  const scoreText = played
+    ? `${match.home.score}-${match.away.score}`
+    : options.timeText || formatKickoffTime(match.kickoff, tz) || 'v'
+  // 85 of the 364 scheduled fixtures carry `T00:00Z` - kick-off not announced.
+  // Blowing a lone lowercase "v" up to 200px made a placeholder the biggest
+  // thing on the card, so the fallback stays small.
+  const announced = played || scoreText !== 'v'
+  const timeSize = fitTextSize(ctx, scoreText, box.width, {
+    max: scale(size, announced ? 200 : 96), min: scale(size, 60), weight: 700,
+  })
+  const timeInk = inkHeight(ctx, scoreText, { size: timeSize, weight: 700 })
+
   // An unplayed fixture has no scorers, so the band reserved for them is dead
   // canvas - 48% of the content box once scheduled matches started carrying a
-  // null score instead of 0-0. A fixed drop of 190/300px fixed that on the
-  // feed and made the story worse: it pushed the block down while leaving
-  // 466px empty above it and 432px below. The block is CENTRED instead, in
-  // the space it actually has, and on a story it grows into it.
-  const crestBox = scale(size, isStory ? (played ? 300 : 380) : 210)
+  // null score instead of 0-0. A fixed drop of 190/300px covered that on the
+  // feed and made the story worse. The block is centred instead.
+  //
+  // Its height is DERIVED from the drawing below rather than modelled: the
+  // first attempt counted the whole pill (drawPill anchors on its top, so only
+  // the part below `pillY` is inside the block) and a name block that hangs
+  // ABOVE its baseline, and it missed the kick-off line the story now draws.
+  // Measured, that over-counted the feed by 96px and under-counted the story
+  // by 80 - and pushed the feed's largest dead band from 283px to 319.
   const pillTop = top + scale(size, isStory ? 96 : 8)
   let pillY = pillTop
+  const kickoffDate = played ? '' : (options.dateText || formatMatchDate(match.kickoff, tz))
+  const dateSize = scale(size, isStory ? 34 : 28)
+  const dateDrop = kickoffDate ? scale(size, isStory ? 76 : 60) : 0
+
   if (!played) {
-    const blockHeight = scale(size, 44) + scale(size, 60) + crestBox
-      + scale(size, isStory ? 92 : 62) + scale(size, 52)
-    const room = (box.bottom - scale(size, 110)) - pillTop
-    pillY = pillTop + Math.max(0, (room - blockHeight) / 2)
+    const blockHeight = scale(size, 60) + crestBox + dateDrop + (isStory
+      ? scale(size, 40) + timeInk + scale(size, 84)
+      : scale(size, 62))
+    // Centred from `top`, not from `pillTop`: the story's 96px indent is there
+    // to sit the pill under the eyebrow on a played card, and banking it first
+    // put 96px of the surplus above the block before centring even began.
+    const room = (box.bottom - scale(size, 110)) - top
+    pillY = top + Math.max(0, (room - blockHeight) / 2)
   }
   const isLive = match.status === MATCH_STATUS.LIVE
   const pillFill = isLive
@@ -120,7 +148,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // two columns, one per team, so each number owns its own width.
   const isColumns = isStory && played
   const crestY = pillY + scale(size, 60) + crestBox / 2
-  const crestOffset = scale(size, isColumns ? 232 : (isStory ? 316 : 348))
+  const crestOffset = crestOffsetFor(isColumns)
 
   drawCrest(ctx, homeCrest, box.centerX - crestOffset, crestY, crestBox, {
     ...crestFallback(theme, match.home.color || accent, match.home.abbreviation),
@@ -131,6 +159,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
 
   const columnWidth = scale(size, 372)
   let nameY = crestY + crestBox / 2 + scale(size, isStory ? 92 : 62)
+
 
   if (isColumns) {
     // ONE size for both numbers, taken from the wider of the two: a 7 sized to
@@ -157,10 +186,17 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     nameY = scoreBaseline + scale(size, 54)
     for (const [side, x] of [['home', box.centerX - crestOffset], ['away', box.centerX + crestOffset]]) {
       const team = match[side]
-      const nameSize = fitTextSize(ctx, team.name, columnWidth, {
+      const nameOptions = {
         max: scale(size, 48), min: scale(size, 24), weight: 700, uppercase: true, tracking: 1,
-      })
-      drawText(ctx, team.name, x, nameY, {
+      }
+      const nameSize = fitTextSize(ctx, team.name, columnWidth, nameOptions)
+      // Ellipsed at the floor, like every other text site here. Real club
+      // names clear the column by 1.7px at worst ("Newcastle Falcons", 370.3
+      // of 372); a manually entered one does not, and two of them met in the
+      // middle of the card.
+      const name = truncateText(ctx, team.name, columnWidth,
+        { ...nameOptions, size: nameSize })
+      drawText(ctx, name, x, nameY, {
         size: nameSize, weight: 700, color: theme.ink, align: 'center', uppercase: true, tracking: 1,
       })
       if (team.isWinner) {
@@ -169,19 +205,11 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
       }
     }
   } else {
-    const scoreText = played
-      ? `${match.home.score}-${match.away.score}`
-      : options.timeText || formatKickoffTime(match.kickoff, tz) || 'v'
-
     if (isStory) {
       // Below the crests, not between them. A kick-off time squeezed into the
       // 212px between two story crests draws at about a 90px face, which is
       // small for the one thing a fixture card exists to say.
-      const timeSize = fitTextSize(ctx, scoreText, box.width, {
-        max: scale(size, 200), min: scale(size, 60), weight: 700,
-      })
-      const timeBaseline = crestY + crestBox / 2 + scale(size, 40)
-        + inkHeight(ctx, scoreText, { size: timeSize, weight: 700 })
+      const timeBaseline = crestY + crestBox / 2 + scale(size, 40) + timeInk
       drawText(ctx, scoreText, box.centerX, timeBaseline, {
         size: timeSize, weight: 700, color: theme.ink, align: 'center', baseline: 'alphabetic',
       })
@@ -212,17 +240,32 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     }
   }
 
+  // A fixture card that does not say WHEN is missing the other half of its
+  // job, and the date was only in the footer at 20px. Putting it in the block
+  // fills space that was otherwise air: the scheduled story measured a 387px
+  // dead band against 182 for matchday, which is the graphic designed for a
+  // fixture and carries its date in the stack.
+  if (kickoffDate) {
+    drawText(ctx, kickoffDate, box.centerX, nameY + dateDrop, {
+      size: dateSize, weight: 700, family: FONTS.body, color: theme.inkMuted,
+      align: 'center', uppercase: true, tracking: 3,
+    })
+  }
+
   // Scorers, one column per side, centred in whatever space is left so the
   // graphic does not end with a band of dead canvas above the footer.
   const baseLineHeight = scale(size, 34)
   const cards = played ? cardEvents(match.timeline) : []
   const blockBottom = box.bottom - scale(size, cards.length ? 150 : 110)
-  // The SCORERS header is drawn ABOVE the first row, so the block has to
-  // reserve room for it. It did not: when the rows fill the space there is no
-  // centring slack left to absorb it, and on Northampton 94-33 Bristol - nine
-  // scorers - the header printed across the winner's underline.
-  const headerRoom = scale(size, 34)
-  const blockTop = nameY + scale(size, 54) + headerRoom
+  // NO room is reserved for the SCORERS header, and reserving some was a
+  // mistake worth recording. The header is centred - ink x 481-595 in both
+  // formats, always - and the winner's underline is drawn at the box edges or
+  // under a column centre, x 72-136 / 944-1008 / 276-340 / 740-804. Those
+  // cannot intersect at any size or score; what looked like an overlap on
+  // Northampton 94-33 Bristol was a shared y-band 140px apart horizontally.
+  // Reserving 34px cost exactly one row of scorers, and 16 real cards that
+  // had listed every scorer stopped doing so.
+  const blockTop = nameY + scale(size, 54)
   const rowsNeeded = Math.max(
     summariseScorers(match.timeline, 'home').length,
     summariseScorers(match.timeline, 'away').length,
@@ -235,7 +278,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const lineHeight = rowsNeeded
     ? Math.min(baseLineHeight * 1.5, Math.max(baseLineHeight, (blockBottom - blockTop) / rowsNeeded))
     : baseLineHeight
-  const blockHeight = Math.min(rowsNeeded, maxRows) * lineHeight
+  const shownRows = Math.min(rowsNeeded, maxRows)
+  const blockHeight = shownRows * lineHeight
   // Both formats centre the block. Story used to top-align it, which simply
   // moved a third of the canvas from above the scorers to below them; the
   // bigger hero block above is what actually fills the space.
@@ -254,7 +298,16 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   }
 
   if (played && match.timeline.length) {
-    drawText(ctx, 'Scorers', box.centerX, scorersTop - scale(size, 26), {
+    // A card headed SCORERS that omits a man who scored is exactly the silent
+    // gap this project refuses everywhere else: 14 scorers in room for 13 used
+    // to drop the last name with nothing to show for it. Say how many are
+    // missing, per side, because the two columns truncate independently.
+    const missing = ['home', 'away']
+      .map((side) => Math.max(0, summariseScorers(match.timeline, side).length - shownRows))
+      .reduce((most, count) => Math.max(most, count), 0)
+    const heading = missing ? `Scorers  -  ${missing} more not shown` : 'Scorers'
+
+    drawText(ctx, heading, box.centerX, scorersTop - scale(size, 26), {
       size: scale(size, 19), weight: 700, family: FONTS.body,
       color: theme.inkFaint, align: 'center', tracking: 4, uppercase: true,
     })
@@ -285,7 +338,10 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     }
   }
 
-  const venueParts = [match.venue.name, formatMatchDate(match.kickoff, tz)].filter(Boolean)
+  // The date is only in the footer when the block above is not already
+  // carrying it, which it is on an unplayed fixture.
+  const venueParts = [match.venue.name, kickoffDate ? '' : formatMatchDate(match.kickoff, tz)]
+    .filter(Boolean)
   const attendance = formatAttendance(match.venue.attendance)
   drawFooter(ctx, size, theme, {
     left: venueParts.join('  -  '),

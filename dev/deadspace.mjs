@@ -1,42 +1,73 @@
 /**
  * How much of each graphic is dead canvas: the largest run of consecutive
- * near-empty pixel rows inside the area the format actually uses.
+ * near-empty pixel rows inside the area the format is allowed to use.
  *
  * "The story format is the feed layout letterboxed into 9:16" sat in the notes
- * as an opinion for weeks. Measured, it was true of exactly two graphics -
- * result (37% inked, a 290px dead band) and matchday (37%, 263px) - while the
- * other nine sat at 6-10%, which is ordinary spacing between sections. Two
- * graphics got fixed and nine did not need touching.
+ * as an opinion for weeks. Measured, it was true of two graphics and not of
+ * the format - but the FIRST version of this harness drove `dev/preview.html`,
+ * which renders exactly one match, and so reported one fixture's numbers as if
+ * they were the archive's. They were not: a scheduled fixture measured 319px
+ * where the demo match measured 124. That is the trap CLAUDE.md names as a
+ * non-negotiable, walked straight into by the tool built to avoid it. It now
+ * sweeps real matches and reports a distribution.
  *
- * A row counts as inked when some pixel on it differs sharply from its
- * neighbour four across. The threshold has to clear the backdrop's own
- * diagonal texture, which otherwise scores every row on the canvas as drawn.
+ * Two constants decide the answer, and the load-bearing one is the second:
  *
- * Usage: node dev/deadspace.mjs   (needs the static server on :4321)
+ *  - THRESHOLD (90) separates ink from the backdrop's diagonal texture, which
+ *    is drawn across every row of every canvas. At 24 the whole canvas scores
+ *    as inked. Anything from 45 to 160 gives the same answer, so this is not a
+ *    cliff.
+ *  - EMPTY_ROW (3) is how many sharp pixels a row may carry and still count as
+ *    empty. At 0 or 1 every gap collapses to zero, because the accent hairline
+ *    the frame paints at x <= 10 puts a step on every row.
+ *
+ * Usage: node dev/deadspace.mjs [--every N]   (needs the static server on :4321)
  */
 import { chromium } from 'playwright'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
+
+const NL = String.fromCharCode(10)
+const arg = (name, fallback) => {
+  const index = process.argv.indexOf(`--${name}`)
+  return index === -1 ? fallback : process.argv[index + 1]
+}
+const every = Number(arg('every', '6'))
+
+const matches = []
+for (const competition of readdirSync('data')) {
+  const dir = `data/${competition}/matches`
+  if (!existsSync(dir)) continue
+  for (const file of readdirSync(dir)) {
+    matches.push(JSON.parse(readFileSync(`${dir}/${file}`, 'utf8')))
+  }
+}
+const sample = matches.filter((_, index) => index % every === 0)
 
 const browser = await chromium.launch()
-const page = await browser.newPage({ viewport: { width: 1400, height: 1200 } })
-page.on('pageerror', (error) => console.error('PAGE ERROR', String(error)))
-await page.goto('http://localhost:4321/dev/preview?theme=midnight', { waitUntil: 'networkidle' })
-await page.waitForFunction(() => document.body.dataset.renderState, null, { timeout: 30000 })
+const page = await browser.newPage({ viewport: { width: 900, height: 700 } })
+const errors = []
+page.on('pageerror', (error) => errors.push(String(error)))
+await page.goto('http://localhost:4321/dev/preview?only=result', { waitUntil: 'networkidle' })
 
-const report = await page.evaluate(async () => {
-  const { STORY_SAFE_TOP, STORY_SAFE_BOTTOM } = await import('/src/render/theme.js')
-  const rows = []
-  for (const canvas of document.querySelectorAll('canvas')) {
-    const { width, height } = canvas
-    if (!width || !height) continue
-    const isStory = height > width
-    const ctx = canvas.getContext('2d')
-    const data = ctx.getImageData(0, 0, width, height).data
+const rows = await page.evaluate(async (raws) => {
+  const [{ renderGraphic }, { createMatch }, theme, { contentBox }] = await Promise.all([
+    import('/src/render/index.js'), import('/src/data/schema.js'),
+    import('/src/render/theme.js'), import('/src/render/frame.js'),
+  ])
+  const THRESHOLD = 90
+  const EMPTY_ROW = 3
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
 
-    // Above the texture, below real ink: at 24 every row on every graphic
-    // scored as drawn, which is the answer you get for measuring the wash.
-    const THRESHOLD = 90
-    const inkPerRow = []
-    for (let y = 0; y < height; y += 1) {
+  /** Largest run of empty rows, and the inked share, inside the content box. */
+  const measure = (size) => {
+    const box = contentBox(size)
+    const { width } = canvas
+    const data = ctx.getImageData(0, 0, width, canvas.height).data
+    let longest = 0
+    let run = 0
+    let inked = 0
+    for (let y = Math.round(box.top); y < Math.round(box.bottom); y += 1) {
       let ink = 0
       for (let x = 4; x < width - 4; x += 2) {
         const i = (y * width + x) * 4
@@ -44,44 +75,66 @@ const report = await page.evaluate(async () => {
         if (Math.abs(data[i] - data[j]) + Math.abs(data[i + 1] - data[j + 1])
           + Math.abs(data[i + 2] - data[j + 2]) > THRESHOLD) ink += 1
       }
-      inkPerRow.push(ink)
-    }
-
-    // Only the area the format is allowed to use: a story reserves 250px top
-    // and bottom for Instagram's own chrome, and that is not dead canvas.
-    const from = isStory ? STORY_SAFE_TOP : 0
-    const to = isStory ? height - STORY_SAFE_BOTTOM : height
-    let longest = 0
-    let run = 0
-    let at = 0
-    for (let y = from; y < to; y += 1) {
-      if (inkPerRow[y] <= 3) {
+      if (ink <= EMPTY_ROW) {
         run += 1
-        if (run > longest) { longest = run; at = y - run }
-      } else run = 0
+        if (run > longest) longest = run
+      } else {
+        run = 0
+        inked += 1
+      }
     }
-    const used = inkPerRow.slice(from, to).filter((ink) => ink > 3).length
-    rows.push({
-      id: canvas.id || canvas.dataset.graphic || '?',
-      format: isStory ? 'story' : 'feed',
-      usableRows: to - from,
-      inkedRows: used,
-      largestGap: longest,
-      gapAt: at,
-      gapShare: +(longest / (to - from)).toFixed(3),
-    })
+    return { gap: longest, inked: inked / (box.bottom - box.top), height: box.bottom - box.top }
   }
-  return rows
-})
+
+  const out = []
+  for (const raw of raws) {
+    const match = createMatch(raw)
+    const played = raw.home?.score !== null && raw.away?.score !== null
+    for (const graphic of ['result', 'matchday']) {
+      for (const key of ['feed', 'story']) {
+        const size = theme.SIZES[key]
+        await renderGraphic(canvas, graphic, {
+          match, size, theme: theme.THEMES.midnight, options: { handle: '@tryline' },
+        })
+        out.push({ graphic, format: key, kind: played ? 'played' : 'scheduled', ...measure(size) })
+      }
+    }
+  }
+  return out
+}, sample)
 
 await browser.close()
 
-const NL = String.fromCharCode(10)
-report.sort((a, b) => b.gapShare - a.gapShare)
-process.stdout.write(`${'graphic'.padEnd(26)}${'fmt'.padEnd(7)}inked  largest-gap  share${NL}`)
-for (const row of report) {
-  process.stdout.write(`${row.id.padEnd(26)}${row.format.padEnd(7)}`
-    + `${String(Math.round((row.inkedRows / row.usableRows) * 100) + '%').padStart(5)}`
-    + `${String(row.largestGap + 'px').padStart(13)}`
-    + `${String(Math.round(row.gapShare * 100) + '%').padStart(7)}${NL}`)
+const quantile = (values, fraction) => {
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * fraction))]
 }
+
+const groups = new Map()
+for (const row of rows) {
+  const key = `${row.graphic}|${row.format}|${row.kind}`
+  if (!groups.has(key)) groups.set(key, [])
+  groups.get(key).push(row)
+}
+
+process.stdout.write(`${sample.length} matches sampled (every ${every} of ${matches.length})${NL}${NL}`)
+process.stdout.write(`${'graphic'.padEnd(11)}${'fmt'.padEnd(7)}${'kind'.padEnd(11)}`
+  + `${'n'.padStart(4)}${'inked'.padStart(8)}${'gap p50'.padStart(9)}${'p90'.padStart(7)}${'max'.padStart(7)}${'worst%'.padStart(8)}${NL}`)
+
+const ordered = [...groups.entries()].sort((a, b) => {
+  const worst = (rows_) => Math.max(...rows_[1].map((row) => row.gap / row.height))
+  return worst(b) - worst(a)
+})
+for (const [key, group] of ordered) {
+  const [graphic, format, kind] = key.split('|')
+  const gaps = group.map((row) => row.gap)
+  const worstShare = Math.max(...group.map((row) => row.gap / row.height))
+  process.stdout.write(`${graphic.padEnd(11)}${format.padEnd(7)}${kind.padEnd(11)}`
+    + `${String(group.length).padStart(4)}`
+    + `${`${Math.round((group.reduce((sum, row) => sum + row.inked, 0) / group.length) * 100)}%`.padStart(8)}`
+    + `${`${quantile(gaps, 0.5)}px`.padStart(9)}`
+    + `${`${quantile(gaps, 0.9)}px`.padStart(7)}`
+    + `${`${Math.max(...gaps)}px`.padStart(7)}`
+    + `${`${Math.round(worstShare * 100)}%`.padStart(8)}${NL}`)
+}
+if (errors.length) process.stdout.write(`${NL}page errors: ${errors.slice(0, 3).join(' | ')}${NL}`)

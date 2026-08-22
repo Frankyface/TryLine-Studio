@@ -352,10 +352,13 @@ has tests and `frame.js` is inside the coverage gate.
 ## Story format measured, and mostly not a problem (2026-08-22)
 
 "The story is the feed layout letterboxed into 9:16" was an opinion in this
-file for weeks. `npm run space` turns it into a number - the largest run of
-near-empty pixel rows inside the area each format may use, story safe margins
-excluded - and it was true of two graphics, not of the format: result (37%
-inked, 290px band) and matchday (37%, 263px). The other nine measured 6-10%.
+file for weeks. `npm run space` turns it into a number and confirmed it of two
+graphics, not of the format: result and matchday.
+
+**The first version of that harness measured ONE fixture** - it drove the
+preview page - so the "9-13% band" it produced was a single match's numbers.
+Swept over 144 real matches it is 12-28%, and scheduled fixtures are the worst
+case by a distance. Corrected in CLAUDE.md; the harness now sweeps.
 
 Result now stacks into two columns on story, one per team, because the score
 otherwise has to fit between the crests in 262px. Matchday had a branch to
