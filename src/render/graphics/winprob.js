@@ -14,7 +14,7 @@ import {
   contentBox, drawFrame, drawEyebrow, drawFooter, drawHeadline, headlineLayout, resolveAccent,
 } from '../frame.js'
 import {
-  buildWinProbabilityCurve, keyMoments, FULL_TIME, DEFAULT_MODEL,
+  buildWinProbabilityCurve, keyMoments, winprobHeadline, FULL_TIME, DEFAULT_MODEL,
 } from '../../analysis/winprob.js'
 import { timelineMark } from '../format.js'
 import { seriesColours } from '../series.js'
@@ -273,10 +273,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     accent,
   })
 
-  const finding = showCaption && lowest
-    ? `${(homeWon ? match.home : match.away).shortName} were down to `
-      + `${Math.round(lowest.chance * 100)}% at ${lowest.minute}'`
-    : ''
+  const finding = winprobHeadline(match, model)
   const headline = { finding, category: options.headline || 'Win probability' }
   // Room kept for the scoreline on the right, so a long sentence wraps rather
   // than running underneath it.

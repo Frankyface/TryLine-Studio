@@ -84,6 +84,51 @@ export function timelineIsComplete(match) {
 }
 
 /**
+ * The one line worth putting at the top of a win-probability chart.
+ *
+ * A cascade, so it is never blank: today's caption fires on 244 of the 658
+ * drawable matches and the other 414 get a generic title instead.
+ *
+ * The gate is a real SCOREBOARD deficit, not a low probability. The model
+ * gives an away side 0.31 at kick-off, so 71 matches whose winner led from the
+ * first minute to the last would otherwise read "down to 31% at 1'" - the
+ * measure reporting the venue rather than the match.
+ */
+export function winprobHeadline(match, model = DEFAULT_MODEL) {
+  const steps = scoreSteps(match)
+  const home = match?.home?.score
+  const away = match?.away?.score
+  if (!Number.isFinite(home) || !Number.isFinite(away)) return ''
+
+  if (home === away) return `${home}-${away} and nothing in it`
+
+  const homeWon = home > away
+  const winner = homeWon ? match.home : match.away
+  const name = winner.shortName || winner.name
+
+  // Only the minutes the winner was ACTUALLY behind on the scoreboard.
+  let lowest = 1
+  let lowestMinute = null
+  let deepest = 0
+  for (let minute = 1; minute <= FULL_TIME; minute += 1) {
+    const at = scoreAtMinute(steps, minute)
+    const margin = homeWon ? at.home - at.away : at.away - at.home
+    if (margin >= 0) continue
+    deepest = Math.max(deepest, -margin)
+    const chance = winProbability(at.home - at.away, minute, model)
+    const winnerChance = homeWon ? chance : 1 - chance
+    if (winnerChance < lowest) {
+      lowest = winnerChance
+      lowestMinute = minute
+    }
+  }
+
+  if (!deepest) return `${name} never trailed`
+  if (lowest < 0.35) return `${name} down to ${Math.round(lowest * 100)}% at ${lowestMinute}'`
+  return `${name} came from ${deepest} down`
+}
+
+/**
  * What the timeline itself adds up to, whatever the recorded score says.
  * Exposed so a caller can tell someone WHICH number is wrong rather than only
  * that something is.

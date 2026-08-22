@@ -18,7 +18,8 @@ import {
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { uniqueTeamLabels } from '../format.js'
 import {
-  canPlotTeamSeason, teamSeasonTimeline, teamSeasonHeadline, marginBounds, seasonScope, RESULTS,
+  canPlotTeamSeason, teamSeasonTimeline, teamSeasonHeadline, teamSeasonHeadlineLine,
+  marginBounds, seasonScope, RESULTS,
 } from '../../analysis/team-season.js'
 
 export const meta = Object.freeze({
@@ -102,15 +103,28 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
     uppercase: true, color: theme.ink,
   })
   const scope = seasonScope(timeline, table)
+  const best = teamSeasonHeadlineLine(timeline)
   const record = `PLAYED ${headline.played}   WON ${headline.won}   DRAWN ${headline.drawn}   LOST ${headline.lost}`
   drawText(ctx, record, nameLeft, top + scale(size, isStory ? 96 : 82), {
     size: scale(size, isStory ? 26 : 23), weight: 600, family: FONTS.body,
     tracking: 2, uppercase: true, color: theme.inkMuted,
   })
+  // The season's best result, beside the record rather than in small type at
+  // the foot of the canvas. It is the line a club's followers remember, and it
+  // was the smallest readable thing on the graphic.
+  if (best) {
+    drawText(ctx, best, nameLeft, top + scale(size, isStory ? 132 : 112), {
+      size: scale(size, isStory ? 34 : 30), weight: 700, family: FONTS.display,
+      uppercase: true, tracking: 1, color: accent,
+    })
+  }
+
   // Only ever drawn when the record genuinely exceeds the league table's, so
-  // it states a fact rather than hedging.
+  // it states a fact rather than hedging. It has to stay legible: on 44% of
+  // club-seasons the archive is short, and the best result above is then the
+  // best IN THE ARCHIVE.
   if (scope) {
-    drawText(ctx, scope, nameLeft, top + scale(size, isStory ? 126 : 108), {
+    drawText(ctx, scope, nameLeft, top + scale(size, isStory ? 176 : 150), {
       size: scale(size, isStory ? 19 : 16), weight: 600, family: FONTS.body,
       tracking: 3, uppercase: true, color: theme.inkFaint,
     })
@@ -131,7 +145,7 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
   const valueBaseline = labelBaseline - scale(size, isStory ? 30 : 26)
   const cellTop = valueBaseline - scale(size, isStory ? 48 : 42)
 
-  const chartTop = top + crestBox + scale(size, isStory ? 96 : 56)
+  const chartTop = top + crestBox + scale(size, isStory ? 132 : 96)
   const chartBottom = cellTop - scale(size, isStory ? 44 : 30)
   // Room for the margin number and the opponent label at each extreme.
   const gutter = scale(size, isStory ? 44 : 38)
@@ -298,20 +312,4 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
   })
 
   // The single most quotable line of the season, when there is one.
-  if (headline.biggestWin) {
-    const win = headline.biggestWin
-    const caption = `BIGGEST WIN  ${win.for}-${win.against} v ${win.opponent.shortName || win.opponent.name}`
-    const captionOptions = {
-      size: scale(size, isStory ? 22 : 20), weight: 600, family: FONTS.body,
-      tracking: 2, uppercase: true,
-    }
-    drawText(ctx, truncateText(ctx, caption, box.width, captionOptions),
-      box.centerX, captionBaseline, {
-        ...captionOptions,
-        align: 'center',
-        // At 0.9 alpha over a 3.5:1 accent this landed at 3.01:1. It is 20px
-        // body text, so it needs the body-text bar.
-        color: contrastAccent(accent, pageSurface(theme, accent), { minRatio: 4.5, fallback: theme.ink }),
-      })
-  }
 }

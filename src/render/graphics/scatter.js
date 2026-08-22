@@ -14,10 +14,12 @@ import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, measureText, crestFallback,
   luminance,
 } from '../primitives.js'
-import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
+import {
+  contentBox, drawFrame, drawEyebrow, drawFooter, drawHeadline, resolveAccent,
+} from '../frame.js'
 import { placeLabel } from '../labels.js'
 import {
-  seasonProfile, seasonBounds, seasonHighlights, canPlotSeason, QUADRANTS,
+  seasonProfile, seasonBounds, seasonHighlights, seasonHeadline, canPlotSeason, QUADRANTS,
 } from '../../analysis/season.js'
 import { uniqueTeamLabels } from '../format.js'
 
@@ -232,11 +234,10 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
     accent,
   })
 
-  drawText(ctx, options.headline || 'Attack v defence', box.left, top + scale(size, 42), {
-    size: scale(size, 54), weight: 700, color: theme.ink, uppercase: true, tracking: 1,
-  })
+  const headline = { finding: seasonHeadline(table), category: options.headline || 'Attack v defence' }
+  const headlineBottom = drawHeadline(ctx, size, theme, { ...headline, top: top + scale(size, 6) })
 
-  const plotTop = top + scale(size, isStory ? 150 : 118)
+  const plotTop = Math.max(headlineBottom + scale(size, 26), top + scale(size, isStory ? 150 : 118))
   const gutter = scale(size, 72)
   const bottomSpace = scale(size, isStory ? 320 : 262)
   const plot = {

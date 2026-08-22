@@ -11,8 +11,12 @@ import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, truncateText, crestFallback,
   pageSurface,
 } from '../primitives.js'
-import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
-import { canPlotFortress, fortressRows, fortressHighlights, formatRate } from '../../analysis/fortress.js'
+import {
+  contentBox, drawFrame, drawEyebrow, drawFooter, drawHeadline, resolveAccent,
+} from '../frame.js'
+import {
+  canPlotFortress, fortressRows, fortressHighlights, fortressHeadline, formatRate,
+} from '../../analysis/fortress.js'
 
 export const meta = Object.freeze({
   id: 'fortress',
@@ -95,12 +99,14 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     accent,
   })
 
-  drawText(ctx, options.headline || 'Home advantage', box.left, top + scale(size, 42), {
-    size: scale(size, 54), weight: 700, color: theme.ink, uppercase: true, tracking: 1,
+  const headline = { finding: fortressHeadline(season), category: options.headline || 'Home advantage' }
+  // The key sits beside the kicker, clear of the headline beneath it.
+  const headlineBottom = drawHeadline(ctx, size, theme, {
+    ...headline, top: top + scale(size, 6), width: box.width - scale(size, 320),
   })
 
   // Key, so the two ends of every dumbbell are never ambiguous.
-  const keyY = top + scale(size, 74)
+  const keyY = top + scale(size, 30)
   const keyGap = scale(size, 150)
   const dot = scale(size, 13)
   for (const [index, [label, hollow]] of [['Away', true], ['Home', false]].entries()) {
@@ -120,7 +126,7 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
   // Wide enough for the long ones - "Stade Francais Paris", "Montpellier
   // Herault" - rather than truncating half the league.
   const nameWidth = scale(size, 292)
-  const listTop = top + scale(size, isStory ? 170 : 138)
+  const listTop = Math.max(headlineBottom + scale(size, 22), top + scale(size, isStory ? 170 : 138))
   const listBottom = box.bottom - scale(size, isStory ? 150 : 128)
   const rowHeight = (listBottom - listTop) / rows.length
 

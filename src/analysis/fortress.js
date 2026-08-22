@@ -47,6 +47,26 @@ export function fortressRows(season, { limit } = {}) {
   return limit ? teams.slice(0, limit) : teams
 }
 
+/**
+ * The one line worth putting at the top of a home-advantage chart.
+ *
+ * The league rate, not a club's, because that is the point the module's own
+ * header argues: a single club's rate rests on six to thirteen games and
+ * carries a wide band, so no one team is worth a headline. Backed by 31 to 172
+ * matches, and 58-73% across the archive - the weakest instance is still a
+ * real statement.
+ */
+export function fortressHeadline(season) {
+  const rate = season?.leagueHomeWinRate
+  if (Number.isFinite(rate)) return `The home side wins ${Math.round(rate * 100)}% of the time`
+
+  // A hand-built season file may omit the rate; the rows alone still answer it.
+  const rows = fortressRows(season)
+  if (!rows.length) return ''
+  const better = rows.filter((row) => row.gap > 0).length
+  return `${better} of ${rows.length} clubs are better at home`
+}
+
 /** The one or two teams worth naming in a caption. */
 export function fortressHighlights(season) {
   const rows = fortressRows(season)

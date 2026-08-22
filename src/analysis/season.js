@@ -112,6 +112,27 @@ export function seasonBounds(profile, padding = 0.12) {
 }
 
 /**
+ * The one line worth putting at the top of an attack-v-defence chart.
+ *
+ * Uses BOTH axes, so the headline is the chart's own claim rather than a side
+ * fact. Measured across every drawable table, the leader's attack-minus-
+ * defence runs 8.9 to 18.9 points a game - no season produces a mundane one.
+ *
+ * The tiebreak is not decorative: URC 2026 has two clubs on exactly 8.889, and
+ * without it the headline changes between renders of the same data.
+ */
+export function seasonHeadline(table) {
+  const profile = seasonProfile(table)
+  const best = [...profile.teams].sort((a, b) => (b.attack - b.defence) - (a.attack - a.defence)
+    || b.attack - a.attack
+    || a.defence - b.defence
+    || (a.rank ?? 99) - (b.rank ?? 99))[0]
+  if (!best) return ''
+  const name = best.team?.shortName || best.team?.name || ''
+  return `${name} scored ${Math.round(best.attack)}, conceded ${Math.round(best.defence)}`
+}
+
+/**
  * The teams worth naming in a caption: the best attack, the best defence, and
  * the most extreme team in the weakest quadrant.
  */
