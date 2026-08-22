@@ -324,6 +324,28 @@ await waitForOk()
 const manualStatus = await statusText()
 check('renders a manual result', /Old Boys/.test(manualStatus), manualStatus)
 
+// Tries alone never reach a real scoreline, so the swing chart is refused until
+// the club enters its kicks too. This is the only way a club gets that chart.
+await page.click('[data-graphic="winprob"]')
+await page.waitForTimeout(1200)
+const triesOnly = await statusText()
+check('refuses a club swing chart from tries alone',
+  /wrong scoreline/i.test(triesOnly), triesOnly)
+
+// 27 = 2 tries(10) + 1 conversion(2) + 5 penalties(15)
+// 22 = 3 tries(15) + 2 conversions(4) + 1 penalty(3)
+await page.fill('#m-home-scores', 'C 13, P 20, P 40, P 55, P 62, P 70')
+await page.fill('#m-away-tries', 'Reid 25, Vaughan 60, Ellis 74')
+await page.fill('#m-away-scores', 'C 26, C 61, P 45')
+await page.waitForTimeout(1400)
+const withKicks = await statusText()
+check('draws a club swing chart once the kicks add up',
+  await canvasHasContent('canvas-feed') && !/wrong scoreline/i.test(withKicks), withKicks)
+
+// Leave the panel on a match graphic - the crest check below reads one.
+await page.click('[data-graphic="result"]')
+await waitForOk()
+
 // A club has a badge; the monogram is a stand-in, not the destination.
 const crestPath = join(here, 'fixtures', 'club-crest.png')
 if (existsSync(crestPath)) {

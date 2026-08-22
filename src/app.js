@@ -374,6 +374,8 @@ function readManualForm() {
     },
     homeTries: $('m-home-tries').value,
     awayTries: $('m-away-tries').value,
+    homeScores: $('m-home-scores').value,
+    awayScores: $('m-away-scores').value,
   })
 
   // Manual mode must never fall back to the live competition's data. A club

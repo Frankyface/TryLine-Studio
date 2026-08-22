@@ -69,6 +69,46 @@ export function parseScorersText(text, side, type = SCORE_EVENTS.TRY) {
     })
 }
 
+/**
+ * The kinds of score a club can enter besides a try, and the words they are
+ * likely to type. Order matters: the longest alias has to match first, or
+ * "pen try" is read as a penalty.
+ */
+const SCORE_ALIASES = Object.freeze([
+  [SCORE_EVENTS.PENALTY_TRY, ['penalty try', 'pen try', 'pt']],
+  [SCORE_EVENTS.DROP_GOAL, ['drop goal', 'dropgoal', 'drop', 'dg', 'd']],
+  [SCORE_EVENTS.CONVERSION, ['conversion', 'convert', 'con', 'c']],
+  [SCORE_EVENTS.PENALTY, ['penalty', 'pen', 'p']],
+])
+
+/**
+ * Kicks and other scores, so a club's timeline can add up to its own score.
+ *
+ * Tries alone never reconcile - a 34-22 match is not a whole number of
+ * five-point tries - and a win-probability curve is refused unless the
+ * timeline reaches the final score. This is the field that lets a club get
+ * one.
+ *
+ * Accepts "P 20", "pen 20", "C 13", "DG 60", "penalty try 44", in any order,
+ * comma or newline separated, minute first or last.
+ */
+export function parseScoreEventsText(text, side) {
+  return String(text || '')
+    .split(/[,\n]/)
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean)
+    .map((entry) => {
+      const minuteMatch = entry.match(/(\d{1,3})/)
+      const minute = minuteMatch ? Number(minuteMatch[1]) : null
+      const words = entry.replace(/\d+'?/g, ' ').replace(/\s+/g, ' ').trim()
+
+      const found = SCORE_ALIASES.find(([, aliases]) => aliases.includes(words))
+      if (!found || minute === null) return null
+      return { minute, type: found[0], side, player: null }
+    })
+    .filter(Boolean)
+}
+
 /** Club suffixes that carry no identity in a three-letter badge. */
 const CLUB_SUFFIXES = new Set(['RFC', 'RUFC', 'RC', 'FC', 'CLUB'])
 
@@ -110,7 +150,9 @@ export function buildManualMatch(form = {}) {
   const timeline = [
     ...parseScorersText(form.homeTries, 'home', SCORE_EVENTS.TRY),
     ...parseScorersText(form.awayTries, 'away', SCORE_EVENTS.TRY),
-  ]
+    ...parseScoreEventsText(form.homeScores, 'home'),
+    ...parseScoreEventsText(form.awayScores, 'away'),
+  ].sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
 
   return createMatch({
     id: form.id || 'manual',

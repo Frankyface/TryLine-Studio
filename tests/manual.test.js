@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  parseSquadText, parseScorersText, buildManualMatch, parseTableText, positionForJersey, abbreviate,
+  parseSquadText, parseScorersText, buildManualMatch, parseTableText, positionForJersey, abbreviate, parseScoreEventsText,
 } from '../src/data/manual.js'
 import { MATCH_STATUS, SCORE_EVENTS, validateMatch, MATCHDAY_SQUAD } from '../src/data/schema.js'
 import { contrastAccent, contrastRatio, withAlpha, readableInk } from '../src/render/primitives.js'
@@ -182,5 +182,92 @@ describe('colour helpers', () => {
   it('chooses dark ink on a bright background', () => {
     expect(readableInk('#F5C518')).toBe('#0B1220')
     expect(readableInk('#0000CC')).toBe('#FFFFFF')
+  })
+})
+
+/**
+ * Kicks and other scores.
+ *
+ * Tries alone can never reach a real scoreline - 34-22 is not a whole number
+ * of five-point tries - so without this a club could never get a swing chart,
+ * because the curve is refused unless the timeline reaches the final score.
+ */
+describe('parseScoreEventsText', () => {
+  const kinds = (text) => parseScoreEventsText(text, 'home').map((e) => `${e.type}@${e.minute}`)
+
+  it('reads the short forms a club would type', () => {
+    expect(kinds('P 20')).toEqual(['penalty@20'])
+    expect(kinds('C 13')).toEqual(['conversion@13'])
+    expect(kinds('DG 60')).toEqual(['dropGoal@60'])
+  })
+
+  it('reads the long forms too', () => {
+    expect(kinds('penalty 20')).toEqual(['penalty@20'])
+    expect(kinds('conversion 13')).toEqual(['conversion@13'])
+    expect(kinds('drop goal 60')).toEqual(['dropGoal@60'])
+  })
+
+  it('reads a penalty try as a penalty try, not a penalty', () => {
+    expect(kinds('penalty try 44')).toEqual(['penaltyTry@44'])
+    expect(kinds('pen try 44')).toEqual(['penaltyTry@44'])
+  })
+
+  it('accepts the minute first or last', () => {
+    expect(kinds('20 P')).toEqual(['penalty@20'])
+    expect(kinds('P 20')).toEqual(['penalty@20'])
+  })
+
+  it('splits on commas and newlines', () => {
+    expect(kinds('P 20, C 13')).toEqual(['penalty@20', 'conversion@13'])
+    expect(kinds(`P 20${String.fromCharCode(10)}C 13`)).toEqual(['penalty@20', 'conversion@13'])
+  })
+
+  it('drops anything it does not understand rather than guessing', () => {
+    expect(kinds('nonsense 5')).toEqual([])
+    expect(kinds('P')).toEqual([])
+    expect(kinds('')).toEqual([])
+    expect(kinds('   ')).toEqual([])
+  })
+
+  it('tags the side it was given', () => {
+    expect(parseScoreEventsText('P 20', 'away')[0].side).toBe('away')
+  })
+})
+
+describe('a manual match can reach its own scoreline', () => {
+  // 34 = 4 tries + 4 conversions + 2 penalties; 22 = 3 tries + 2 conversions + 1 penalty.
+  const match = buildManualMatch({
+    home: { name: 'Ottawa Irish', score: '34' },
+    away: { name: 'Bytown Blues', score: '22' },
+    homeTries: 'Smith 12, Jones 28, Patel 55, Reid 70',
+    awayTries: 'Brown 20, Lee 47, Diaz 64',
+    homeScores: 'C 13, C 29, C 56, C 71, P 40, P 62',
+    awayScores: 'C 21, C 48, P 35',
+  })
+
+  it('builds one timeline from tries and kicks together', () => {
+    expect(match.timeline).toHaveLength(16)
+  })
+
+  it('orders the timeline by minute', () => {
+    const minutes = match.timeline.map((e) => e.minute)
+    expect([...minutes].sort((a, b) => a - b)).toEqual(minutes)
+  })
+
+  it('adds up to the score the club entered', () => {
+    const points = { try: 5, conversion: 2, penalty: 3, dropGoal: 3, penaltyTry: 7 }
+    const total = (side) => match.timeline
+      .filter((e) => e.side === side)
+      .reduce((sum, e) => sum + (points[e.type] || 0), 0)
+    expect(total('home')).toBe(match.home.score)
+    expect(total('away')).toBe(match.away.score)
+  })
+
+  it('still works with no kicks entered at all', () => {
+    const triesOnly = buildManualMatch({
+      home: { name: 'A', score: '10' }, away: { name: 'B', score: '5' },
+      homeTries: 'Smith 12, Jones 28', awayTries: 'Brown 20',
+    })
+    expect(triesOnly.timeline).toHaveLength(3)
   })
 })
