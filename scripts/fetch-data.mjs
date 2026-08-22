@@ -12,7 +12,7 @@
  *   node scripts/fetch-data.mjs --only 180659   # one competition
  *   node scripts/fetch-data.mjs --lookback 60 --lookahead 60
  */
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
@@ -226,10 +226,24 @@ for (const competition of wanted) {
   }
 }
 
-writeJson(join(dataDir, 'index.json'), {
+// Merged, never replaced. `--only <id>` used to rewrite the catalogue with
+// just that competition, so refreshing one league silently deleted the other
+// twelve from the app - the data was all still on disk, but nothing offered it.
+const catalogPath = join(dataDir, 'index.json')
+const existing = existsSync(catalogPath)
+  ? (JSON.parse(readFileSync(catalogPath, 'utf8')).competitions || [])
+  : []
+const merged = [...existing]
+for (const competition of results) {
+  const at = merged.findIndex((entry) => entry.id === competition.id)
+  if (at === -1) merged.push(competition)
+  else merged[at] = competition
+}
+
+writeJson(catalogPath, {
   updated: new Date(now).toISOString(),
   window: { seasonStartMonth: 'July', lookahead },
-  competitions: results,
+  competitions: merged,
 })
 
 process.stdout.write(`\nWrote data for ${results.length}/${wanted.length} competitions\n`)

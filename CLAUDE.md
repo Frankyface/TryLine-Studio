@@ -106,17 +106,25 @@ a caption.
 ## A club's own season is NOT the league table's season
 
 `season-{year}.json` carries a per-team match list, and it includes play-offs.
-The Gallagher Premiership table records 18 played for every club; the archive
-holds 20 for the finalists. Both are right and they mean different things, so
-`teamseason` prints "INCLUDING PLAY-OFFS" whenever its record exceeds the
-table's, and `canPlotTeamSeason` REFUSES whenever the archive holds fewer
-matches than the table does - the archive is one Gallagher fixture short for
-Saracens (17 of 18), and a timeline cannot show a gap it does not know about.
+The Gallagher table records 18 played for every club; the archive holds 20 for
+the finalists. Both are right and mean different things, so `teamseason` prints
+"INCLUDING PLAY-OFFS" when its record exceeds the table's.
 
-Per-team match counts varying inside one competition is normal: it is
-play-offs, not missing data. Verified across all five season files - every
-team's timeline reconciles exactly with its stored home/away record, and the
-long mid-season date gaps are the international windows.
+**The archive is also genuinely short, and that is stated, not hidden.** ESPN
+does not hold 10 of the Top 14's results (verified by re-fetching: still 172 of
+182), one Gallagher fixture, and several MLR ones. Refusing those cost 10 of 14
+Top 14 clubs and 9 of 16 in the URC - most of two leagues - so the chart draws
+and prints "23 OF 26 MATCHES RECORDED". A gap that is STATED is not misleading;
+only a silent one is.
+
+Completeness is measured against BOTH the league table and the count of
+fixtures the competition itself lists (`fixtures` per team in the season file),
+because Major League Rugby has no table at all and five of its six clubs are
+short - one of them a perfect "12 from 12" that is really 12 of 14.
+
+The picker calls `teamsWithTimeline(season, { table })`, which asks exactly the
+question the gate asks. Filtering on anything looser offers clubs it then
+refuses.
 
 ## The form column is a trap
 
@@ -139,6 +147,14 @@ hold one pool of six from twenty-four teams), and the graphic then titles them
 **`npm run refresh` runs every derivation afterwards** - form, season records
 and the win model. Fetching alone puts the false form strings straight back and
 leaves the season files stale.
+
+## fetch-data --only merges; it used to truncate
+
+`--only <id>` rewrote `data/index.json` with just that competition, so
+refreshing one league silently deleted the other twelve from the app - the data
+stayed on disk but nothing offered it. It now merges. `npm run reindex`
+rebuilds the catalogue from the per-competition index files and is the way back
+if it ever happens again.
 
 ## Commands
 

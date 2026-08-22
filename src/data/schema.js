@@ -180,8 +180,8 @@ export function createSeasonMatch(input = {}) {
     date: str(input.date),
     opponent: createTeam(input.opponent),
     venue: input.venue === 'away' ? 'away' : 'home',
-    for: num(input.for) ?? 0,
-    against: num(input.against) ?? 0,
+    for: num(input.for),
+    against: num(input.against),
   })
 }
 
@@ -202,6 +202,9 @@ export function createSeasonTeam(input = {}) {
     away: record('away'),
     homeWinRate: num(input.homeWinRate),
     awayWinRate: num(input.awayWinRate),
+    // How many fixtures the competition lists for this team, so a chart can
+    // say what the archive is missing.
+    fixtures: num(input.fixtures),
     // Every result in order, for the per-team season chart. Dropping this
     // silently made the chart report "0 matches recorded" for teams whose
     // season files held a full set.

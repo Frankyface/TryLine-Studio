@@ -53,6 +53,23 @@ function loadMatches(competitionId) {
       && match.home?.name && match.away?.name)
 }
 
+/**
+ * Every fixture the competition lists, whatever its status.
+ *
+ * A season chart has to know what it is MISSING, and a league table is not
+ * always available to ask - Major League Rugby has none, and five of its six
+ * clubs were drawing a season several fixtures short of what the competition
+ * itself lists, with nothing to say so.
+ */
+function loadFixtures(competitionId) {
+  const matchDir = join(dataDir, competitionId, 'matches')
+  if (!existsSync(matchDir)) return []
+  return readdirSync(matchDir)
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => readJson(join(matchDir, file)))
+    .filter((match) => match && match.home?.name && match.away?.name)
+}
+
 const emptyRecord = () => ({
   played: 0, won: 0, drawn: 0, lost: 0, pointsFor: 0, pointsAgainst: 0,
 })
@@ -71,13 +88,22 @@ const winRate = (record) => (record.played
   ? (record.won + record.drawn * 0.5) / record.played
   : null)
 
-function buildSeason(competitionId, season, matches) {
+function buildSeason(competitionId, season, matches, fixtures = []) {
   const window = seasonWindow(season)
-  const inSeason = matches.filter((match) => {
+  const inWindow = (match) => {
     const kickoff = new Date(match.kickoff).getTime()
     return Number.isFinite(kickoff) && kickoff >= window.from && kickoff <= window.to
-  })
+  }
+  const inSeason = matches.filter(inWindow)
   if (!inSeason.length) return null
+
+  // How many fixtures this competition lists for each team in the window.
+  const fixtureCount = new Map()
+  for (const match of fixtures.filter(inWindow)) {
+    for (const name of [match.home.name, match.away.name]) {
+      fixtureCount.set(name, (fixtureCount.get(name) || 0) + 1)
+    }
+  }
 
   const byTeam = new Map()
   const sideOf = (side) => ({
@@ -128,7 +154,8 @@ function buildSeason(competitionId, season, matches) {
     .filter((entry) => entry.home.played >= MIN_PER_VENUE && entry.away.played >= MIN_PER_VENUE)
     .map((entry) => ({
       ...entry,
-      matches: [...entry.matches].sort((a, b) => String(a.date).localeCompare(String(b.date))),
+      fixtures: fixtureCount.get(entry.team.name) ?? entry.matches.length,
+      matches: [...entry.matches].sort((a, b) => (a.date < b.date ? -1 : (a.date > b.date ? 1 : 0))),
       homeWinRate: winRate(entry.home),
       awayWinRate: winRate(entry.away),
       gap: winRate(entry.home) - winRate(entry.away),
@@ -162,6 +189,7 @@ for (const competitionId of competitions) {
   const produced = []
   const matches = loadMatches(competitionId)
   if (!matches.length) continue
+  const fixtures = loadFixtures(competitionId)
 
   // Which seasons does this competition actually have matches in?
   const seasons = new Set()
@@ -173,7 +201,7 @@ for (const competitionId of competitions) {
 
   for (const season of [...seasons].sort()) {
     const path = join(dataDir, competitionId, `season-${season}.json`)
-    const built = buildSeason(competitionId, season, matches)
+    const built = buildSeason(competitionId, season, matches, fixtures)
 
     if (!built) {
       // Never leave a stale file behind when a season stops qualifying.

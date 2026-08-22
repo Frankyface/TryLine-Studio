@@ -8,7 +8,7 @@
  *
  * Usage: node scripts/reindex.mjs
  */
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -55,17 +55,41 @@ for (const competitionId of readdirSync(dataDir)) {
   process.stdout.write(`${String(index.name || competitionId).padEnd(32)} ${withStats} with player stats\n`)
 }
 
-// Mirror the counts into the top-level catalogue.
+/**
+ * Rebuild the top-level catalogue from whatever is on disk.
+ *
+ * Rebuilt rather than edited in place, because the catalogue is the one file
+ * that can lose competitions: `fetch-data --only <id>` rewrites it with just
+ * that competition, and the app then offers one league out of thirteen.
+ * Rebuilding from the per-competition index files is the only way back from
+ * that without a full re-download.
+ */
 const catalogPath = join(dataDir, 'index.json')
-if (existsSync(catalogPath)) {
-  const catalog = readJson(catalogPath) || { competitions: [] }
-  catalog.competitions = catalog.competitions.map((competition) => {
-    const indexPath = join(dataDir, competition.id, 'index.json')
-    if (!existsSync(indexPath)) return competition
-    const index = readJson(indexPath)
-    return { ...competition, withStats: index?.withStats ?? 0 }
-  })
-  writeFileSync(catalogPath, `${JSON.stringify(catalog)}\n`)
-}
+const previous = existsSync(catalogPath) ? readJson(catalogPath) : null
+
+const rebuilt = readdirSync(dataDir)
+  .filter((entry) => statSync(join(dataDir, entry)).isDirectory())
+  .map((competitionId) => readJson(join(dataDir, competitionId, 'index.json')))
+  .filter((index) => index && index.id)
+  .map((index) => ({
+    id: index.id,
+    name: index.name,
+    short: index.short,
+    matches: (index.matches || []).length,
+    detailed: (index.matches || []).filter((match) => match.hasDetail).length,
+    withStats: index.withStats ?? 0,
+    tables: index.tables || [],
+  }))
+  .sort((a, b) => String(a.name).localeCompare(String(b.name)))
+
+writeFileSync(catalogPath, `${JSON.stringify({
+  updated: previous?.updated || new Date().toISOString(),
+  window: previous?.window || { seasonStartMonth: 'July', lookahead: 150 },
+  competitions: rebuilt,
+})}\n`)
+
+const lost = previous ? (previous.competitions || []).length : 0
+process.stdout.write(`\ncatalogue rebuilt with ${rebuilt.length} competition(s)`
+  + `${lost ? ` (was ${lost})` : ''}\n`)
 
 process.stdout.write(`\nReindexed ${competitions} competitions, ${updated} matches with player stats\n`)

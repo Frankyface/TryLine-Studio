@@ -249,18 +249,19 @@ if (leagueIndex >= 0) {
     }
   }
 
-  // A club whose archive is short of the league table must be refused, not
-  // drawn with a silent gap. Saracens are one Gallagher fixture short.
-  const shortClub = clubs.find((c) => /Saracens/.test(c))
-  if (shortClub) {
-    await page.selectOption('#season-team', shortClub)
-    await page.waitForTimeout(1500)
-    const reason = await statusText()
-    check('refuses a club the archive is short of',
-      /are in the archive/i.test(reason), reason)
-    await page.selectOption('#season-team', clubs.find((c) => c !== shortClub))
-    await page.waitForTimeout(1200)
+  // Every club offered must actually draw. The picker used to filter on match
+  // count while the gate also checked the league table, so it offered clubs it
+  // then refused - 16 URC clubs of which 7 drew.
+  await page.click('[data-graphic="teamseason"]')
+  await page.waitForTimeout(1200)
+  const refusedButOffered = []
+  for (const club of clubs) {
+    await page.selectOption('#season-team', club)
+    await page.waitForTimeout(1100)
+    if (await statusTone() !== 'ok') refusedButOffered.push(club)
   }
+  check('every club the picker offers actually draws',
+    refusedButOffered.length === 0, refusedButOffered.join(', ') || 'all drew')
 }
 
 // Switching to a competition WITHOUT season records must not leave the previous

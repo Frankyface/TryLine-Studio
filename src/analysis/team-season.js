@@ -23,19 +23,36 @@ const resultOf = (own, other) => {
   return RESULTS.DRAW
 }
 
-/** The teams in a season file that have a usable match list. */
-export function teamsWithTimeline(season) {
+/**
+ * The teams whose season can actually be drawn.
+ *
+ * Asks the same question the gate asks, rather than a looser one of its own.
+ * Filtering only on match count offered 16 URC clubs of which 7 drew, and left
+ * the app opening on a club it immediately refused - the user had to hunt
+ * through the list to find one that worked.
+ */
+export function teamsWithTimeline(season, { table } = {}) {
   return (season?.teams || [])
-    .filter((entry) => (entry.matches || []).length >= MIN_MATCHES_FOR_TEAM_SEASON)
+    .filter((entry) => canPlotTeamSeason(season, entry.team?.name, { table }) === '')
     .map((entry) => entry.team)
 }
 
 const entryFor = (season, teamName) =>
   (season?.teams || []).find((entry) => entry.team?.name === teamName) || null
 
-/** That team's row in the official league table, if we hold one. */
-const tableRowFor = (table, teamName) =>
-  (table?.rows || []).find((row) => row.team?.name === teamName) || null
+/**
+ * That team's row in the official league table, if we hold one.
+ *
+ * Matched on a normalised name: an exact-string compare fails OPEN - a
+ * feed-side rename or a case change would silently turn a stated gap into an
+ * unstated one, which is the failure this whole check exists to prevent.
+ */
+const normalise = (name) => String(name || '').trim().toLowerCase()
+const tableRowFor = (table, teamName) => {
+  const key = normalise(teamName)
+  if (!key) return null
+  return (table?.rows || []).find((row) => normalise(row.team?.name) === key) || null
+}
 
 /**
  * Can this team's season be drawn honestly?
@@ -57,28 +74,50 @@ export function canPlotTeamSeason(season, teamName, { table } = {}) {
   if (played < MIN_MATCHES_FOR_TEAM_SEASON) {
     return `Only ${played} matches recorded for that team - too few to plot a season.`
   }
-
-  const row = tableRowFor(table, teamName)
-  if (row && Number.isFinite(row.played) && row.played > played) {
-    return `Only ${played} of that team's ${row.played} matches are in the archive, `
-      + 'so the season would have a gap in it.'
+  // A match with no score is not a nil-all draw. Left to reach the chart it
+  // draws as one, which is a fabricated result rather than a missing number.
+  if ((entry.matches || []).some((match) => !Number.isFinite(match.for) || !Number.isFinite(match.against))) {
+    return 'Some matches for that team have no score recorded, so the season would invent results.'
   }
   return ''
 }
 
 /**
- * How the drawn record relates to the league table's.
+ * What the archive holds against what the season actually contained.
+ *
+ * Two sources, because neither is always there: the official league table, and
+ * the count of fixtures the competition itself lists (which is the only one
+ * Major League Rugby has). The larger wins - a team that reached a final has
+ * more fixtures than the table's regular-season count, and a team the archive
+ * is short of has fewer matches than either.
+ */
+export function seasonCoverage(timeline, table) {
+  const recorded = timeline?.matches?.length ?? 0
+  const row = tableRowFor(table, timeline?.team?.name)
+  const fromTable = row && Number.isFinite(row.played) ? row.played : 0
+  const fromFixtures = Number.isFinite(timeline?.fixtures) ? timeline.fixtures : 0
+  const expected = Math.max(fromTable, fromFixtures, recorded)
+  return { recorded, expected, tablePlayed: fromTable }
+}
+
+/**
+ * The one line that stops the chart being read as something it is not.
  *
  * A club's own timeline covers every match it played; a league table covers
  * the regular season. Northampton's 2026 timeline is 20 played to the table's
- * 18. Both are true, and posted side by side without a word they read as an
- * error - so the graphic says which it is showing.
+ * 18, and side by side without a word they read as an error.
+ *
+ * The archive is also short sometimes - ESPN simply does not hold 10 of the
+ * Top 14's results, and Major League Rugby is several fixtures light. Refusing
+ * those outright cost 10 of 14 Top 14 clubs and 9 of 16 in the URC, which is
+ * most of two leagues. A gap that is STATED is not misleading; only a silent
+ * one is. So the chart draws and says what it is missing.
  */
 export function seasonScope(timeline, table) {
-  const played = timeline?.matches?.length ?? 0
-  const row = tableRowFor(table, timeline?.team?.name)
-  if (!row || !Number.isFinite(row.played) || played <= row.played) return ''
-  return 'INCLUDING PLAY-OFFS'
+  const { recorded, expected, tablePlayed } = seasonCoverage(timeline, table)
+  if (expected > recorded) return `${recorded} OF ${expected} MATCHES RECORDED`
+  if (tablePlayed && recorded > tablePlayed) return 'INCLUDING PLAY-OFFS'
+  return ''
 }
 
 /**
@@ -111,6 +150,9 @@ export function teamSeasonTimeline(season, teamName) {
     competition: season.competition || {},
     season: season.season || {},
     team: entry.team,
+    // What the competition lists for this team, so the chart can say what it
+    // is missing even where there is no league table to ask.
+    fixtures: Number.isFinite(entry.fixtures) ? entry.fixtures : matches.length,
     matches,
   }
 }

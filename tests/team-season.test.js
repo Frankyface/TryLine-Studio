@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import {
   canPlotTeamSeason, teamSeasonTimeline, teamSeasonHeadline, marginBounds, seasonScope,
-  teamsWithTimeline, MIN_MATCHES_FOR_TEAM_SEASON, RESULTS,
+  seasonCoverage, teamsWithTimeline, MIN_MATCHES_FOR_TEAM_SEASON, RESULTS,
 } from '../src/analysis/team-season.js'
 
 const match = (date, opponent, own, other, venue = 'home') => ({
@@ -63,37 +63,81 @@ describe('canPlotTeamSeason', () => {
   })
 })
 
-describe('cross-checked against the league table', () => {
-  const tableOf = (played) => ({ rows: [{ team: { name: 'Alpha' }, played }] })
+describe('what the chart says it is missing', () => {
+  const tableOf = (played, name = 'Alpha') => ({ rows: [{ team: { name }, played }] })
+  const timelineOf = (matches, extra = {}) => teamSeasonTimeline(
+    { ...seasonOf(matches), teams: [{ ...seasonOf(matches).teams[0], ...extra }] },
+    'Alpha',
+  )
 
-  it('refuses a season the archive is short of', () => {
-    // The real case: the archive holds 17 Gallagher Premiership matches for
-    // Saracens where the table records 18.
-    expect(canPlotTeamSeason(seasonOf(eight), 'Alpha', { table: tableOf(9) }))
-      .toMatch(/only 8 of that team's 9 matches/i)
+  it('states a gap rather than refusing to draw', () => {
+    // The real case: the archive holds 17 Gallagher matches for Saracens where
+    // the table records 18, and ESPN simply does not have 10 Top 14 results.
+    // Refusing cost most of two leagues; a STATED gap is not misleading.
+    expect(canPlotTeamSeason(seasonOf(eight), 'Alpha', { table: tableOf(9) })).toBe('')
+    expect(seasonScope(teamSeasonTimeline(seasonOf(eight), 'Alpha'), tableOf(9)))
+      .toBe('8 OF 9 MATCHES RECORDED')
   })
 
-  it('draws when the archive matches the table', () => {
-    expect(canPlotTeamSeason(seasonOf(eight), 'Alpha', { table: tableOf(8) })).toBe('')
+  it('says nothing when the archive is complete', () => {
+    expect(seasonScope(teamSeasonTimeline(seasonOf(eight), 'Alpha'), tableOf(8))).toBe('')
   })
 
-  it('draws when there is no table to check against', () => {
-    expect(canPlotTeamSeason(seasonOf(eight), 'Alpha', {})).toBe('')
+  it('calls a record longer than the table what it is', () => {
+    expect(seasonScope(teamSeasonTimeline(seasonOf(eight), 'Alpha'), tableOf(6)))
+      .toMatch(/play-offs/i)
   })
 
-  it('allows a record LONGER than the table - those are play-offs', () => {
-    expect(canPlotTeamSeason(seasonOf(eight), 'Alpha', { table: tableOf(6) })).toBe('')
+  it('finds a gap with no league table at all, from the fixture count', () => {
+    // Major League Rugby has no table. Five of its six clubs were drawing a
+    // season several fixtures short with nothing to say so - one of them a
+    // perfect "12 from 12" that was 12 of 14.
+    expect(seasonScope(timelineOf(eight, { fixtures: 11 }), null))
+      .toBe('8 OF 11 MATCHES RECORDED')
   })
 
-  it('says so when the record exceeds the table', () => {
-    const timeline = teamSeasonTimeline(seasonOf(eight), 'Alpha')
-    expect(seasonScope(timeline, tableOf(6))).toMatch(/play-offs/i)
+  it('prefers whichever source knows about more matches', () => {
+    // Table says 9, fixtures say 12 - the chart is short by the larger.
+    expect(seasonCoverage(timelineOf(eight, { fixtures: 12 }), tableOf(9)))
+      .toMatchObject({ recorded: 8, expected: 12 })
   })
 
-  it('stays silent when the record matches the table', () => {
-    const timeline = teamSeasonTimeline(seasonOf(eight), 'Alpha')
-    expect(seasonScope(timeline, tableOf(8))).toBe('')
-    expect(seasonScope(timeline, null)).toBe('')
+  it('never claims to be missing matches it actually has', () => {
+    // Both sources undercount; the chart holds more than either knows about,
+    // so there is no gap - it reads as the play-offs case instead.
+    expect(seasonCoverage(timelineOf(eight, { fixtures: 2 }), tableOf(3)))
+      .toMatchObject({ recorded: 8, expected: 8 })
+    expect(seasonScope(timelineOf(eight, { fixtures: 2 }), tableOf(3)))
+      .not.toMatch(/OF \d+ MATCHES/)
+  })
+
+  it('matches the table row whatever its case or padding', () => {
+    // An exact-string compare fails OPEN: a rename would silently turn a
+    // stated gap into an unstated one.
+    expect(seasonScope(teamSeasonTimeline(seasonOf(eight), 'Alpha'), tableOf(9, 'ALPHA')))
+      .toBe('8 OF 9 MATCHES RECORDED')
+    expect(seasonScope(teamSeasonTimeline(seasonOf(eight), 'Alpha'), tableOf(9, '  alpha  ')))
+      .toBe('8 OF 9 MATCHES RECORDED')
+  })
+
+  it('says nothing when there is no table and no fixture count', () => {
+    expect(seasonScope(teamSeasonTimeline(seasonOf(eight), 'Alpha'), null)).toBe('')
+  })
+})
+
+describe('a match with no score is not a nil-all draw', () => {
+  it('refuses a timeline carrying one', () => {
+    const withNull = [...eight.slice(0, 7), {
+      date: '2025-11-01', opponent: { name: 'Zulu' }, venue: 'home', for: null, against: null,
+    }]
+    expect(canPlotTeamSeason(seasonOf(withNull), 'Alpha')).toMatch(/no score recorded/i)
+  })
+
+  it('and does not offer that team in the picker', () => {
+    const withNull = [...eight.slice(0, 7), {
+      date: '2025-11-01', opponent: { name: 'Zulu' }, venue: 'home', for: null, against: null,
+    }]
+    expect(teamsWithTimeline(seasonOf(withNull))).toEqual([])
   })
 })
 
@@ -212,6 +256,22 @@ describe('teamsWithTimeline', () => {
       ],
     }
     expect(teamsWithTimeline(season).map((t) => t.name)).toEqual(['Full'])
+  })
+
+  it('asks exactly the question the gate asks', () => {
+    // The picker used to filter on match count alone while the gate also
+    // checked the table, so it offered 16 URC clubs of which 7 drew and the
+    // app opened on one it immediately refused.
+    const season = {
+      teams: [
+        { team: { name: 'Full' }, matches: eight },
+        { team: { name: 'Sparse' }, matches: eight.slice(0, 2) },
+      ],
+    }
+    const table = { rows: [{ team: { name: 'Full' }, played: 40 }] }
+    for (const team of teamsWithTimeline(season, { table })) {
+      expect(canPlotTeamSeason(season, team.name, { table })).toBe('')
+    }
   })
 })
 
