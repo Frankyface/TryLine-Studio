@@ -90,6 +90,19 @@ Across 1,147 downloaded matches:
 - Tackles run ~25% above a "tackles made" convention (ESPN appears to count
   assists), so do not caption them one-per-tackle.
 
+## A win-probability curve MUST end where the match ended
+
+80 of the 738 archived scoring timelines do not add up to the final score -
+ESPN drops the occasional converted try, almost always exactly 7 points. On
+**16 of them the timeline implies the OTHER SIDE WON**: France read 41-46 to
+England on a graphic printing the correct 48-46. The curve used to draw anyway
+with a small "timeline incomplete" note in the footer, which does not begin to
+undo a chart showing the loser winning.
+
+`blockingReason` now requires `timelineIsComplete` for any graphic declaring
+`requiresTimeline`. That refuses 80 matches and keeps 658. Do not relax this to
+a caption.
+
 ## A club's own season is NOT the league table's season
 
 `season-{year}.json` carries a per-team match list, and it includes play-offs.

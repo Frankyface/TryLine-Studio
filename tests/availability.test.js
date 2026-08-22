@@ -21,10 +21,16 @@ const matchWith = (overrides = {}) => ({
   season: { display: '2026' },
 })
 
+// The timeline has to reach the final score, or the win-probability gate
+// rejects it - which is the whole point of that gate.
 const full = matchWith({
-  home: { squad: squad({ metres: 40 }) },
-  away: { squad: squad({ metres: 30 }) },
-  timeline: [{ minute: 10, side: 'home', points: 5 }],
+  home: { score: 20, squad: squad({ metres: 40 }) },
+  away: { score: 10, squad: squad({ metres: 30 }) },
+  timeline: [
+    { minute: 10, side: 'home', type: 'try', homeScore: 5, awayScore: 0 },
+    { minute: 30, side: 'away', type: 'try', homeScore: 5, awayScore: 10 },
+    { minute: 60, side: 'home', type: 'try', homeScore: 20, awayScore: 10 },
+  ],
 })
 
 describe('every graphic declares what it actually needs', () => {
@@ -58,6 +64,19 @@ describe('every graphic declares what it actually needs', () => {
     '%s blocks without a scoring timeline', (_id, graphic) => {
       expect(blockingReason(graphic, { match: matchWith({ timeline: [] }) }))
         .toMatch(/timeline/i)
+    },
+  )
+
+  it.each(GRAPHICS.filter((g) => g.meta.requiresTimeline).map((g) => [g.meta.id, g]))(
+    '%s blocks a timeline that does not reach the final score', (_id, graphic) => {
+      // The real failure: 16 archived matches have a timeline implying the
+      // other side won, drawn next to the correct scoreline.
+      const short = {
+        ...matchWith({ timeline: [{ minute: 20, side: 'home', type: 'try' }] }),
+        home: { name: 'Home', shortName: 'Home', score: 48, squad: [] },
+        away: { name: 'Away', shortName: 'Away', score: 46, squad: [] },
+      }
+      expect(blockingReason(graphic, { match: short })).toMatch(/wrong scoreline/i)
     },
   )
 })

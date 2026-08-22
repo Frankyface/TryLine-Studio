@@ -9,6 +9,7 @@
  * a player card that drew 45% blank canvas.
  */
 import { canPlotTeamSeason } from '../analysis/team-season.js'
+import { timelineIsComplete } from '../analysis/winprob.js'
 
 /** A team sheet with no numbers on it is a list of names, not a stat source. */
 export const squadHasStats = (squad = []) =>
@@ -69,8 +70,19 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
 
   if (!match) return 'Pick a match to draw.'
 
-  if (graphic.meta.requiresTimeline && !(match.timeline || []).length) {
-    return 'That match has no scoring timeline, so the swing chart would be guesswork.'
+  if (graphic.meta.requiresTimeline) {
+    if (!(match.timeline || []).length) {
+      return 'That match has no scoring timeline, so the swing chart would be guesswork.'
+    }
+    // The curve has to end where the match ended. 80 of the 738 archived
+    // timelines are short of the final score - ESPN drops the occasional
+    // converted try - and on 16 of them the timeline implies the OTHER side
+    // won. A chart showing France losing 41-46 beside a scoreline reading
+    // 48-46 is worse than no chart, and a footnote does not undo it.
+    if (!timelineIsComplete(match)) {
+      return 'That match has an incomplete scoring timeline, so the curve would '
+        + 'end on the wrong scoreline.'
+    }
   }
 
   if (graphic.meta.requiresSquad) {

@@ -63,6 +63,7 @@ page.on('console', (m) => {
 page.on('pageerror', (e) => consoleErrors.push(String(e)))
 
 const statusText = () => page.locator('#status').textContent()
+const statusTone = () => page.locator('#status').getAttribute('data-tone')
 const waitForOk = async (timeout = 30000) => {
   await page.waitForFunction(
     () => document.getElementById('status').dataset.tone === 'ok',
@@ -106,6 +107,23 @@ await page.selectOption('#match', { index: 0 })
 await waitForOk()
 const statMatches = await page.locator('#match option').count()
 check('stats filter finds matches', statMatches > 0, `${statMatches} matches with stats`)
+
+// The win-probability curve needs a timeline that reaches the final score, and
+// 80 of the 738 archived timelines do not - ESPN drops the occasional converted
+// try. Pick a match that can actually carry the curve rather than assuming the
+// first one can.
+await page.click('[data-graphic="winprob"]')
+const matchCount = await page.locator('#match option').count()
+let curveIndex = -1
+for (let index = 0; index < Math.min(matchCount, 12); index += 1) {
+  await page.selectOption('#match', { index })
+  await page.waitForTimeout(900)
+  if (await statusTone() === 'ok') { curveIndex = index; break }
+}
+check('finds a match whose timeline reaches the final score', curveIndex >= 0,
+  `scanned ${Math.min(matchCount, 12)} matches`)
+if (curveIndex >= 0) await page.selectOption('#match', { index: curveIndex })
+await page.waitForTimeout(900)
 
 // Every graphic that works from a match.
 for (const graphicId of ['result', 'matchday', 'teamsheet', 'statcard', 'winprob', 'comparison']) {
