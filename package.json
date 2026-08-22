@@ -24,6 +24,7 @@
     "rank": "node scripts/rank-matches.mjs",
     "benchmarks": "node scripts/build-hero-benchmarks.mjs",
     "colours": "node scripts/build-team-colours.mjs",
+    "plan": "node scripts/build-post-plan.mjs",
     "crests": "node scripts/mirror-crests.mjs"
   },
   "devDependencies": {

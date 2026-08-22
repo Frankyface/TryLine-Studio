@@ -73,6 +73,38 @@ four of them bled into the margin, over the accent hairline on the left. The
 padding now comes out of the crest instead, so nothing `drawCrest` paints
 exceeds the box it was given and `PLATE_HALF` is simply 0.5.
 
+## Team colours: ESPN has one, and only for 69 of 113 teams
+
+There is no `alternateColor` anywhere in the rugby feed - checked against the
+scoreboard, the teams list and a single-team response. The second colour is
+read out of the club's own mirrored crest by `npm run colours`, and only where
+it is a big enough part of that crest to be a colour the club wears rather than
+a detail in the badge. 29 of 113 teams clear that; the rest offer one colour
+and the picker says so instead of repeating the first.
+
+Every threshold in that script was set by looking at its output. At a 6% share
+England came back with the green of its rose leaves; at 15% it correctly comes
+back with nothing. ONE distance (170) decides both "these two agree" and "these
+two are different enough to offer as a choice" - at 110 the same red counted as
+two colours in one test and one colour in the other.
+
+Crest extraction can only ever say what is IN a crest. It is not a brand guide,
+and the UI does not claim otherwise.
+
+## Auto-posting: the plan is built, the publishing cannot be
+
+`src/publish/plan.js` decides what to post, in what order, on which theme, with
+what caption - pure, tested, and using the app's own `blockingReason` so a plan
+never lists a card the renderer refuses. Theme rotation is deterministic from
+the match id (both the start AND the step, or two matches in seven share a run),
+so a retry after a half-finished run repeats it exactly.
+
+Everything past that needs a server this project does not have: a Meta app with
+`instagram_content_publish` through App Review, a 60-day token that must be
+refreshed and can never be shipped to a browser, and publicly hosted image URLs
+because the Graph API fetches images rather than accepting bytes. docs/instagram.md
+has the full list. Do not add any of it to the static site.
+
 ## Measure contrast against the RENDERED background, never the token
 
 `theme.js` used to claim every ink cleared 4.5:1, and against `bg` that was
@@ -447,6 +479,8 @@ if it ever happens again.
 | `npm run space` | Dead canvas per graphic, format and played/scheduled, swept over matches |
 | `npm run contrast` | Ink contrast against the backdrop actually rendered |
 | `npm run rank` | Score every match for how worth posting it is |
+| `npm run colours` | Rebuild each team's primary and second colour |
+| `npm run plan` | Build a posting plan for one match and render its cards |
 | `npm run benchmarks` | Rebuild the per-shirt stat benchmarks for the player card |
 
 Four scripts need the static server running - shots, stress, contrast and e2e,
