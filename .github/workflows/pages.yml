@@ -29,6 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A deploy that ships broken logic is worse than a deploy that fails.
+      # Only the unit suite runs here: shots, stress, contrast and e2e all need
+      # a server and a browser, which belongs in a slower check, not on the
+      # path to publishing.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx vitest run --coverage
+
       # Publish only what the app needs. Uploading the whole checkout would put
       # CLAUDE.md, handoff.md, the dev harness and the test fixtures on the
       # public web.

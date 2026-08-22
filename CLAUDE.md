@@ -167,6 +167,11 @@ The same script sets `partial: true` on pool tables (the Champions Cup files
 hold one pool of six from twenty-four teams), and the graphic then titles them
 "Pool standings" rather than implying full standings.
 
+The weekly refresh workflow must install Chromium (`npx playwright install
+--with-deps chromium`) because `mirror-crests` sits in the middle of the chain
+and the playwright package ships no postinstall. It must also stage `assets`
+alongside `data`, or it commits crest paths whose files were never committed.
+
 **`npm run refresh` runs every derivation afterwards** - form, season records
 and the win model. Fetching alone puts the false form strings straight back and
 leaves the season files stale.
