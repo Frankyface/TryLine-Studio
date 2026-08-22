@@ -17,6 +17,7 @@ import { GRAPHICS, GRAPHIC_BY_ID, renderGraphic } from './render/index.js'
 import { exportOne, exportSet } from './export/png.js'
 import { blockingReason, usesSide } from './render/availability.js'
 import { teamsWithTimeline } from './analysis/team-season.js'
+import { byDrama } from './analysis/notable.js'
 import { formatMatchDate } from './render/format.js'
 
 const $ = (id) => document.getElementById(id)
@@ -301,7 +302,7 @@ function visibleMatches() {
     // graphic a new user saw was a fixture card they had not asked for.
     .sort((a, b) => {
       // Asked for the notable ones, the point is the ranking, not the calendar.
-      if (notableOnly) return (b.drama ?? -1) - (a.drama ?? -1)
+      if (notableOnly) return byDrama(a, b)
       const played = (match) => (match.status === 'final' ? 0 : 1)
       return played(a) - played(b) || new Date(b.kickoff) - new Date(a.kickoff)
     })
@@ -403,7 +404,14 @@ async function selectCompetition(competitionId) {
 
 async function selectMatch() {
   const matchId = $('match').value
-  if (!matchId) return
+  // No match selected means no match, not "keep the last one". Returning early
+  // left the previous match in state, so an empty and disabled picker still
+  // drew a full graphic and exported a real PNG for a match it said did not
+  // exist - two clicks away: pick Major League Rugby, tick "worth posting".
+  if (!matchId) {
+    setState({ match: null })
+    return
+  }
   try {
     const match = await loadMatch(state.competitionId, matchId)
     setState({ match })

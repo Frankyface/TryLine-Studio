@@ -26,7 +26,20 @@ import { scoreSteps, scoreAtMinute, winProbability, timelineIsComplete, FULL_TIM
 /** Above this a match has a story worth telling. */
 export const WORTH_POSTING = 0.6
 
-/** The closing stretch, for the "was it still open" branch. */
+/**
+ * The closing stretch, taken as a flat mean.
+ *
+ * I tried weighting it toward the whistle, to catch matches decided in the
+ * last three minutes. It made things worse and the numbers said so: win
+ * probability uses the time REMAINING, so at minute 80 there is none and any
+ * non-zero margin reads as certainty. Weighting toward 80 therefore weights
+ * the least informative minute the most - it collapsed the branch, halved the
+ * recommendations and left only draws at the top. A flat mean it is.
+ *
+ * The known cost, measured: a match level at 79 and won with the last kick
+ * scores low, because it was only in doubt for a fraction of the window. That
+ * is a real miss and it is not fixable by reweighting this window.
+ */
 const LATE_FROM = 61
 
 /** A match is not scored at all below this many minutes of timeline. */
@@ -45,6 +58,12 @@ const clamp01 = (value) => Math.max(0, Math.min(1, value))
  */
 export function matchDrama(match, model) {
   if (!match || !timelineIsComplete(match)) return null
+
+  // An empty timeline is "complete" for a 0-0 draw, which made every minute
+  // level and scored a perfect 1.00 - the top of the ranking, for a match with
+  // no recorded scoring at all. That is the shape of an abandoned fixture, and
+  // the win-probability chart refuses the same match outright.
+  if (!(match.timeline || []).length) return null
 
   const home = match.home?.score
   const away = match.away?.score
@@ -88,7 +107,14 @@ export function matchDrama(match, model) {
   }
 
   // A draw has no winner to have come back, but can still be tense to the end.
-  const comeback = drawn ? 0 : clamp01((0.5 - lowest) / 0.5)
+  //
+  // Damped by HOW LATE the low point was. Undamped, "Racing 92 came back from
+  // 0-14 at 10'" scored 0.64 and was recommended - a 31-point win, on the
+  // strength of one ten-minute spell. Being behind early and winning easily is
+  // not a comeback; being behind late and winning is.
+  const lateness = lowestMinute ? clamp01(lowestMinute / FULL_TIME) : 0
+  const depth = drawn ? 0 : clamp01((0.5 - lowest) / 0.5)
+  const comeback = depth * lateness
   const lateDoubt = lateCount ? clamp01(lateSum / lateCount) : 0
 
   return Object.freeze({
@@ -116,10 +142,15 @@ export function dramaReason(match, drama) {
       ? `${home}-${away}` : `${away}-${home}`
     return `${winnerName} came back from ${behind} at ${drama.lowestMinute}'`
   }
-  return drama.drawn ? 'Level to the whistle' : 'Still in doubt in the last ten'
+  return drama.drawn ? 'Level to the whistle' : 'Still in doubt at the end'
 }
 
-/** Sort helper: dramatic first, unrated last, ties broken by the closer match. */
+/**
+ * Sort helper: dramatic first, unrated last.
+ *
+ * `Number.isFinite` rather than `??` on purpose - a NaN drama would slip past
+ * a nullish check and sort as NaN, which leaves the order undefined.
+ */
 export function byDrama(a, b) {
   const score = (entry) => (Number.isFinite(entry?.drama) ? entry.drama : -1)
   return score(b) - score(a)

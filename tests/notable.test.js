@@ -46,13 +46,47 @@ describe('matchDrama', () => {
     expect(matchDrama(awayLedThroughout, MODEL).comeback).toBe(0)
   })
 
-  it('scores a genuine comeback highly', () => {
+  it('scores a genuine LATE comeback highly', () => {
     const comeback = matchOf([
-      score(10, 'away', 0, 21), score(65, 'home', 14, 21), score(78, 'home', 24, 21),
+      score(40, 'away', 0, 21), score(70, 'home', 14, 21), score(78, 'home', 24, 21),
     ], 24, 21)
     const drama = matchDrama(comeback, MODEL)
-    expect(drama.comeback).toBeGreaterThan(0.8)
+    expect(drama.comeback).toBeGreaterThan(0.6)
     expect(drama.score).toBeGreaterThanOrEqual(WORTH_POSTING)
+  })
+
+  it('does not call an early deficit inside a rout a comeback', () => {
+    // The real case: "Racing 92 came back from 0-14 at 10'" was recommended -
+    // a 31-point win, on the strength of one ten-minute spell. Being behind
+    // early and winning easily is not a comeback.
+    const rout = matchOf([
+      score(10, 'away', 0, 14), score(30, 'home', 21, 14),
+      score(55, 'home', 38, 14), score(75, 'home', 52, 21),
+    ], 52, 21)
+    const drama = matchDrama(rout, MODEL)
+    expect(drama.score).toBeLessThan(WORTH_POSTING)
+    expect(dramaReason(rout, drama)).toBe('')
+  })
+
+  it('weights a comeback by how late the winner was still behind', () => {
+    // The low point is when the winner was LAST behind, not when the deficit
+    // was incurred - a side 21-0 down until the 78th has come back late even
+    // if the damage was done in the first ten minutes.
+    const recoveredEarly = matchDrama(matchOf([
+      score(10, 'away', 0, 21), score(20, 'home', 24, 21), score(70, 'home', 31, 21),
+    ], 31, 21), MODEL)
+    const recoveredLate = matchDrama(matchOf([
+      score(10, 'away', 0, 21), score(78, 'home', 24, 21),
+    ], 24, 21), MODEL)
+    expect(recoveredLate.comeback).toBeGreaterThan(recoveredEarly.comeback)
+    expect(recoveredEarly.lowestMinute).toBeLessThan(recoveredLate.lowestMinute)
+  })
+
+  it('refuses a 0-0 with no scoring recorded at all', () => {
+    // "Complete" for 0-0, so every minute was level and it scored a perfect
+    // 1.00 - the top of the ranking, for a match with no timeline. That is the
+    // shape of an abandoned fixture, and the curve refuses the same match.
+    expect(matchDrama(matchOf([], 0, 0), MODEL)).toBeNull()
   })
 
   it('scores a match that stayed level to the end, with nobody behind', () => {
@@ -127,6 +161,17 @@ function realIndexes() {
 const indexes = realIndexes()
 
 describe('the scores written into the indexes', () => {
+  it.skipIf(!indexes.length)('actually contains scores', () => {
+    // Without this the three checks below are vacuous: they all skip a row
+    // with no `drama`, so a data set that was never ranked - which is what a
+    // half-completed `npm run refresh` leaves behind - passed them all.
+    const scored = indexes
+      .flatMap((index) => index.matches || [])
+      .filter((match) => Number.isFinite(match.drama))
+    expect(scored.length).toBeGreaterThan(100)
+    expect(scored.some((match) => match.why)).toBe(true)
+  })
+
   it.skipIf(!indexes.length)('are all inside 0-1', () => {
     for (const index of indexes) {
       for (const match of index.matches || []) {

@@ -139,6 +139,19 @@ The win-probability graphic keeps the fitted home advantage, because there it
 is predicting a match; the score is describing one that already happened. The
 two therefore disagree by the home-advantage offset at kick-off, on purpose.
 
+The comeback branch is DAMPED by how late the winner was last behind.
+Undamped, "Racing 92 came back from 0-14 at 10'" was recommended - a 31-point
+win, on one ten-minute spell. Fourteen of the recommendations were won by 13+
+points; now none are, and the median final margin of a recommendation is 3.
+
+The late-doubt branch is a FLAT mean over minutes 61-80. Weighting it toward
+the whistle looks obviously right and is not: win probability uses the time
+REMAINING, so at minute 80 there is none and any non-zero margin reads as
+certainty. Weighting toward 80 weights the least informative minute most - it
+halved the recommendations and left only draws at the top. The known cost of
+the flat mean is that a match won with the last kick scores low, and that is
+not fixable by reweighting this window.
+
 Two branches, `max(comeback, lateDoubt)`, because neither covers the other -
 they share under a quarter of their top 50. A one-point win where nobody ever
 trailed scores zero on the first and high on the second. Do NOT add lead
