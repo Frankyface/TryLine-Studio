@@ -242,7 +242,14 @@ function visibleMatches() {
     .filter((match) => !filter
       || match.home.name.toLowerCase().includes(filter)
       || match.away.name.toLowerCase().includes(filter))
-    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff))
+    // Played matches first, each group newest-first. Sorting purely by date
+    // put every unannounced future fixture above every result - 113 of them in
+    // the Top 14 - so the default selection was an unplayed game and the first
+    // graphic a new user saw was a fixture card they had not asked for.
+    .sort((a, b) => {
+      const played = (match) => (match.status === 'final' ? 0 : 1)
+      return played(a) - played(b) || new Date(b.kickoff) - new Date(a.kickoff)
+    })
     .slice(0, MATCH_LIST_LIMIT)
 }
 
