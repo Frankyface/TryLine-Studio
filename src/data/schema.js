@@ -174,6 +174,17 @@ export function createTable(input = {}) {
   })
 }
 
+/** One played match, from the point of view of one of the two teams. */
+export function createSeasonMatch(input = {}) {
+  return Object.freeze({
+    date: str(input.date),
+    opponent: createTeam(input.opponent),
+    venue: input.venue === 'away' ? 'away' : 'home',
+    for: num(input.for) ?? 0,
+    against: num(input.against) ?? 0,
+  })
+}
+
 /** One team's home and away record within a season. */
 export function createSeasonTeam(input = {}) {
   const record = (side) => Object.freeze({
@@ -191,6 +202,10 @@ export function createSeasonTeam(input = {}) {
     away: record('away'),
     homeWinRate: num(input.homeWinRate),
     awayWinRate: num(input.awayWinRate),
+    // Every result in order, for the per-team season chart. Dropping this
+    // silently made the chart report "0 matches recorded" for teams whose
+    // season files held a full set.
+    matches: Object.freeze((input.matches || []).map(createSeasonMatch)),
   })
 }
 

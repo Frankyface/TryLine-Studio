@@ -80,18 +80,24 @@ function buildSeason(competitionId, season, matches) {
   if (!inSeason.length) return null
 
   const byTeam = new Map()
+  const sideOf = (side) => ({
+    id: side.id,
+    name: side.name,
+    shortName: side.shortName || side.name,
+    abbreviation: side.abbreviation,
+    logo: side.logo,
+  })
   const teamOf = (side) => {
     if (!byTeam.has(side.name)) {
       byTeam.set(side.name, {
-        team: {
-          id: side.id,
-          name: side.name,
-          shortName: side.shortName || side.name,
-          abbreviation: side.abbreviation,
-          logo: side.logo,
-        },
+        team: sideOf(side),
         home: emptyRecord(),
         away: emptyRecord(),
+        // Every result in order, for the per-team season chart. Scores only:
+        // no league points, because bonus-point rules differ by competition
+        // and depend on try counts the archive does not carry for every match,
+        // so a computed table would contradict the official one.
+        matches: [],
       })
     }
     return byTeam.get(side.name)
@@ -100,6 +106,21 @@ function buildSeason(competitionId, season, matches) {
   for (const match of inSeason) {
     addResult(teamOf(match.home).home, match.home.score, match.away.score)
     addResult(teamOf(match.away).away, match.away.score, match.home.score)
+
+    teamOf(match.home).matches.push({
+      date: match.kickoff,
+      opponent: sideOf(match.away),
+      venue: 'home',
+      for: match.home.score,
+      against: match.away.score,
+    })
+    teamOf(match.away).matches.push({
+      date: match.kickoff,
+      opponent: sideOf(match.home),
+      venue: 'away',
+      for: match.away.score,
+      against: match.home.score,
+    })
   }
 
   // A team needs a real sample at BOTH venues, or its dumbbell is a guess.
@@ -107,6 +128,7 @@ function buildSeason(competitionId, season, matches) {
     .filter((entry) => entry.home.played >= MIN_PER_VENUE && entry.away.played >= MIN_PER_VENUE)
     .map((entry) => ({
       ...entry,
+      matches: [...entry.matches].sort((a, b) => String(a.date).localeCompare(String(b.date))),
       homeWinRate: winRate(entry.home),
       awayWinRate: winRate(entry.away),
       gap: winRate(entry.home) - winRate(entry.away),

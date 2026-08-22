@@ -8,6 +8,7 @@
  * faults shipped as a result - an empty team sheet that exported happily, and
  * a player card that drew 45% blank canvas.
  */
+import { canPlotTeamSeason } from '../analysis/team-season.js'
 
 /** A team sheet with no numbers on it is a list of names, not a stat source. */
 export const squadHasStats = (squad = []) =>
@@ -57,6 +58,12 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
     if (!season) {
       return 'No home and away records for that season. Try another season, or a league that plays home and away.'
     }
+    // A per-team chart needs a team, and needs that team to have enough of a
+    // season to be worth drawing. Asking the analysis keeps the gate and the
+    // graphic from ever disagreeing about what is drawable.
+    // The table is passed as the cross-check: it knows how many matches a team
+    // actually played, and the archive is occasionally short by one.
+    if (graphic.meta.requiresTeam) return canPlotTeamSeason(season, options.team, { table })
     return ''
   }
 

@@ -2,10 +2,22 @@
 
 _Last updated 2026-08-21. **LIVE at https://frankyface.github.io/TryLine-Studio/**_
 
-## State: 9 graphics live, reviewed and audited
+## State: 10 graphics live, reviewed and audited
 
-Nine graphics across two Instagram formats from two data sources, deployed to
-GitHub Pages. **311 unit tests, 39 end-to-end checks, all green.**
+Ten graphics across two Instagram formats from two data sources, deployed to
+GitHub Pages. **347 unit tests, 43 end-to-end checks, all green.**
+
+### Newest: "Season so far"
+
+One club, every result in order, as a margin bar per match. This is the
+graphic a club posts about itself - the other season charts answer questions
+about a competition. Built from final scores alone: no league points, because
+bonus-point rules differ by competition and depend on try counts the archive
+does not hold for every match.
+
+Two honesty rules are built in, both cross-checked against the official table:
+it prints "INCLUDING PLAY-OFFS" when its record exceeds the table's, and it
+REFUSES a club whose archive is short (Saracens, 17 of 18 Gallagher fixtures).
 
 A code review and a live-production audit both ran against this build. Every
 CRITICAL and HIGH finding is fixed and verified in production; the remaining

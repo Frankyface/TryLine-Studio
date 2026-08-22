@@ -110,6 +110,23 @@ describe('table and season graphics', () => {
     expect(blockingReason(graphic, { table })).toBe('')
   })
 
+  it('blocks a per-team season chart until a team is picked', () => {
+    const withTeam = {
+      competition: {}, season: {},
+      teams: [{
+        team: { name: 'Alpha' },
+        home: {}, away: {},
+        matches: Array.from({ length: 8 }, (_, i) => ({
+          date: `2025-09-0${i + 1}`, opponent: { name: `Opp ${i}` }, venue: 'home', for: 20, against: 10,
+        })),
+      }],
+    }
+    const graphic = GRAPHIC_BY_ID.teamseason
+    expect(blockingReason(graphic, { season: withTeam }, {})).toMatch(/pick a team/i)
+    expect(blockingReason(graphic, { season: withTeam }, { team: 'Nobody' })).toMatch(/no record/i)
+    expect(blockingReason(graphic, { season: withTeam }, { team: 'Alpha' })).toBe('')
+  })
+
   it('never offers season records from manual entry', () => {
     const graphic = GRAPHIC_BY_ID.fortress
     expect(blockingReason(graphic, { source: 'manual', season })).toMatch(/manual entry/i)

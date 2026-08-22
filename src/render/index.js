@@ -11,9 +11,11 @@ import * as winprob from './graphics/winprob.js'
 import * as comparison from './graphics/comparison.js'
 import * as scatter from './graphics/scatter.js'
 import * as fortress from './graphics/fortress.js'
+import * as teamseason from './graphics/teamseason.js'
 
 export const GRAPHICS = Object.freeze([
   result, matchday, teamsheet, statcard, table, winprob, comparison, scatter, fortress,
+  teamseason,
 ])
 
 export const GRAPHIC_BY_ID = Object.freeze(

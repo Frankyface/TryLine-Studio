@@ -24,7 +24,8 @@
   <script type="module">
     import { renderGraphic, GRAPHICS } from '../src/render/index.js'
     import { adaptSummary, adaptStandings } from '../src/data/espn.js'
-    import { createTable } from '../src/data/schema.js'
+    import { createTable, createSeason } from '../src/data/schema.js'
+    import { teamsWithTimeline } from '../src/analysis/team-season.js'
     import { SIZES, THEMES } from '../src/render/theme.js'
 
     const status = document.getElementById('status')
@@ -40,13 +41,17 @@
       await document.fonts.load('600 40px "Inter"')
       await document.fonts.ready
 
-      const [summary, standings, model, comeback, contrast, season] = await Promise.all([
+      const [summary, standings, model, comeback, contrast, rawSeason, rawSeasonTable] = await Promise.all([
         load('../tests/fixtures/espn-summary-fra-ire-2026.json'),
         load('../data/267979/table-2026.json').catch(() => load('../tests/fixtures/espn-standings-urc-2026.json')),
         load('../data/models/winprob.json').catch(() => null),
         load('../tests/fixtures/match-comeback.json').catch(() => null),
         load('../tests/fixtures/match-contrast.json').catch(() => null),
         load('../data/270559/season-2026.json').catch(() => null),
+        // The season graphics cross-check against their OWN competition's
+        // table, so the pair must match - a Top 14 season against a Gallagher
+        // table silently skips every check the graphic makes.
+        load('../data/270559/table-2026.json').catch(() => null),
       ])
       const match = adaptSummary(summary)
       // data/ files are already normalised; the fixture is raw ESPN.
@@ -54,6 +59,10 @@
         ? createTable(standings)
         : adaptStandings(standings, { season: 2026 })
       const theme = THEMES[themeName]
+      const season = rawSeason ? createSeason(rawSeason) : null
+      const seasonTable = rawSeasonTable ? createTable(rawSeasonTable) : null
+      // The first club whose season can actually be drawn.
+      const seasonTeam = (teamsWithTimeline(season)[0] || {}).name || ''
 
       // The comparison card has two modes; both need to be in the shot set,
       // or one of them never gets looked at.
@@ -77,9 +86,14 @@
           if (graphic.meta.id === 'winprob' && comeback) subject = comeback
           if (graphic.meta.id === 'comparison' && contrast) subject = contrast
           await renderGraphic(canvas, graphic.meta.id, {
-            match: subject, table, season, size, theme,
+            match: subject,
+            table: graphic.meta.needs === 'season' ? (seasonTable || table) : table,
+            season,
+            size,
+            theme,
             options: {
               mode,
+              team: seasonTeam,
               player: subject.home.squad?.[9] || match.home.squad[9],
               playerB: subject.away.squad?.[9] || match.away.squad[9],
               model,

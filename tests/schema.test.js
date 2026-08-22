@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   createPlayer, createTeam, createMatch, createScoreEvent, createTable, createTableRow,
-  validateMatch, num, MATCH_STATUS, MATCHDAY_SQUAD, EVENT_POINTS, SCORE_EVENTS, POSITION_NAMES,
+  validateMatch, num, MATCH_STATUS, MATCHDAY_SQUAD, EVENT_POINTS, SCORE_EVENTS, POSITION_NAMES, createSeason,
 } from '../src/data/schema.js'
 import { adaptEvent, adaptSummary } from '../src/data/espn.js'
 
@@ -217,5 +217,59 @@ describe('adapter fallbacks', () => {
       }],
     })
     expect(match.timeline).toHaveLength(1)
+  })
+})
+
+describe('createSeason', () => {
+  const raw = {
+    competition: { id: '1', name: 'Test', abbreviation: 'TST' },
+    season: { year: 2026, display: '2026' },
+    matches: 91,
+    leagueHomeWinRate: 0.66,
+    teams: [{
+      team: { name: 'Alpha', abbreviation: 'ALP', logo: 'assets/crests/1' },
+      home: { played: 9, won: 7, drawn: 0, lost: 2 },
+      away: { played: 9, won: 3, drawn: 1, lost: 5 },
+      homeWinRate: 0.777, awayWinRate: 0.388,
+      matches: [
+        { date: '2025-09-06T14:00Z', opponent: { name: 'Bravo', abbreviation: 'BRA' }, venue: 'home', for: 30, against: 10 },
+        { date: '2025-09-13T14:00Z', opponent: { name: 'Charlie', abbreviation: 'CHA' }, venue: 'away', for: 12, against: 24 },
+      ],
+    }],
+  }
+
+  it('carries the per-team match list through', () => {
+    // It did not, and the season chart reported "0 matches recorded" for teams
+    // whose files held a full set.
+    const season = createSeason(raw)
+    expect(season.teams[0].matches).toHaveLength(2)
+    expect(season.teams[0].matches[0]).toMatchObject({
+      venue: 'home', for: 30, against: 10,
+    })
+    expect(season.teams[0].matches[0].opponent.name).toBe('Bravo')
+  })
+
+  it('normalises an unknown venue to home rather than passing it through', () => {
+    const season = createSeason({ ...raw, teams: [{ ...raw.teams[0], matches: [{ venue: 'neutral', for: 1, against: 2 }] }] })
+    expect(season.teams[0].matches[0].venue).toBe('home')
+  })
+
+  it('survives a season with no match lists at all', () => {
+    const season = createSeason({ ...raw, teams: [{ team: { name: 'Alpha' } }] })
+    expect(season.teams[0].matches).toEqual([])
+  })
+
+  it('keeps the competition and league rate', () => {
+    const season = createSeason(raw)
+    expect(season.competition.name).toBe('Test')
+    expect(season.leagueHomeWinRate).toBeCloseTo(0.66, 3)
+    expect(season.matches).toBe(91)
+  })
+
+  it('is frozen all the way down', () => {
+    const season = createSeason(raw)
+    expect(Object.isFrozen(season)).toBe(true)
+    expect(Object.isFrozen(season.teams)).toBe(true)
+    expect(Object.isFrozen(season.teams[0].matches)).toBe(true)
   })
 })

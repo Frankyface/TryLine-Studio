@@ -16,6 +16,7 @@ import { SIZES, THEME_LIST, THEMES } from './render/theme.js'
 import { GRAPHICS, GRAPHIC_BY_ID, renderGraphic } from './render/index.js'
 import { exportOne, exportSet } from './export/png.js'
 import { blockingReason, usesSide } from './render/availability.js'
+import { teamsWithTimeline } from './analysis/team-season.js'
 import { formatMatchDate } from './render/format.js'
 
 const $ = (id) => document.getElementById(id)
@@ -85,6 +86,7 @@ function currentOptions() {
   const timeText = $('time-text').value.trim()
   return {
     side: $('side').value,
+    team: $('season-team').value,
     mode: $('mode').value,
     player: currentPlayer(),
     playerB: opposingPlayer(),
@@ -119,6 +121,7 @@ async function render() {
   // Shown only where the graphic actually reads it. It was previously visible
   // on four graphics whose output is byte-identical either way.
   document.querySelector('[data-option="side"]').hidden = !usesSide(graphic, options)
+  document.querySelector('[data-option="season-team"]').hidden = !graphic.meta.requiresTeam
   document.querySelector('[data-option="mode"]').hidden = graphic.meta.id !== 'comparison'
   syncGraphicChips(options)
   document.querySelector('[data-option="player"]').hidden = !graphic.meta.requiresPlayer && !comparingPlayers
@@ -189,6 +192,27 @@ function fillOneSquadSelect(selectId, side) {
     option.textContent = `${player.jersey ?? '-'}  ${player.name}`
     select.append(option)
   }
+}
+
+/**
+ * The clubs whose season can actually be drawn from this competition.
+ *
+ * Only teams with a usable match list are offered, so the picker never leads
+ * to a refusal the user could not have predicted.
+ */
+function fillSeasonTeamSelect(season) {
+  const select = $('season-team')
+  const previous = select.value
+  const teams = teamsWithTimeline(season)
+
+  select.innerHTML = ''
+  for (const team of teams) {
+    const option = document.createElement('option')
+    option.value = team.name
+    option.textContent = team.shortName || team.name
+    select.append(option)
+  }
+  if (teams.some((team) => team.name === previous)) select.value = previous
 }
 
 function fillPlayerSelect() {
@@ -308,6 +332,7 @@ async function selectMatch() {
 async function selectTable() {
   const season = $('season').value
   if (!season) {
+    fillSeasonTeamSelect(null)
     setState({ table: null, season: null })
     return
   }
@@ -319,8 +344,10 @@ async function selectTable() {
       hasTable ? loadTable(state.competitionId, season) : Promise.resolve(null),
       hasSeason ? loadSeason(state.competitionId, season) : Promise.resolve(null),
     ])
+    fillSeasonTeamSelect(seasonStats)
     setState({ table, season: seasonStats })
   } catch (error) {
+    fillSeasonTeamSelect(null)
     setState({ table: null, season: null })
   }
 }
@@ -357,6 +384,7 @@ function readManualForm() {
     ? parseTableText(tableText, { competition: $('m-competition').value })
     : null
 
+  fillSeasonTeamSelect(null)
   setState({ match, table, season: null })
   fillPlayerSelect()
   persistManualState()
@@ -521,6 +549,7 @@ function bindEvents() {
   $('competition').addEventListener('change', () => selectCompetition($('competition').value))
   $('match').addEventListener('change', selectMatch)
   $('season').addEventListener('change', selectTable)
+  $('season-team').addEventListener('change', render)
   $('match-filter').addEventListener('input', refilterMatches)
   $('only-squads').addEventListener('change', refilterMatches)
   $('only-stats').addEventListener('change', refilterMatches)

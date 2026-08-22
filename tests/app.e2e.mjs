@@ -187,6 +187,44 @@ if (leagueIndex >= 0) {
   check('renders home advantage', await canvasHasContent('canvas-feed'), await statusText())
 }
 
+// A single club season, and the club picker that drives it.
+if (leagueIndex >= 0) {
+  await page.selectOption('#competition', { index: leagueIndex })
+  await page.waitForTimeout(2000)
+  await page.click('[data-graphic="teamseason"]')
+  await waitForOk()
+  check('renders a single club season', await canvasHasContent('canvas-feed'), await statusText())
+  await page.screenshot({ path: join(shotDir, 'app-teamseason.png') })
+
+  const clubVisible = await page.evaluate(() =>
+    !document.querySelector('[data-option="season-team"]').hidden)
+  const clubs = await page.$$eval('#season-team option', (o) => o.map((x) => x.value))
+  check('offers a club picker with real clubs', clubVisible && clubs.length >= 6,
+    `visible=${clubVisible} clubs=${clubs.length}`)
+
+  // Switching club must actually redraw, not leave the previous club's chart.
+  if (clubs.length > 1) {
+    const before = await statusText()
+    await page.selectOption('#season-team', clubs[1])
+    await page.waitForTimeout(1500)
+    check('switching club redraws', await canvasHasContent('canvas-feed'),
+      `${before} -> ${await statusText()}`)
+  }
+
+  // A club whose archive is short of the league table must be refused, not
+  // drawn with a silent gap. Saracens are one Gallagher fixture short.
+  const shortClub = clubs.find((c) => /Saracens/.test(c))
+  if (shortClub) {
+    await page.selectOption('#season-team', shortClub)
+    await page.waitForTimeout(1500)
+    const reason = await statusText()
+    check('refuses a club the archive is short of',
+      /are in the archive/i.test(reason), reason)
+    await page.selectOption('#season-team', clubs.find((c) => c !== shortClub))
+    await page.waitForTimeout(1200)
+  }
+}
+
 // Switching to a competition WITHOUT season records must not leave the previous
 // competition's chart on screen labelled as the new one.
 const noSeasonIndex = competitions.findIndex((t) => /Six Nations/.test(t))

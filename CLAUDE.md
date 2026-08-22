@@ -90,6 +90,21 @@ Across 1,147 downloaded matches:
 - Tackles run ~25% above a "tackles made" convention (ESPN appears to count
   assists), so do not caption them one-per-tackle.
 
+## A club's own season is NOT the league table's season
+
+`season-{year}.json` carries a per-team match list, and it includes play-offs.
+The Gallagher Premiership table records 18 played for every club; the archive
+holds 20 for the finalists. Both are right and they mean different things, so
+`teamseason` prints "INCLUDING PLAY-OFFS" whenever its record exceeds the
+table's, and `canPlotTeamSeason` REFUSES whenever the archive holds fewer
+matches than the table does - the archive is one Gallagher fixture short for
+Saracens (17 of 18), and a timeline cannot show a gap it does not know about.
+
+Per-team match counts varying inside one competition is normal: it is
+play-offs, not missing data. Verified across all five season files - every
+team's timeline reconciles exactly with its stored home/away record, and the
+long mid-season date gaps are the international windows.
+
 ## The form column is a trap
 
 ESPN's `form` is a single GLOBAL "current form" snapshot per team, not that
