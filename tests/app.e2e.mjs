@@ -211,6 +211,26 @@ if (leagueIndex >= 0) {
       `${before} -> ${await statusText()}`)
   }
 
+  // Two clubs in one league must not export to the same filename.
+  if (clubs.length > 1) {
+    const names = []
+    for (const club of clubs.slice(0, 2)) {
+      await page.selectOption('#season-team', club)
+      await page.waitForTimeout(1400)
+      const status = await statusText()
+      if (/error|only|no /i.test(status) === false) {
+        const [file] = await Promise.all([
+          page.waitForEvent('download', { timeout: 20000 }),
+          page.click('[data-export="feed"]'),
+        ])
+        names.push(file.suggestedFilename())
+      }
+    }
+    if (names.length === 2) {
+      check('two clubs export to different filenames', names[0] !== names[1], names.join(' vs '))
+    }
+  }
+
   // A club whose archive is short of the league table must be refused, not
   // drawn with a silent gap. Saracens are one Gallagher fixture short.
   const shortClub = clubs.find((c) => /Saracens/.test(c))

@@ -23,8 +23,9 @@ const slug = (value) => String(value || '')
  * whatever happens to be loaded. A match graphic must not be named after a
  * season simply because season data is in memory.
  */
-export function fileNameFor({ match, table, season, graphicId, sizeId }) {
-  const needs = GRAPHIC_BY_ID[graphicId]?.meta?.needs || 'match'
+export function fileNameFor({ match, table, season, graphicId, sizeId, options = {} }) {
+  const meta = GRAPHIC_BY_ID[graphicId]?.meta || {}
+  const needs = meta.needs || 'match'
   const context = needs === 'season' ? season : table
 
   const subject = needs === 'match' && match
@@ -32,7 +33,10 @@ export function fileNameFor({ match, table, season, graphicId, sizeId }) {
       match.competition.abbreviation || match.competition.name,
       match.home.shortName, 'v', match.away.shortName,
     ]
-    : [context?.competition?.name || 'rugby', context?.season?.display]
+    // A per-club graphic must carry the club: without it every club in a
+    // league exported to the identical name, so saving a second one either
+    // overwrote the first or landed as "(1)".
+    : [context?.competition?.name || 'rugby', meta.requiresTeam ? options.team : '', context?.season?.display]
 
   return `${slug(subject.filter(Boolean).join('-'))}-${graphicId}-${sizeId}.png`
 }
@@ -64,7 +68,7 @@ export async function exportOne({ graphicId, size, match, table, season, theme, 
   const canvas = document.createElement('canvas')
   await renderGraphic(canvas, graphicId, { match, table, season, size, theme, options })
   const blob = await canvasToBlob(canvas)
-  const fileName = fileNameFor({ match, table, season, graphicId, sizeId: size.id })
+  const fileName = fileNameFor({ match, table, season, graphicId, sizeId: size.id, options })
   saveBlob(blob, fileName)
   return fileName
 }
