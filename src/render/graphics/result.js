@@ -289,7 +289,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // the band reserved for scorers was simply left blank - 448px, 48% of the
   // content height, on a card that otherwise looks finished. Say why it is
   // empty, the way the player card already does.
-  if (played && !match.timeline.length) {
+  if (played && !rowsNeeded) {
     drawText(ctx, 'Scorers not recorded', box.centerX, (blockTop + blockBottom) / 2, {
       size: scale(size, 24), weight: 600, family: FONTS.body,
       color: theme.inkFaint, align: 'center', baseline: 'middle',
@@ -297,7 +297,10 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     })
   }
 
-  if (played && match.timeline.length) {
+  // `rowsNeeded`, not `timeline.length`: a timeline can carry cards and no
+  // scorers - reachable from manual entry, where a club types a yellow card
+  // and no try - and that drew the heading over an empty block.
+  if (played && rowsNeeded) {
     // A card headed SCORERS that omits a man who scored is exactly the silent
     // gap this project refuses everywhere else: 14 scorers in room for 13 used
     // to drop the last name with nothing to show for it. Say how many are
