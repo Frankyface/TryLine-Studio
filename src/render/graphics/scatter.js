@@ -88,12 +88,15 @@ function drawQuadrants(ctx, size, theme, plot, position, averages) {
   }
 
   // Both averages are named; only the vertical one used to be.
-  drawText(ctx, `avg ${averages.attack.toFixed(1)}`, midX, plot.bottom + scale(size, 26), {
+  // Named, because in a closed league the two averages are ALWAYS equal - every
+  // point scored is a point conceded - so two bare "avg 29.5" labels read as a
+  // copy-paste fault rather than as two different axes.
+  drawText(ctx, `avg scored ${averages.attack.toFixed(1)}`, midX, plot.bottom + scale(size, 26), {
     ...labelOptions, size: scale(size, 17), align: 'center', baseline: 'top', tracking: 1,
   })
   // Inside the plot, hard against the left edge: outside it collided with the
   // rotated axis title.
-  drawText(ctx, `avg ${averages.defence.toFixed(1)}`, plot.left + scale(size, 10), midY - scale(size, 12), {
+  drawText(ctx, `avg conceded ${averages.defence.toFixed(1)}`, plot.left + scale(size, 10), midY - scale(size, 12), {
     ...labelOptions, size: scale(size, 17), align: 'left', baseline: 'bottom', tracking: 1,
   })
 }
@@ -138,7 +141,10 @@ function drawAxes(ctx, size, theme, plot) {
  */
 function relaxMarks(points, { radius, maxShift, bounds, rounds = 60 }) {
   const marks = points.map((point) => ({ ...point, x: point.trueX, y: point.trueY }))
-  const spacing = radius * 2.05
+  // 2.05 leaves the discs edge to edge - technically not overlapping, but with
+  // no visible gap they read as one blob in a cluster. 2.3 gives a gap you can
+  // see without pushing marks materially further from their true positions.
+  const spacing = radius * 2.3
 
   for (let round = 0; round < rounds; round += 1) {
     let moved = false
@@ -268,10 +274,17 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
    * Lettered discs solve both at once: the label IS the mark, so there is
    * nothing to mis-attach and nothing to squint at.
    */
-  const useMonogram = profile.teams.length > 12
-  const crests = useMonogram
+  const crowded = profile.teams.length > 12
+  const loaded = crowded
     ? profile.teams.map(() => null)
     : await Promise.all(profile.teams.map((team) => loadCrestImage(team.team.logo, scale(size, 60))))
+
+  // ONE mark type per chart. A crest-less club in crest mode fell back to a
+  // lettered disc AND still took an outside label, so its initials appeared
+  // twice within 150px, attached to two different things - and the chart drew
+  // real badges beside typographic placeholders, which reads as unfinished.
+  const useMonogram = crowded || loaded.some((crest) => !crest)
+  const crests = useMonogram ? profile.teams.map(() => null) : loaded
   const crestBox = scale(size, isStory ? 60 : 52)
   const labelSize = scale(size, 20)
   const placed = []
@@ -284,7 +297,7 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
       trueX: position.x(team.attack),
       trueY: position.y(team.defence),
     })),
-    { radius, maxShift: radius * 1.6, bounds: plot },
+    { radius, maxShift: radius * 1.75, bounds: plot },
   )
 
   // Leader lines run UNDER the discs, so they read as tethers rather than as
