@@ -113,11 +113,12 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
 
   const crest = await loadCrestImage(team.logo, scale(size, 150))
   const crestBox = scale(size, isStory ? 150 : 128)
-  drawCrest(ctx, crest, box.left + crestBox / 2, top + crestBox / 2, crestBox, {
+  const crestInset = 0
+  drawCrest(ctx, crest, box.left + crestInset + crestBox / 2, top + crestBox / 2, crestBox, {
     ...crestFallback(theme, accent, team.abbreviation),
   })
 
-  const headX = box.left + crestBox + scale(size, 30)
+  const headX = box.left + crestInset + crestBox + scale(size, 30)
   drawText(ctx, team.name, headX, top + crestBox * 0.42, {
     size: scale(size, 54), weight: 700, color: theme.ink, baseline: 'middle', uppercase: true, tracking: 1,
   })

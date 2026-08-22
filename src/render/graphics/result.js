@@ -6,7 +6,7 @@ import { MATCH_STATUS } from '../../data/schema.js'
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, fitTextSize, inkHeight, truncateText,
-  withAlpha, fillRoundRect, drawPill, crestFallback, composite, readableInk,
+  withAlpha, fillRoundRect, drawPill, crestFallback, composite, readableInk, PLATE_HALF,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import {
@@ -80,7 +80,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // the frame paints down the left edge. A plate is the crest box plus 6% of
   // padding each side, so that is what has to fit.
   const crestOffsetFor = (columns) => scale(size, columns ? 232 : (isStory ? 316 : 348))
-  const crestRoom = (box.right - box.centerX - crestOffsetFor(isStory && played)) / 0.53
+  const crestRoom = (box.right - box.centerX - crestOffsetFor(isStory && played)) / PLATE_HALF
   const crestBox = Math.min(scale(size, isStory ? (played ? 300 : 380) : 210), crestRoom)
 
   const [homeCrest, awayCrest] = await Promise.all([

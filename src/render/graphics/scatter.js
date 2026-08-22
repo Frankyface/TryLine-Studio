@@ -87,18 +87,46 @@ function drawQuadrants(ctx, size, theme, plot, position, averages) {
       })
   }
 
-  // Both averages are named; only the vertical one used to be.
-  // Named, because in a closed league the two averages are ALWAYS equal - every
-  // point scored is a point conceded - so two bare "avg 29.5" labels read as a
-  // copy-paste fault rather than as two different axes.
+  // The horizontal one is safe where it is: below the plot, clear of the marks.
+  // Both are NAMED because in a closed league the two averages are always
+  // equal - every point scored is a point conceded - so two bare "avg 29.5"
+  // labels read as a copy-paste fault rather than as two different axes.
   drawText(ctx, `avg scored ${averages.attack.toFixed(1)}`, midX, plot.bottom + scale(size, 26), {
     ...labelOptions, size: scale(size, 17), align: 'center', baseline: 'top', tracking: 1,
   })
-  // Inside the plot, hard against the left edge: outside it collided with the
-  // rotated axis title.
-  drawText(ctx, `avg conceded ${averages.defence.toFixed(1)}`, plot.left + scale(size, 10), midY - scale(size, 12), {
-    ...labelOptions, size: scale(size, 17), align: 'left', baseline: 'bottom', tracking: 1,
-  })
+}
+
+/**
+ * The "avg conceded" label, drawn AFTER the marks so it can dodge them.
+ *
+ * It sits inside the plot, because outside it collided with the rotated axis
+ * title - and it used to sit blindly at the left edge, where a club level with
+ * the league average printed its initials straight through it on 4 of the 28
+ * real charts. Tried along the line left to right and dropped if nowhere is
+ * clear: the dashed line is the average whether or not this label is drawn.
+ */
+function drawConcededAverage(ctx, size, theme, plot, position, averages, taken) {
+  const options = {
+    size: scale(size, 17), weight: 700, family: FONTS.body,
+    color: theme.inkFaint, tracking: 1, uppercase: true, baseline: 'bottom',
+  }
+  const text = `avg conceded ${averages.defence.toFixed(1)}`
+  const width = measureText(ctx, text, options)
+  const y = position.y(averages.defence) - scale(size, 12)
+  // Against every box already on the plot - the discs AND the outside labels
+  // tethered to them, which is what it actually collided with.
+  const clear = (left) => !taken.some((rect) => rect.right > left - scale(size, 6)
+    && rect.left < left + width + scale(size, 6)
+    && rect.bottom > y - scale(size, 20)
+    && rect.top < y + scale(size, 4))
+
+  const left = [
+    plot.left + scale(size, 10),
+    plot.left + plot.width / 2 - width / 2,
+    plot.right - width - scale(size, 10),
+  ].find(clear)
+  if (left === undefined) return
+  drawText(ctx, text, left, y, { ...options, align: 'left' })
 }
 
 function drawAxes(ctx, size, theme, plot) {
@@ -380,6 +408,10 @@ export async function draw(ctx, { table, size, theme, options = {} }) {
     ctx.fillText(label, spot.x, spot.y)
     ctx.restore()
   })
+
+  // Drawn LAST, so it can step aside from the discs and from the labels
+  // tethered to them - it was the tethered labels it collided with.
+  drawConcededAverage(ctx, size, theme, plot, position, profile.averages, placed)
 
   // Anchored up from the footer rather than down from the plot, so the two
   // lines cannot run underneath it.

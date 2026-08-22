@@ -263,6 +263,17 @@ export function imageLuminance(image, samples = 16) {
  * the fallback has to be a deliberate design, not a faint ghost. It gets a
  * solid fill, a ring, and ink chosen for contrast against that fill.
  */
+/**
+ * Half-width of the widest thing `drawCrest` can paint, as a fraction of the
+ * crest box. The plate takes its padding out of the crest rather than adding
+ * it around, so nothing exceeds the box and half of it is the bound.
+ *
+ * It was not always: the plate used to add 6% of the box on each side, which
+ * put it 0.56 of the box from centre, and four graphics that draw a crest
+ * flush to the content box bled into the margin.
+ */
+export const PLATE_HALF = 0.5
+
 export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
   if (image) {
     // Newcastle Falcons' crest is essentially black, which disappears entirely
@@ -278,20 +289,29 @@ export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
       const tooDark = fallback.plate.tooDark ?? CREST_TOO_DARK
       const tooPale = fallback.plate.tooPale ?? CREST_TOO_PALE
       const vanishes = pageIsDark ? crestLuminance < tooDark : crestLuminance > tooPale
+      const padding = box * 0.06
       if (vanishes) {
         // Shaped to the image, not to a circle. drawContained fits the crest
         // inside a SQUARE box, so a wide wordmark spans the full width while a
         // circle of radius 0.53*box only covers it within a narrow band -
         // "NEWCASTLE FALCONS" came out with the ends sliced off and the final
         // S sitting on bare navy.
-        const ratio = Math.min(box / image.width, box / image.height)
-        const padding = box * 0.06
+        //
+        // The padding is taken OUT of the crest rather than added around it,
+        // so a plate never exceeds the box it was given. Added around it, the
+        // plate reached 6% of the box past every caller's edge - and four
+        // graphics draw a crest flush against the content box, so four of them
+        // bled into the margin, over the accent hairline on the left.
+        const inner = box - padding * 2
+        const ratio = Math.min(inner / image.width, inner / image.height)
         const width = image.width * ratio + padding * 2
         const height = image.height * ratio + padding * 2
         ctx.save()
         fillRoundRect(ctx, centerX - width / 2, centerY - height / 2,
           width, height, Math.min(width, height) * 0.22, fallback.plate.fill)
         ctx.restore()
+        drawContained(ctx, image, centerX, centerY, inner)
+        return
       }
     }
     drawContained(ctx, image, centerX, centerY, box)

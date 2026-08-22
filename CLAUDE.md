@@ -26,6 +26,40 @@ Rugby matchday graphics generator. Read `handoff.md` for current state, then
   curve on 68% of real matches. `npm run stress` runs the label geometry over
   every match in `data/` and is part of `npm run verify`.
 
+## `npm run geometry` is the guard that should have existed all along
+
+Three adversarial reviews found eight geometry faults between them and every
+one survived a green verify: a headline drawing 1,075px into 762px of room,
+crests 51.5px outside the box on all 1,147 story matchdays, a hero label
+printed through the row beneath it, club names past the right edge because the
+fit measured without the tracking it drew with. Nothing in the suite looked at
+WHERE ink landed - the e2e asserts a canvas has content, and `shots` renders
+pictures for a human. Both pass with the text stacked in a corner.
+
+It renders every graphic over real data, wraps the canvas, and checks three
+things: nothing outside the CANVAS, nothing outside the CONTENT BOX bar a
+short explicit allowlist, and no text over other text.
+
+**Mutation-test it after any change to it.** The first version could not fail:
+`TOLERANCE` was passed to the page as a parameter the arrow function never
+destructured, so every comparison was against `undefined` and it reported a
+clean sweep on a 47px breach. It looked exactly like a working guard. Break
+something on purpose and confirm it goes red.
+
+The tolerance (0.8px) sits between two MEASURED numbers - a 0.7px artefact
+where a right-aligned column anchors exactly on `box.right`, and the smallest
+real fault seen, a 1.1px axis label. It was 1.2px for a while and masked that
+fault. Do not raise it without re-measuring what starts getting through.
+
+## A crest plate pads INWARD
+
+`drawCrest` paints a plate behind a crest that would otherwise vanish. It used
+to add 6% of the crest box on each side, which put the plate outside every
+caller's box - and four graphics draw a crest flush against the content box, so
+four of them bled into the margin, over the accent hairline on the left. The
+padding now comes out of the crest instead, so nothing `drawCrest` paints
+exceeds the box it was given and `PLATE_HALF` is simply 0.5.
+
 ## Measure contrast against the RENDERED background, never the token
 
 `theme.js` used to claim every ink cleared 4.5:1, and against `bg` that was
@@ -369,6 +403,7 @@ if it ever happens again.
 | `npm run shots` | Render every graphic to `dev/shots/` |
 | `npm run e2e` | Drive the real app in Chromium |
 | `npm run stress` | Label-collision geometry over every real match |
+| `npm run geometry` | Nothing off canvas, outside its box, or over other text |
 | `npm run space` | Dead canvas per graphic, format and played/scheduled, swept over matches |
 | `npm run contrast` | Ink contrast against the backdrop actually rendered |
 | `npm run rank` | Score every match for how worth posting it is |

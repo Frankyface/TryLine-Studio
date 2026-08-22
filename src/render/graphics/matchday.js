@@ -7,7 +7,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, fitTextSize, withAlpha, drawPill, crestFallback,
-  pageSurface, contrastAccent, composite, readableInk,
+  pageSurface, contrastAccent, composite, readableInk, PLATE_HALF,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate, formatKickoffTime } from '../format.js'
@@ -107,7 +107,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     // both crests 51.5px outside the content box on all 1,147 story renders,
     // and their plates 77.6px out - over the accent hairline the frame paints
     // at x <= 10. The plate is the crest box plus 6% of padding each side.
-    const sideRoom = (box.right - box.centerX - scale(size, 290)) / 0.53
+    const sideRoom = (box.right - box.centerX - scale(size, 290)) / PLATE_HALF
     const crestRoom = Math.max(0, Math.min(
       surplus * 0.55,
       crestBox * 0.45,

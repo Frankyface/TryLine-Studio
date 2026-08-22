@@ -211,7 +211,10 @@ export function winprobLayout(size, { headlineHeight = 0 } = {}) {
     scale(size, 260),
     footerTop - chartTop - axisSpace - teamRowSpace,
   )
-  const gutter = scale(size, 66)
+  // Wide enough for the axis labels that sit in it: "100%" right-aligned at
+  // `plot.left - 14` measures about 53px at 19px, so 66 left its first digit
+  // 1.1px past the content box on every win-probability chart drawn.
+  const gutter = scale(size, 74)
 
   return {
     radius: scale(size, 11),
