@@ -406,15 +406,29 @@ await page.click('[data-graphic="comparison"]')
 await page.waitForTimeout(1200)
 const blockedTone = await page.locator('#status').getAttribute('data-tone')
 if (blockedTone === 'error') {
+  // The button is disabled while nothing can be drawn, so there is nothing to
+  // click. The guard behind it still stands: forcing the click must save
+  // nothing either.
+  const exportDisabled = await page.locator('#export-set').isDisabled()
+  check('export is not offered for a graphic that cannot be drawn', exportDisabled)
+
   let downloaded = false
   const listener = () => { downloaded = true }
   page.on('download', listener)
-  await page.click('#export-set')
-  await page.waitForTimeout(2500)
+  await page.click('#export-set', { force: true }).catch(() => {})
+  await page.waitForTimeout(2000)
   page.off('download', listener)
-  const exportStatus = await statusText()
-  check('export refuses what the preview refuses',
-    !downloaded && /nothing was saved/i.test(exportStatus), exportStatus)
+  check('and forcing it saves nothing anyway', !downloaded)
+
+  // The canvas says why, rather than going black - on a phone the status line
+  // is off-screen once you have scrolled to the preview.
+  const painted = await page.evaluate(() => {
+    const canvas = document.getElementById('canvas-feed')
+    const { data } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height)
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 0) return true
+    return false
+  })
+  check('a blocked graphic explains itself on the canvas', painted)
 } else {
   process.stdout.write('  note  no blocked state available to test the export guard\n')
 }

@@ -201,6 +201,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 
 input[type="color"] { padding: 4px; height: 38px; cursor: pointer; }
 input[type="color"]:disabled { opacity: 0.4; cursor: not-allowed; }
+.button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 input[type="file"] {
   padding: 7px 9px;

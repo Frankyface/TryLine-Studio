@@ -136,8 +136,9 @@ async function render() {
   document.querySelector('[data-option="player-b"]').hidden = !comparingPlayers
 
   const blocked = blockingReason(graphic, { match, table, season, source: state.source }, options)
+  setExportEnabled(!blocked)
   if (blocked) {
-    clearCanvases()
+    drawUnavailable(blocked)
     reportIfCurrent(token, blocked, 'error')
     return
   }
@@ -169,6 +170,53 @@ function clearCanvases() {
   for (const canvas of Object.values(canvases)) {
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
   }
+}
+
+/**
+ * Say on the CANVAS why nothing can be drawn.
+ *
+ * Blanking it left a black square whose only explanation was the status line
+ * above the stage - which on a phone is off-screen as soon as you have
+ * scrolled to the preview, so the app looked broken rather than unable.
+ */
+function drawUnavailable(reason) {
+  const theme = THEMES[state.themeId]
+  for (const [sizeId, canvas] of Object.entries(canvases)) {
+    const size = SIZES[sizeId]
+    canvas.width = size.width
+    canvas.height = size.height
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, size.width, size.height)
+    ctx.fillStyle = theme.bgAlt || theme.bg
+    ctx.fillRect(0, 0, size.width, size.height)
+
+    // Wrapped by hand: this is the one place drawing text without the render
+    // pipeline, because the pipeline is exactly what could not run.
+    const fontSize = Math.round(size.width * 0.038)
+    ctx.font = `600 ${fontSize}px Inter, Arial, sans-serif`
+    ctx.fillStyle = theme.inkMuted
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    const words = String(reason).split(' ')
+    const lines = ['']
+    for (const word of words) {
+      const candidate = lines.at(-1) ? `${lines.at(-1)} ${word}` : word
+      if (ctx.measureText(candidate).width > size.width * 0.78 && lines.at(-1)) lines.push(word)
+      else lines[lines.length - 1] = candidate
+    }
+    const lineHeight = fontSize * 1.45
+    const top = size.height / 2 - ((lines.length - 1) * lineHeight) / 2
+    lines.forEach((line, index) => {
+      ctx.fillText(line, size.width / 2, top + index * lineHeight)
+    })
+  }
+}
+
+/** Nothing to save, so nothing to click. */
+function setExportEnabled(enabled) {
+  $('export-set').disabled = !enabled
+  for (const button of document.querySelectorAll('[data-export]')) button.disabled = !enabled
 }
 
 
@@ -314,6 +362,14 @@ function fillSeasonSelect() {
     select.append(option)
   }
   select.disabled = !seasons.length
+  // An empty, greyed-out dropdown reads as a fault. This competition simply
+  // has no standings or season records - say so where the control was.
+  const field = select.closest('.field')
+  if (field) {
+    field.hidden = !seasons.length
+    const note = $('season-none')
+    if (note) note.hidden = Boolean(seasons.length)
+  }
 }
 
 /* ---------- data loading ---------- */
