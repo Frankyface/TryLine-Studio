@@ -6,6 +6,7 @@
  */
 import {
   loadCatalog, loadCompetition, loadMatch, loadTable, loadModel, loadSeason, loadHeroStats,
+  loadTeamColours,
 } from './data/client.js'
 import { TIME_ZONES, LOCAL_ZONE, zoneForCompetition, resolveZone } from './data/timezones.js'
 import { buildManualMatch, parseSquadText, parseTableText } from './data/manual.js'
@@ -33,6 +34,7 @@ let state = Object.freeze({
   competition: null,
   model: null,
   heroStats: null,
+  teamColours: null,
   crests: { homeCrest: '', awayCrest: '' },
   match: null,
   table: null,
@@ -84,6 +86,66 @@ function opposingPlayer() {
   return playerFromSelect('player-b', currentSide() === 'home' ? 'away' : 'home')
 }
 
+/** Whose colour the accent should come from, when a graphic has two teams. */
+function accentTeam() {
+  if (!state.match) return null
+  return $('side').value === 'away' ? state.match.away : state.match.home
+}
+
+/**
+ * The colours on offer for a team.
+ *
+ * ESPN publishes no secondary at all - checked against the scoreboard, the
+ * teams list and a single-team response, none of which carry `alternateColor`
+ * for any of the 113 teams in the archive, and only 69 carry even a primary.
+ * The second colour is therefore read out of the club's own crest by
+ * `npm run colours`, and only where it is a big enough part of that crest to
+ * be a colour the club wears rather than a detail in the badge. 29 teams have
+ * one; the rest offer a single colour and the picker says so.
+ */
+function teamPalette(team) {
+  const entry = team?.id ? state.teamColours?.colours?.[team.id] : null
+  return {
+    primary: entry?.primary || team?.color || '',
+    secondary: entry?.secondary || '',
+  }
+}
+
+/**
+ * The accent a graphic is handed: '' means "work it out from the team", which
+ * is what `resolveAccent` already does with `team.color`.
+ */
+function chosenAccent() {
+  const source = $('accent-source').value
+  if (source === 'custom') return $('accent').value
+  if (source === 'secondary') return teamPalette(accentTeam()).secondary || ''
+  return ''
+}
+
+/**
+ * Keep the picker honest about what this team actually has, and keep the
+ * swatch showing the colour that is really in use rather than a stale one.
+ */
+function syncAccentChoices() {
+  const palette = teamPalette(accentTeam())
+  const secondary = $('accent-source').querySelector('[value="secondary"]')
+  // Disabled rather than hidden: a club with one colour should see that the
+  // option exists and does not apply to them, not wonder where it went.
+  secondary.disabled = !palette.secondary
+  secondary.textContent = palette.secondary ? 'Second colour' : 'Second colour (none for this team)'
+  if (secondary.disabled && $('accent-source').value === 'secondary') {
+    $('accent-source').value = 'primary'
+  }
+
+  const custom = $('accent-source').value === 'custom'
+  $('accent').disabled = !custom
+  document.querySelector('[data-option="accent"]').hidden = !custom
+  if (!custom) {
+    const showing = $('accent-source').value === 'secondary' ? palette.secondary : palette.primary
+    if (showing) $('accent').value = showing
+  }
+}
+
 function currentOptions() {
   const timeText = $('time-text').value.trim()
   return {
@@ -92,7 +154,7 @@ function currentOptions() {
     mode: $('mode').value,
     player: currentPlayer(),
     playerB: opposingPlayer(),
-    accent: $('accent-auto').checked ? '' : $('accent').value,
+    accent: chosenAccent(),
     handle: $('handle').value.trim(),
     timeZone: resolveZone($('timezone').value),
     model: state.model,
@@ -125,13 +187,14 @@ async function render() {
   // on four graphics whose output is byte-identical either way.
   // The Team select also picks WHOSE colour to use, so a two-team graphic
   // needs it whenever the team colour is in play.
-  const teamColourOn = graphic.meta.usesTeamColour && $('accent-auto').checked
+  const teamColourOn = graphic.meta.usesTeamColour && $('accent-source').value !== 'custom'
   document.querySelector('[data-option="side"]').hidden = !usesSide(graphic, options)
     && !(teamColourOn && graphic.meta.needs === 'match')
 
   // Hidden where there is no single team to take a colour from - a league
   // table has no club of its own.
-  document.querySelector('[data-option="accent-auto"]').hidden = !graphic.meta.usesTeamColour
+  document.querySelector('[data-option="accent-source"]').hidden = !graphic.meta.usesTeamColour
+  syncAccentChoices()
   document.querySelector('[data-option="season-team"]').hidden = !graphic.meta.requiresTeam
   document.querySelector('[data-option="mode"]').hidden = graphic.meta.id !== 'comparison'
   syncGraphicChips(options)
@@ -663,7 +726,7 @@ function bindEvents() {
   })
   $('side').addEventListener('change', () => { fillPlayerSelect(); render() })
 
-  for (const id of ['player', 'accent', 'accent-auto', 'handle', 'date-text', 'time-text']) {
+  for (const id of ['player', 'accent', 'accent-source', 'handle', 'date-text', 'time-text']) {
     $(id).addEventListener('input', render)
   }
 
@@ -689,9 +752,8 @@ function bindEvents() {
   })
   $('theme').addEventListener('change', () => remember({ theme: $('theme').value }))
 
-  const syncAccentEnabled = () => { $('accent').disabled = $('accent-auto').checked }
-  $('accent-auto').addEventListener('change', syncAccentEnabled)
-  syncAccentEnabled()
+  $('accent-source').addEventListener('change', () => { syncAccentChoices(); render() })
+  syncAccentChoices()
 
   document.querySelectorAll('[data-panel="manual"] input, [data-panel="manual"] textarea')
     .forEach((input) => {
@@ -732,10 +794,12 @@ async function start() {
   ]).then(() => document.fonts.ready).catch(() => null)
 
   try {
-    const [catalog, model, heroStats] = await Promise.all([loadCatalog(), loadModel(), loadHeroStats()])
+    const [catalog, model, heroStats, teamColours] = await Promise.all([
+      loadCatalog(), loadModel(), loadHeroStats(), loadTeamColours(),
+    ])
     // The first render must still wait, or it measures the fallback face.
     await fontsReady
-    state = Object.freeze({ ...state, model, heroStats })
+    state = Object.freeze({ ...state, model, heroStats, teamColours })
 
     // A competition with no matches in the downloaded window would just be an
     // empty picker - the men's Rugby World Cup is between tournaments.

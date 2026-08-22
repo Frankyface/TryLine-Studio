@@ -72,3 +72,11 @@ export const loadSeason = (competitionId, season) =>
 export async function loadTable(competitionId, season) {
   return createTable(await getJson(`${DATA_ROOT}/${competitionId}/table-${season}.json`))
 }
+
+/**
+ * A primary and, where the crest supports one, a secondary colour per team.
+ * Null degrades to ESPN's single `team.color`, which is what the app used
+ * before this file existed.
+ */
+export const loadTeamColours = () =>
+  getJson(`${DATA_ROOT}/models/team-colours.json`).catch(() => null)

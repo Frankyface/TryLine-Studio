@@ -482,12 +482,35 @@ check('handle and theme survive a reload',
   restoredPrefs.handle === '@testclubrfc' && restoredPrefs.theme === 'chalk',
   JSON.stringify(restoredPrefs))
 
-await page.check('#accent-auto')
+await page.selectOption('#accent-source', 'primary')
+await page.waitForTimeout(600)
 const accentOff = await page.isDisabled('#accent')
-await page.uncheck('#accent-auto')
+const swatchHiddenOnTeam = await page.locator('[data-option="accent"]').isHidden()
+await page.selectOption('#accent-source', 'custom')
+await page.waitForTimeout(600)
 const accentOn = await page.isDisabled('#accent')
-check('the accent picker is disabled only while team colour is on',
-  accentOff && !accentOn, `ticked=${accentOff} unticked=${accentOn}`)
+check('the colour swatch is offered only when picking your own',
+  accentOff && swatchHiddenOnTeam && !accentOn,
+  `team=${accentOff} hidden=${swatchHiddenOnTeam} custom=${accentOn}`)
+
+// The second colour is a real per-team fact, not a duplicate of the first.
+await page.selectOption('#accent-source', 'primary')
+await page.waitForTimeout(600)
+const primaryHex = await page.inputValue('#accent')
+const secondaryUsable = await page.locator('#accent-source option[value="secondary"]').isEnabled()
+if (secondaryUsable) {
+  await page.selectOption('#accent-source', 'secondary')
+  await page.waitForTimeout(600)
+  const secondaryHex = await page.inputValue('#accent')
+  check('the second colour differs from the first', secondaryHex !== primaryHex,
+    `${primaryHex} then ${secondaryHex}`)
+} else {
+  // Most teams have one colour, and the option says so rather than vanishing.
+  const label = await page.locator('#accent-source option[value="secondary"]').textContent()
+  check('a team with one colour says so', /none for this team/i.test(label || ''), label)
+}
+await page.selectOption('#accent-source', 'primary')
+await page.waitForTimeout(400)
 
 // A club that works from its own team should land on its own team, not have to
 // click through to it every visit.

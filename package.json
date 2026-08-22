@@ -8,7 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "refresh": "node scripts/fetch-data.mjs && node scripts/repair-data.mjs && node scripts/mirror-crests.mjs && node scripts/derive-form.mjs && node scripts/build-season-stats.mjs && node scripts/fit-winprob.mjs && node scripts/rank-matches.mjs && node scripts/build-hero-benchmarks.mjs",
+    "refresh": "node scripts/fetch-data.mjs && node scripts/repair-data.mjs && node scripts/mirror-crests.mjs && node scripts/derive-form.mjs && node scripts/build-season-stats.mjs && node scripts/fit-winprob.mjs && node scripts/rank-matches.mjs && node scripts/build-hero-benchmarks.mjs && node scripts/build-team-colours.mjs",
     "shots": "node dev/shots.mjs",
     "e2e": "node tests/app.e2e.mjs",
     "verify": "vitest run --coverage && node dev/shots.mjs && node dev/stress-labels.mjs && node dev/contrast.mjs && node dev/geometry.mjs --every 30 && node tests/app.e2e.mjs",
@@ -23,6 +23,7 @@
     "repair": "node scripts/repair-data.mjs",
     "rank": "node scripts/rank-matches.mjs",
     "benchmarks": "node scripts/build-hero-benchmarks.mjs",
+    "colours": "node scripts/build-team-colours.mjs",
     "crests": "node scripts/mirror-crests.mjs"
   },
   "devDependencies": {

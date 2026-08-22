@@ -199,13 +199,17 @@
           <select id="theme"></select>
         </label>
         <div class="field-row">
-          <label class="field">
+          <label class="field" data-option="accent-source">
             <span class="field__label">Accent</span>
-            <input type="color" id="accent" value="#25D07A">
+            <select id="accent-source">
+              <option value="primary" selected>Team colour</option>
+              <option value="secondary">Second colour</option>
+              <option value="custom">Pick my own</option>
+            </select>
           </label>
-          <label class="field field--check" data-option="accent-auto">
-            <input type="checkbox" id="accent-auto" checked>
-            <span>Use team colour</span>
+          <label class="field" data-option="accent">
+            <span class="field__label">Colour</span>
+            <input type="color" id="accent" value="#25D07A">
           </label>
         </div>
         <label class="field">
