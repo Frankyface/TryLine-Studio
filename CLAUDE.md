@@ -15,9 +15,10 @@ Rugby matchday graphics generator. Read `handoff.md` for current state, then
 - **Verify visually.** A graphic that renders without throwing is not a graphic
   that looks right. Run `npm run shots` and actually look at the PNGs.
 - **Crests are mirrored locally, at two sizes.** ESPN's 500x500 originals were
-  78% of a session's transfer and 597 KB to open one league table whose crests
-  draw at 40px; mirrored, that table costs 28 KB. Use `loadCrestImage(logo, px)`
-  and pass the size you actually draw at.
+  78% of a session's transfer, for crests drawn at 40px in a table row.
+  Mirrored at two sizes they are served same-origin and cached; a league
+  table's crests now weigh 34-139 KB depending on the competition. Use
+  `loadCrestImage(logo, px)` and pass the size you actually draw at.
 - **A real number must never draw as nothing.** A proportional bar can collapse
   to zero width; floor it. This shipped on 565 rows of a default card.
 - **Never judge a chart by one fixture.** The demo match in `dev/preview.html`
@@ -73,9 +74,10 @@ hit-test the controls at 390px.
   are only valid in competitions between countries.
 - **Abbreviations are not unique.** Three Top 14 clubs are all "STA". Use
   `uniqueTeamLabels` from `src/render/format.js` for any team label.
-- **13 club crests are permanently 404 at ESPN.** `mirror-crests` blanks the
+- **Some club crests are permanently 404 at ESPN.** `mirror-crests` blanks the
   url so the monogram draws with no request; leaving it made the live site
-  retry a failing cross-origin request on every page view.
+  retry a failing cross-origin request on every page view. 12 team crests and
+  8 competition badges currently carry a blank url for this reason.
 - **`T00:00Z` means the kick-off has not been announced**, not midnight. 90 of
   1,147 matches carry it, 77 of them Top 14. `formatKickoffTime` returns '' for
   it and the matchday pill collapses.
@@ -86,7 +88,7 @@ hit-test the controls at 390px.
 ## Stat data reality (measured, do not re-derive)
 
 Across 1,147 downloaded matches:
-- **195 have squads, only 53 have player stats.** Stats exist for internationals
+- **201 have squads, only 53 have player stats.** Stats exist for internationals
   only (Six Nations, Women's RWC, Rugby Championship, Lions). Every club
   competition has team sheets with `stats: {}` on all 23 players. The
   `hasStats` index flag and its filter exist for exactly this.
@@ -108,8 +110,9 @@ Across 1,147 downloaded matches:
 
 80 of the 738 archived scoring timelines do not add up to the final score -
 ESPN drops the occasional converted try, almost always exactly 7 points. On
-**16 of them the timeline implies the OTHER SIDE WON**: France read 41-46 to
-England on a graphic printing the correct 48-46. The curve used to draw anyway
+**16 of them the timeline disagrees with the result** - 12 a straight winner
+flip, 4 a real draw shown as a win or the reverse. France read 41-46 to England
+on a graphic printing the correct 48-46. The curve used to draw anyway
 with a small "timeline incomplete" note in the footer, which does not begin to
 undo a chart showing the loser winning.
 
@@ -121,7 +124,7 @@ a caption.
 
 `season-{year}.json` carries a per-team match list, and it includes play-offs.
 The Gallagher table records 18 played for every club; the archive holds 20 for
-the finalists. Both are right and mean different things, so `teamseason` prints
+the winner and 19 for the beaten finalist. Both are right and mean different things, so `teamseason` prints
 "INCLUDING PLAY-OFFS" when its record exceeds the table's.
 
 **The archive is also genuinely short, and that is stated, not hidden.** ESPN
@@ -174,7 +177,9 @@ if it ever happens again.
 
 | Command | What it does |
 |---|---|
-| `npm run verify` | Unit tests + coverage, render shots, full e2e. Run before saying done. |
+| `npm test` | Unit tests only |
+| `npm run coverage` | Unit tests with the coverage gate |
+| `npm run verify` | Coverage, shots, label stress, contrast, full e2e - five steps. Run before saying done. |
 | `npm run refresh` | Re-download competition data into `data/` |
 | `npm run reindex` | Rebuild index files from data already on disk (no network) |
 | `npm run form` | Recompute form from match results; blank where unverifiable |
@@ -187,8 +192,9 @@ if it ever happens again.
 | `npm run stress` | Label-collision geometry over every real match |
 | `npm run contrast` | Ink contrast against the backdrop actually rendered |
 
-The e2e and shots scripts need the static server running (`npx serve . -l 4321`,
-or the `tryline` entry in the workspace `.claude/launch.json`).
+Four scripts need the static server running - shots, stress, contrast and e2e,
+which is four of the five steps in `npm run verify` (`npx serve . -l 4321`, or
+the `tryline` entry in the workspace `.claude/launch.json`).
 
 ## Style
 

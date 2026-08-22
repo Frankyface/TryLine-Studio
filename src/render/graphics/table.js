@@ -5,7 +5,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider,
-  crestFallback, contrastAccent,
+  crestFallback, contrastAccent, composite,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formLetters } from '../format.js'
@@ -26,9 +26,24 @@ export const meta = Object.freeze({
  * there - and the red fell under 3:1 on midnight and turf.
  */
 const formColor = (letter, theme) => {
-  if (letter === 'W') return contrastAccent('#25D07A', theme.bg, { minRatio: 3, fallback: theme.ink })
-  if (letter === 'L') return contrastAccent('#E5344A', theme.bg, { minRatio: 3, fallback: theme.ink })
+  // Measured against the ROW BAND over the accent glow, which is what a dot
+  // lands on - not against theme.bg, which no dot ever touches. Measuring
+  // against bg left the red unchanged on midnight and turf (a no-op) and the
+  // green still at 2.59:1 on chalk.
+  const band = rowBand(theme)
+  if (letter === 'W') return contrastAccent('#25D07A', band, { minRatio: 3.2, fallback: theme.ink })
+  if (letter === 'L') return contrastAccent('#E5344A', band, { minRatio: 3.2, fallback: theme.ink })
   return theme.inkMuted
+}
+
+/**
+ * Roughly what a striped row looks like once the wash, the accent glow and the
+ * 4% ink band are composited. Approximate on purpose - the exact pixel varies
+ * across the canvas, so this takes the darker-contrast end of the range.
+ */
+function rowBand(theme) {
+  const glowed = composite(theme.accent, 0.16, theme.bgAlt || theme.bg)
+  return composite(theme.ink, 0.04, glowed)
 }
 
 /** Column layout as fractions of the content width, so both formats share it. */

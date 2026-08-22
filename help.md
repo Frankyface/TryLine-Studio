@@ -16,8 +16,9 @@ Sample PNGs are in `dev/shots/` after `npm run shots`.
 https://github.com/Frankyface/TryLine-Studio, Pages building from GitHub
 Actions. Pushing to `main` redeploys; the weekly data refresh redeploys too.
 
-Verified on the live site: 13 competitions and 15 matches load, graphics render,
-PNG export works, no 404s and no page errors. `CLAUDE.md` and `handoff.md`
+Verified on the live site: 13 competitions load (the app opens on British &
+Irish Lions), all ten graphics render, PNG export works, no 404s and no page
+errors. `CLAUDE.md` and `handoff.md`
 return 404 - the workflow publishes only the app.
 
 Checked before launch, so you should not hit these:
@@ -29,8 +30,9 @@ Checked before launch, so you should not hit these:
 - **It survives losing the fonts and crests.** With every external host blocked
   it still loads and exports; you get system fonts and monogram crests.
 - **Only the app is published** - not `CLAUDE.md`, `handoff.md`, `dev/` or
-  `tests/`. The workflow copies just `index.html`, `src`, `styles`, `data` and
-  the favicon (about 8.5 MB, 1,207 files).
+  `tests/`. The workflow copies `index.html`, `src`, `styles`, `data`, `assets`
+  and the favicon: 1,411 files, about 14 MB, of which 8.4 MB is match data and
+  4.8 MB mirrored crests.
 - **Refreshed data will actually deploy.** A workflow committing with the
   default token cannot trigger another workflow, so the Pages job also listens
   for the refresh job finishing.

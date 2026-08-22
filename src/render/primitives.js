@@ -350,7 +350,20 @@ export function withAlpha(color, alpha) {
 
 /** Parse #RGB / #RRGGBB into [r, g, b] 0-255, or null when unparseable. */
 export function toRgb(color) {
-  const value = String(color || '').trim().replace('#', '')
+  const raw = String(color || '').trim()
+
+  // rgb()/rgba() too, because withAlpha() produces them and every contrast
+  // measurement of a translucent colour was silently meaningless without this
+  // - toRgb returned null, luminance fell back to 1, and the ratio was a
+  // number that looked plausible and meant nothing.
+  const functional = raw.match(/^rgba?\(([^)]+)\)$/i)
+  if (functional) {
+    const parts = functional[1].split(',').map((part) => Number.parseFloat(part))
+    if (parts.length < 3 || parts.slice(0, 3).some((part) => !Number.isFinite(part))) return null
+    return parts.slice(0, 3).map((part) => Math.max(0, Math.min(255, part)))
+  }
+
+  const value = raw.replace('#', '')
   const full = value.length === 3 ? value.split('').map((c) => c + c).join('') : value
   if (!/^[0-9a-fA-F]{6}$/.test(full)) return null
   const int = Number.parseInt(full, 16)

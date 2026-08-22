@@ -5,7 +5,7 @@ _Last updated 2026-08-21. **LIVE at https://frankyface.github.io/TryLine-Studio/
 ## State: 10 graphics live, reviewed and audited
 
 Ten graphics across two Instagram formats from two data sources, deployed to
-GitHub Pages. **347 unit tests, 43 end-to-end checks, all green.**
+GitHub Pages. **383 unit tests, 44 end-to-end checks, all green.**
 
 ### Newest: "Season so far"
 
@@ -15,9 +15,12 @@ about a competition. Built from final scores alone: no league points, because
 bonus-point rules differ by competition and depend on try counts the archive
 does not hold for every match.
 
-Two honesty rules are built in, both cross-checked against the official table:
-it prints "INCLUDING PLAY-OFFS" when its record exceeds the table's, and it
-REFUSES a club whose archive is short (Saracens, 17 of 18 Gallagher fixtures).
+Two honesty rules are built in. It prints "INCLUDING PLAY-OFFS" when its record
+exceeds the league table's, and "17 OF 18 MATCHES RECORDED" when the archive is
+short of what the competition lists. It does NOT refuse a short archive -
+refusing cost 10 of 14 Top 14 clubs and 9 of 16 in the URC, and a gap that is
+stated is not misleading. Completeness is measured against the fixture list as
+well as the table, because Major League Rugby has no table at all.
 
 A code review and a live-production audit both ran against this build. Every
 CRITICAL and HIGH finding is fixed and verified in production; the remaining
@@ -36,8 +39,8 @@ and functionally on a 390x664 phone, and now covered by two e2e checks.
 
 ### Also fixed this pass
 
-- 13 crest urls were permanently 404 at ESPN and were retried on every page
-  view. Live console errors: 12 -> **0**.
+- Crest urls that were permanently 404 at ESPN were retried on every page view.
+  Live console errors: 12 -> **0**.
 - 90 fixtures rendered "00:00 KICK OFF" - ESPN's not-yet-announced marker.
 - `blockingReason` decides what draws, what exports and how chips render, and
   no unit test could reach it. Now `src/render/availability.js`, with a
@@ -59,11 +62,15 @@ and functionally on a 390x664 phone, and now covered by two e2e checks.
 - Crest plating stays on mean luminance - see `docs/decisions.md` for why the
   "vanishing pixel share" alternative was measured and rejected.
 
-## Earlier state: v1 complete and verified
+## Earlier state: v1 as it shipped on 2026-08-21
 
-All five graphics render in both Instagram formats, from both data sources, and
-export as real PNGs. 106 unit tests pass against real captured API responses;
-the 17-check end-to-end suite passes against the real app in Chromium.
+Everything in this section describes v1 at the time and has been SUPERSEDED -
+the numbers below are kept because the reasoning is still useful, not because
+they are current. Current figures are at the top of this file.
+
+All five graphics of v1 rendered in both Instagram formats, from both data
+sources, and exported as real PNGs. 106 unit tests passed against real captured
+API responses; a 17-check end-to-end suite passed against the real app.
 
 - **Data**: 658 matches across 4 competitions, 87 with full squads and
   per-player stats, 7 league tables. Refreshed 2026-08-21.
@@ -78,7 +85,7 @@ the 17-check end-to-end suite passes against the real app in Chromium.
 | ESPN adapter | `src/data/espn.js` - pure mapping, fully unit tested |
 | Manual entry | `src/data/manual.js` - squad/scorer/table text parsing |
 | Data refresh | `scripts/fetch-data.mjs` - Node-only fetching, monthly chunks |
-| Graphics | `src/render/graphics/*.js` - result, matchday, teamsheet, statcard, table |
+| Graphics | `src/render/graphics/*.js` - result, matchday, teamsheet, statcard, table, winprob, comparison, scatter, fortress, teamseason |
 | App | `index.html`, `src/app.js`, `styles/app.css` |
 | Export | `src/export/png.js` - feed + story in one click |
 
@@ -138,7 +145,9 @@ The scatter was safe on a 10-team league and broken on a 14-16 team one.
 - **Crest plating was wrong in both directions.** A symmetric contrast test
   plated most crests on the light theme while still missing near-black ones on
   dark. It is now DIRECTIONAL - a dark page only hides dark crests, a light page
-  only hides pale ones - and only Newcastle qualifies, on dark themes only.
+  only hides pale ones. Ten of the 96 mirrored crests qualify: five on the dark
+  themes (Zebre, Western Force, Newcastle Falcons, Fijian Drua, Uruguay) and
+  five on chalk (Racing 92, Bordeaux Begles, Japan, England Women, Castres).
 - Players mode read as two teams: identical layout to the team card. Crests are
   smaller, the subtitle carries the team, and the scoreline is labelled "Match
   18-15" so it cannot read as the two players' own contest. Its monogram
@@ -208,7 +217,9 @@ matching is correct - it keeps the Durban "Sharks" and "Sale Sharks" distinct.
   every path is relative, nothing 404s, and it still works with all external
   hosts blocked. Fixed as a result: the Pages workflow published the entire
   checkout including `CLAUDE.md`, `handoff.md`, `dev/` and `tests/` (now only
-  the app, 8.5 MB); the weekly refresh could never trigger a deploy because
+  the app: index.html, src, styles, data, assets and the favicon - 1,411 files,
+  about 14 MB, of which 8.4 MB is data and 4.8 MB mirrored crests); the weekly
+  refresh could never trigger a deploy because
   GitHub blocks token-pushed workflow chains (now listens for the refresh);
   added a favicon; removed a dead empty `public/`.
 - **Shipped 2026-08-21.** Repo `Frankyface/TryLine-Studio`, Pages via Actions.
@@ -219,12 +230,14 @@ Audited across all four themes and stress-tested against all 738 real matches
 rather than the demo fixture, which turned out to be flattering:
 
 - **Labels crossed the curve on 68% of real chart instances** and overlapped
-  each other on 12%. Now 2.4% and 0%. Three changes: key moments must be 6+
+  each other on 12%. Now 2.8% and 0% over 1,476 chart instances. Three changes:
+  key moments must be 6+
   minutes apart, same-minute events merge into one label (`TRY+CON 80'`), and
   placement tries 20 anchors against both the curve and the placed labels
   before falling back. Whatever lands gets a background halo.
 - **The win-probability curve was invisible on chalk** - hardcoded `#FFFFFF`
-  over a near-white panel, 1.09:1. Now `theme.ink`, 17:1+ on every theme.
+  over a near-white panel, 1.09:1. Now `theme.ink` - 15.9:1 at worst against
+  the panel it is actually drawn over, on turf.
 - **The losing bar was invisible on chalk** at 22% alpha; the loser alpha is
   now theme-aware.
 - **On "fewer is better" rows the longer bar belonged to the loser.** Bars are
@@ -297,8 +310,8 @@ the malformed-event filtering.
 ## Next, in rough order
 
 1. Cam's phone check - do these read well in the Instagram feed and story frames?
-4. Deploy: push to a GitHub repo with Pages enabled; `.github/workflows/` has
-   both the Pages deploy and the weekly data refresh ready.
-5. Deeper analysis, once the basics are posted: scoring-run charts, season
-   scatter plots, squad comparison. Rugby has no shot-chart equivalent in free
+   This is the only outstanding item; deployment and the deeper analysis
+   graphics below are both done.
+2. Deeper analysis beyond what is built: scoring-run charts. Rugby has no
+   shot-chart equivalent in free
    data - no coordinates, no possession-level play-by-play.

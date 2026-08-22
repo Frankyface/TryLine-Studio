@@ -81,6 +81,60 @@ const results = await page.evaluate(async () => {
   return rows
 })
 
+/**
+ * The data marks, measured against the surface each one actually lands on.
+ *
+ * The ink sweep above was the whole check for one pass, and three separate
+ * mark faults shipped green underneath it: a comparison bar at 2.17:1, form
+ * dots at 2.52:1, and an eyebrow pill missing the ratio its own code asks for.
+ * A colour that carries a number has to be checked as carefully as one that
+ * carries a word.
+ */
+const marks = await page.evaluate(async () => {
+  const { THEMES } = await import('/src/render/theme.js')
+  const P = await import('/src/render/primitives.js')
+  const S = await import('/src/render/series.js')
+  const rows = []
+
+  for (const theme of Object.values(THEMES)) {
+    // What a striped table row looks like once wash, glow and band composite.
+    const glow = P.composite(theme.accent, 0.16, theme.bgAlt || theme.bg)
+    const band = P.composite(theme.ink, 0.04, glow)
+    const accent = P.contrastAccent(theme.accent, theme.bg, { fallback: theme.accent })
+
+    const add = (mark, colour, against, floor) => rows.push({
+      theme: theme.id, mark, ratio: P.contrastRatio(colour, against), floor,
+    })
+
+    // League table form dots.
+    add('form W', P.contrastAccent('#25D07A', band, { minRatio: 3.2, fallback: theme.ink }), band, 3)
+    add('form L', P.contrastAccent('#E5344A', band, { minRatio: 3.2, fallback: theme.ink }), band, 3)
+
+    // Comparison bars - both sides, because the loser carries a number too.
+    const raw = S.seriesColours(theme, {})
+    const readable = (c) => P.contrastAccent(c, band, { minRatio: 3.2, fallback: theme.ink })
+    const barLeft = readable(raw.left)
+    const barRight = readable(S.distinctFrom(raw.right, raw.left))
+    add('bar left', P.withAlpha(barLeft, 0.95), band, 3)
+    add('bar right', P.withAlpha(barRight, 0.95), band, 3)
+
+    // Season chart bars, at the default accent.
+    const win = S.chroma(accent) < S.MIN_CHROMA ? theme.accent : accent
+    const loss = S.distinctFrom(
+      P.contrastAccent('#E5484D', theme.bg, { fallback: theme.inkMuted }), win,
+    )
+    add('season win', win, theme.bg, 3)
+    add('season loss', loss, theme.bg, 3)
+
+    // The eyebrow pill's own label, on the pill rather than the page.
+    const pill = P.composite(accent, 0.16, theme.bg)
+    add('eyebrow pill', P.contrastAccent(accent, pill, {
+      minRatio: 4.5, fallback: P.readableInk(pill),
+    }), pill, 4.5)
+  }
+  return rows
+})
+
 await browser.close()
 
 const failures = []
@@ -107,10 +161,20 @@ for (const row of results) {
     + `${below.length || flat ? '  FAIL' : ''}${NL}`)
 }
 
+process.stdout.write(`${NL}data marks, against the surface each one lands on${NL}${NL}`)
+for (const row of marks) {
+  const passed = row.ratio >= row.floor
+  if (!passed) {
+    failures.push(`${row.theme} ${row.mark} ${row.ratio.toFixed(2)}:1 (needs ${row.floor})`)
+  }
+  process.stdout.write(`  ${row.theme.padEnd(10)}${row.mark.padEnd(14)}`
+    + `${row.ratio.toFixed(2).padStart(6)}:1${passed ? '' : '  FAIL'}${NL}`)
+}
+
 process.stdout.write(NL)
 if (failures.length) {
   for (const failure of failures) process.stdout.write(`  FAIL  ${failure}${NL}`)
   process.stdout.write(`${NL}${failures.length} contrast failure(s)${NL}`)
   process.exit(1)
 }
-process.stdout.write(`All inks readable on every theme and format.${NL}`)
+process.stdout.write(`All inks and data marks readable on every theme.${NL}`)

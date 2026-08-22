@@ -5,7 +5,7 @@
 Instagram-ready rugby matchday graphics, generated in the browser from real
 competition data or from your own team sheet.
 
-Five graphics, each exported as a 1080×1080 feed post and a 1080×1920 story:
+Ten graphics, each exported as a 1080×1080 feed post and a 1080×1920 story:
 
 | Graphic | What it shows |
 |---|---|
@@ -18,6 +18,7 @@ Five graphics, each exported as a 1080×1080 feed post and a 1080×1920 story:
 | **Match stats** | Team-v-team or player-v-player head-to-head |
 | **Attack v defence** | A whole season plotted by what each team scores and concedes |
 | **Home advantage** | Every club's home win rate against its away win rate |
+| **Season so far** | One club, every result in order, by winning margin |
 
 No build step, no framework, no server. Plain ES modules and a canvas.
 
@@ -100,13 +101,13 @@ npm run fit
 Two parameters, fitted by gradient ascent on 658 real completed matches
 (53,298 minute-by-minute samples), writing `data/models/winprob.json` alongside
 its own measured accuracy. Current fit: **79.0% accuracy**, 0.429 log loss,
-calibrated within a few points across every probability band. Validated against
-raw outcomes - at half time a side leading by 8-14 points won 89% of the time
-and the model says 90%.
+calibrated within a few points across every probability band.
 
 Matches whose scoring timeline does not add up to the recorded final score are
-excluded from fitting and flagged in the footer when drawn, because roughly one
-ESPN timeline in nine is missing an event.
+excluded from fitting AND refused outright when drawn - 80 of the 738 archived
+timelines are short, and on 16 of them the timeline disagrees with the actual
+result. A curve that ends on the wrong scoreline is worse than no curve, and a
+footnote does not undo it.
 
 ## Verifying
 
@@ -114,21 +115,28 @@ ESPN timeline in nine is missing an event.
 npm run verify
 ```
 
-Runs three layers:
+Runs five layers:
 
-1. `vitest` — 106 unit tests against real captured API responses in
-   `tests/fixtures/`, with a coverage gate on the data and formatting logic.
+1. `vitest` — 383 unit tests against real captured API responses in
+   `tests/fixtures/`, with a coverage gate on the data, analysis and
+   formatting logic.
 2. `dev/shots.mjs` — renders every graphic in both formats to `dev/shots/` for
    visual review.
-3. `tests/app.e2e.mjs` — drives the real app in Chromium: every graphic, both
+3. `dev/stress-labels.mjs` — runs the label geometry over every real match, so
+   no chart is judged by one flattering fixture.
+4. `dev/contrast.mjs` — measures every ink against the backdrop actually
+   rendered, not against the colour token.
+5. `tests/app.e2e.mjs` — drives the real app in Chromium: every graphic, both
    data sources, theme switching, and a real PNG download.
+
+All but the first need a static server on port 4321.
 
 ## Layout
 
 ```
 index.html            the app
 src/data/             schema, ESPN adapter, manual entry, static-file client
-src/render/           theme, canvas primitives, five graphics
+src/render/           theme, canvas primitives, availability, ten graphics
 src/export/           canvas to PNG
 scripts/fetch-data.mjs   data refresh (Node only)
 data/                 refreshed competition data

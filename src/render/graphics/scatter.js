@@ -27,6 +27,12 @@ export const meta = Object.freeze({
   description: 'Every team in a season, plotted by what they score and concede.',
   needs: 'table',
   requiresSquad: false,
+  // The table has to be a whole league, not a cup pool or a half-season.
+  // canPlotSeason knew that from the first commit but nothing asked it before
+  // drawing, so the chip looked available on five competitions and the graphic
+  // threw instead. The app caught it, but a chip that lies is the exact fault
+  // blockingReason exists to prevent.
+  requiresFullTable: true,
 })
 
 /** Corner captions, positioned by quadrant. */
@@ -183,7 +189,12 @@ function relaxMarks(points, { radius, maxShift, bounds, rounds = 60 }) {
 
   return marks.map((mark) => ({
     ...mark,
-    displaced: Math.hypot(mark.x - mark.trueX, mark.y - mark.trueY) > radius * 0.35,
+    // Annotated only when the mark has moved further than its own radius.
+    // Below that the true point is INSIDE the disc, so a leader line has
+    // nowhere to go and the anchor punches a hole through the mark - or worse,
+    // through a neighbour's label. A sub-radius nudge is not a distortion
+    // worth annotating; the mark is still sitting on its own reading.
+    displaced: Math.hypot(mark.x - mark.trueX, mark.y - mark.trueY) > radius,
   }))
 }
 

@@ -12,7 +12,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, crestFallback,
-  luminance,
+  composite, contrastAccent,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import {
@@ -20,7 +20,7 @@ import {
   TEAM_STAT_KEYS, PLAYER_STAT_KEYS, BETTER,
 } from '../../analysis/comparison.js'
 import { formatMatchDate } from '../format.js'
-import { seriesColours } from '../series.js'
+import { seriesColours, distinctFrom } from '../series.js'
 
 export const meta = Object.freeze({
   id: 'comparison',
@@ -69,15 +69,13 @@ function drawRow(ctx, size, theme, { row, y, height, box, colours }) {
   // of that row - except where lower is better, which the leader flag handles.
   const leftWidth = zoneWidth * row.leftBar
   const rightWidth = zoneWidth * row.rightBar
-  // The losing bar must still read. Fading toward the page works on a dark
-  // theme but not a light one - a 45% yellow measured 1.14:1 against its own
-  // row band. On light themes the loser keeps full opacity and is distinguished
-  // by height instead.
-  // 0.24 was too far: the loser measured 1.51:1 against its own row band on
-  // every dark theme, readable only because the winner sat beside it. Height
-  // now carries the difference on BOTH themes, so opacity does not have to.
-  const isLightTheme = luminance(theme.bg) > 0.5
-  const dim = (colour, isLeader) => withAlpha(colour, isLeader ? 0.95 : 0.6)
+  // HEIGHT alone separates winner from loser, at full opacity for both.
+  //
+  // Every attempt to do it with opacity has broken one theme or the other: at
+  // 0.24 the loser measured 1.51:1 on the dark themes, and a flat 0.6 to fix
+  // that dropped chalk from 3.38:1 to 2.17:1. A bar carries a number, so it
+  // has to be readable whichever side of the row it is on.
+  const dim = (colour) => withAlpha(colour, 0.95)
   const barScale = (isLeader) => (isLeader ? 1 : 0.62)
 
   const leftLeads = row.leader !== 'right'
@@ -86,9 +84,9 @@ function drawRow(ctx, size, theme, { row, y, height, box, colours }) {
   const rightHeight = barHeight * barScale(rightLeads)
 
   fillRoundRect(ctx, leftBarRight - barGap - leftWidth, y + height / 2 - leftHeight / 2,
-    leftWidth, leftHeight, leftHeight / 2, dim(colours.left, leftLeads))
+    leftWidth, leftHeight, leftHeight / 2, dim(colours.left))
   fillRoundRect(ctx, rightBarLeft + barGap, y + height / 2 - rightHeight / 2,
-    rightWidth, rightHeight, rightHeight / 2, dim(colours.right, rightLeads))
+    rightWidth, rightHeight, rightHeight / 2, dim(colours.right))
 
   const isTie = row.leader === null && row.left !== null && row.right !== null
   drawText(ctx, values.left, box.left + valueZone - scale(size, 18), y + height / 2, {
@@ -168,7 +166,18 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   }
 
   const accent = resolveAccent(theme, { accent: options.accent })
-  const colours = seriesColours(theme, { home: match.home, away: match.away })
+  // Lifted clear of the ROW BAND, which is what a bar is drawn on - a series
+  // colour chosen against the page measured 1.37:1 against the band on the
+  // light theme. The pair is re-separated afterwards because moving both
+  // toward readable can move them toward each other.
+  const band = composite(theme.ink, 0.04, composite(theme.accent, 0.16, theme.bgAlt || theme.bg))
+  const raw = seriesColours(theme, { home: match.home, away: match.away })
+  const readable = (colour) => contrastAccent(colour, band, { minRatio: 3.2, fallback: theme.ink })
+  // Separate FIRST, then lift both clear of the band. Doing it the other way
+  // round let distinctFrom substitute a bright palette colour after the lift,
+  // which put the right-hand bar back at 1.19:1 on chalk.
+  const left = readable(raw.left)
+  const colours = { left, right: readable(distinctFrom(raw.right, raw.left)) }
 
   drawFrame(ctx, size, theme, { accent })
   const top = drawEyebrow(ctx, size, theme, {

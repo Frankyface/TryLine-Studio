@@ -29,7 +29,7 @@ clears a 3.5:1 ratio, keeping the hue.
 one column on a square canvas. Story keeps a single list.
 
 **2026-08-21 - Coverage gate covers logic, not pixels.** The vitest threshold
-applies to `src/data/**` and `format.js`. Canvas, DOM and export are verified by
+applies to `src/data/**`, all of `src/analysis/**`, and `format.js`, `labels.js`, `series.js`, `availability.js` and `crest-sizes.js`. Canvas, DOM and export are verified by
 the Playwright e2e suite instead; pixel assertions are brittle and prove little.
 
 **2026-08-21 - Win probability is computed, never fetched.** No free rugby feed
@@ -80,8 +80,8 @@ omit three quarters of the competition.
 
 **2026-08-21 - Crest plating stays on mean luminance. Investigated and rejected
 a "vanishing pixel share" test.** Counting how many of a crest's pixels fall
-below a contrast bar against the page says 43 of 97 crests are largely
-invisible, and the shipped mean-luminance test catches only 12 of those. That
+below a contrast bar against the page said most of the 96 mirrored crests were
+largely invisible, against the ten the shipped mean-luminance test plates. That
 measurement is misleading: it counts dark pixels, not illegibility. Rendering
 every crest through the real `drawCrest` path and inspecting the result shows
 they read fine - a mostly-dark crest like the Australia flag or the Sharks box

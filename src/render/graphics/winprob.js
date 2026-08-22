@@ -12,7 +12,7 @@ import {
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import {
-  buildWinProbabilityCurve, keyMoments, timelineIsComplete, FULL_TIME, DEFAULT_MODEL,
+  buildWinProbabilityCurve, keyMoments, FULL_TIME, DEFAULT_MODEL,
 } from '../../analysis/winprob.js'
 import { timelineMark } from '../format.js'
 import { seriesColours } from '../series.js'
@@ -235,7 +235,6 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
 
   const curve = buildWinProbabilityCurve(match, model)
   const moments = keyMoments(match, model, isStory ? 4 : 3)
-  const complete = timelineIsComplete(match)
 
   // Whether the comeback caption will be drawn has to be known BEFORE the plot
   // is sized, or the chart leaves a blank band wherever the caption is skipped.
@@ -334,7 +333,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     ? `Model fitted on ${model.matches} matches`
     : 'Model: default coefficients'
   drawFooter(ctx, size, theme, {
-    left: complete ? provenance : `${provenance} - timeline incomplete`,
+    left: provenance,
     right: options.handle || match.competition.abbreviation || '',
   })
 }

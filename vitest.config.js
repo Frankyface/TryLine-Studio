@@ -9,7 +9,7 @@ import { defineConfig } from 'vitest/config'
  * this gate: asserting on pixels is brittle and proves little. They are covered
  * instead by tests/app.e2e.mjs, which drives the real app in Chromium through
  * every graphic and downloads a real PNG, and by dev/shots.mjs for visual review.
- * Run all three with `npm run verify`.
+ * Run all five with `npm run verify`.
  */
 export default defineConfig({
   test: {

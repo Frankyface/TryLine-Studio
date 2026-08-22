@@ -9,6 +9,7 @@
  * a player card that drew 45% blank canvas.
  */
 import { canPlotTeamSeason } from '../analysis/team-season.js'
+import { canPlotSeason } from '../analysis/season.js'
 import { timelineIsComplete } from '../analysis/winprob.js'
 
 /** A team sheet with no numbers on it is a list of names, not a stat source. */
@@ -49,6 +50,8 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
         ? 'Paste your league table into the box above to draw this.'
         : 'No league table loaded for that season.'
     }
+    // Some table graphics need a whole league behind them, not a cup pool.
+    if (graphic.meta.requiresFullTable) return canPlotSeason(table)
     return ''
   }
 

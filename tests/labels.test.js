@@ -3,7 +3,7 @@
  * the curve on 68% of real matches, so the rules here are load-bearing.
  */
 import { describe, it, expect } from 'vitest'
-import { composite, contrastRatio } from '../src/render/primitives.js'
+import { composite, contrastRatio, toRgb, withAlpha } from '../src/render/primitives.js'
 import {
   placeLabel, rectsOverlap, segmentHitsRect, polylineHitsRect,
 } from '../src/render/labels.js'
@@ -192,5 +192,37 @@ describe('composite', () => {
 
   it('falls back to the backdrop for an unreadable colour', () => {
     expect(composite('not-a-colour', 0.5, '#123456')).toBe('#123456')
+  })
+})
+
+/**
+ * toRgb has to read what withAlpha writes.
+ *
+ * It did not: every contrast measurement of a translucent colour returned a
+ * number that looked plausible and meant nothing, because toRgb returned null
+ * and luminance fell back to 1. That is how a comparison bar at 1.19:1 passed
+ * a contrast check that was measuring garbage.
+ */
+describe('toRgb', () => {
+  it('reads hex, long and short', () => {
+    expect(toRgb('#25D07A')).toEqual([37, 208, 122])
+    expect(toRgb('#fff')).toEqual([255, 255, 255])
+  })
+
+  it('reads what withAlpha produces', () => {
+    expect(toRgb(withAlpha('#25D07A', 0.95))).toEqual([37, 208, 122])
+    expect(toRgb('rgb(37,208,122)')).toEqual([37, 208, 122])
+  })
+
+  it('measures a translucent colour as its own colour, not as nothing', () => {
+    expect(contrastRatio(withAlpha('#25D07A', 0.95), '#FFFFFF'))
+      .toBeCloseTo(contrastRatio('#25D07A', '#FFFFFF'), 5)
+  })
+
+  it('still rejects what it cannot read', () => {
+    expect(toRgb('rgba(nope)')).toBeNull()
+    expect(toRgb('not-a-colour')).toBeNull()
+    expect(toRgb('')).toBeNull()
+    expect(toRgb(null)).toBeNull()
   })
 })
