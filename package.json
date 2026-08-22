@@ -11,11 +11,12 @@
     "refresh": "node scripts/fetch-data.mjs && node scripts/repair-data.mjs && node scripts/mirror-crests.mjs && node scripts/derive-form.mjs && node scripts/build-season-stats.mjs && node scripts/fit-winprob.mjs",
     "shots": "node dev/shots.mjs",
     "e2e": "node tests/app.e2e.mjs",
-    "verify": "vitest run --coverage && node dev/shots.mjs && node dev/stress-labels.mjs && node tests/app.e2e.mjs",
+    "verify": "vitest run --coverage && node dev/shots.mjs && node dev/stress-labels.mjs && node dev/contrast.mjs && node tests/app.e2e.mjs",
     "fit": "node scripts/fit-winprob.mjs",
     "reindex": "node scripts/reindex.mjs",
     "form": "node scripts/derive-form.mjs",
     "stress": "node dev/stress-labels.mjs",
+    "contrast": "node dev/contrast.mjs",
     "seasons": "node scripts/build-season-stats.mjs",
     "repair": "node scripts/repair-data.mjs",
     "crests": "node scripts/mirror-crests.mjs"

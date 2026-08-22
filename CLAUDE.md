@@ -25,6 +25,20 @@ Rugby matchday graphics generator. Read `handoff.md` for current state, then
   curve on 68% of real matches. `npm run stress` runs the label geometry over
   every match in `data/` and is part of `npm run verify`.
 
+## Measure contrast against the RENDERED background, never the token
+
+`theme.js` used to claim every ink cleared 4.5:1, and against `bg` that was
+true. Nothing is ever drawn on flat `bg`: `drawBackdrop` washes bgAlt-bg-bgAlt
+and lays a 16% accent glow across the middle of the canvas, exactly where
+content sits. Measured where they land, the inks were 2.93-3.52 - twelve
+`drawText` sites across nine graphics, all failing, none of it visible from the
+token. Same trap caught the eyebrow pill, whose own tint lifts the background
+under its own label.
+
+`npm run contrast` renders the real backdrop, samples it, and fails under
+4.5:1 or if the three ink tokens collapse into one. It is part of `npm run
+verify`.
+
 ## CSS source order is a live trap in this file
 
 `styles/app.css` has no build step and no nesting, so an override and the rule
@@ -171,6 +185,7 @@ if it ever happens again.
 | `npm run shots` | Render every graphic to `dev/shots/` |
 | `npm run e2e` | Drive the real app in Chromium |
 | `npm run stress` | Label-collision geometry over every real match |
+| `npm run contrast` | Ink contrast against the backdrop actually rendered |
 
 The e2e and shots scripts need the static server running (`npx serve . -l 4321`,
 or the `tryline` entry in the workspace `.claude/launch.json`).

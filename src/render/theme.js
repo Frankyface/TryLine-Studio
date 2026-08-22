@@ -22,9 +22,15 @@ export const STORY_SAFE_BOTTOM = 250
 
 /**
  * inkFaint is a CONTENT colour, not a decorative one - it labels column
- * headers, section titles and the matchday kicker. Every value below is tuned
- * to clear 4.5:1 against its own bg; the originals measured 2.2-3.1:1 and
- * ghosted out, worst on chalk. Hairlines use `line`, not inkFaint.
+ * headings, axis ticks and captions, so it has to be readable, not merely
+ * ghosted out. Hairlines use `line`, not inkFaint.
+ *
+ * These are tuned against the WORST PIXEL A GRAPHIC ACTUALLY DRAWS ON, not
+ * against `bg`. Nothing is ever drawn on flat `bg`: drawBackdrop washes
+ * bgAlt - bg - bgAlt and lays a 16% accent glow across the middle of the
+ * canvas, which is precisely where content sits. Measured against `bg` every
+ * value cleared 4.5:1; measured where they land they were 2.93 to 3.52, and
+ * that covered twelve separate drawText sites across nine graphics.
  */
 export const THEMES = Object.freeze({
   midnight: Object.freeze({
@@ -33,8 +39,8 @@ export const THEMES = Object.freeze({
     bg: '#0B1220',
     bgAlt: '#131C2E',
     ink: '#FFFFFF',
-    inkMuted: '#8A9BB8',
-    inkFaint: '#727E93',
+    inkMuted: '#B3BED1',
+    inkFaint: '#97A0AF',
     line: '#22314C',
     accent: '#25D07A',
     accentInk: '#04180D',
@@ -46,8 +52,8 @@ export const THEMES = Object.freeze({
     bg: '#0A1F14',
     bgAlt: '#0F2C1C',
     ink: '#FFFFFF',
-    inkMuted: '#8FB79F',
-    inkFaint: '#72907D',
+    inkMuted: '#BAD3C4',
+    inkFaint: '#9DB2A5',
     line: '#1D4530',
     accent: '#F5C518',
     accentInk: '#231C00',
@@ -59,8 +65,8 @@ export const THEMES = Object.freeze({
     bg: '#F4F5F7',
     bgAlt: '#FFFFFF',
     ink: '#0B1220',
-    inkMuted: '#5A6A85',
-    inkFaint: '#646C7A',
+    inkMuted: '#3B4557',
+    inkFaint: '#535A66',
     line: '#DCE1EA',
     accent: '#0B5FFF',
     accentInk: '#FFFFFF',
@@ -72,8 +78,8 @@ export const THEMES = Object.freeze({
     bg: '#1A0A0E',
     bgAlt: '#2A1016',
     ink: '#FFFFFF',
-    inkMuted: '#C79AA4',
-    inkFaint: '#97737B',
+    inkMuted: '#CFA8B1',
+    inkFaint: '#AB8E94',
     line: '#42171F',
     accent: '#FF4D5E',
     accentInk: '#2A0007',
