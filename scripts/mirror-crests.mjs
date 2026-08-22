@@ -40,7 +40,10 @@ const readJson = (path) => {
 
 /** Every JSON file that might carry a crest url. */
 function dataFiles() {
-  const files = []
+  // The top-level catalogue too: it carries no logo today, but it is a data
+  // file and skipping it silently would be a gap nothing reports.
+  const catalogue = join(dataDir, 'index.json')
+  const files = existsSync(catalogue) ? [catalogue] : []
   for (const competitionId of readdirSync(dataDir)) {
     const competitionDir = join(dataDir, competitionId)
     if (!statSync(competitionDir).isDirectory()) continue

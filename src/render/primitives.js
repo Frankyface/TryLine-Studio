@@ -13,7 +13,7 @@ import { FONTS, font } from './theme.js'
  * Access-Control-Allow-Origin *, and without the attribute the canvas is
  * tainted and toBlob() throws a SecurityError on export.
  */
-export function loadImage(src) {
+function loadImage(src) {
   return new Promise((resolve, reject) => {
     if (!src) {
       reject(new Error('No image source'))
@@ -28,7 +28,7 @@ export function loadImage(src) {
 }
 
 /** Load a crest, returning null rather than throwing so one dead url can't kill a render. */
-export const loadImageOrNull = (src) => loadImage(src).catch(() => null)
+const loadImageOrNull = (src) => loadImage(src).catch(() => null)
 
 /** Sizes mirrored into assets/crests, smallest first. */
 
