@@ -348,6 +348,10 @@ export function withAlpha(color, alpha) {
     return `rgba(${r},${g},${b},${alpha})`
   }
   if (value.startsWith('rgb(')) return value.replace('rgb(', 'rgba(').replace(')', `,${alpha})`)
+  // rgba in, rgba out - toRgb reads these, so this has to as well, or the two
+  // helpers disagree about the same colour and one of them returns white.
+  const parsed = toRgb(value)
+  if (parsed) return `rgba(${parsed.map(Math.round).join(',')},${alpha})`
   return `rgba(255,255,255,${alpha})`
 }
 

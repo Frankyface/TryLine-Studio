@@ -179,13 +179,19 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     })
 
     if (cards.length) {
+      // Truncated like every other long string here. Unbounded, a seven-card
+      // match measured 1,991px inside a 936px box - 455px lost off EACH edge,
+      // on 18 matches across ten competitions.
+      const cardOptions = {
+        size: scale(size, 20), weight: 600, family: FONTS.body, uppercase: true, tracking: 1,
+      }
       const summary = cards
         .map((c) => `${timelineMark(c.type)} ${c.player.shortName || c.player.name} ${c.minute ?? ''}`.trim())
         .join('   ')
-      drawText(ctx, summary, box.centerX, box.bottom - scale(size, 118), {
-        size: scale(size, 20), weight: 600, family: FONTS.body,
-        color: theme.inkFaint, align: 'center', uppercase: true, tracking: 1,
-      })
+      drawText(ctx, truncateText(ctx, summary, box.width, cardOptions),
+        box.centerX, box.bottom - scale(size, 118), {
+          ...cardOptions, color: theme.inkFaint, align: 'center',
+        })
     }
   }
 

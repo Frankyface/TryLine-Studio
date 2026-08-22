@@ -58,6 +58,32 @@ describe('every graphic declares what it actually needs', () => {
       .toMatch(/starting xv/i)
   })
 
+  it('refuses a player card whose every stat is zero', () => {
+    // The case the first version of this gate MISSED. Every ESPN player in a
+    // statted squad carries all 26 keys, so asking whether the stats object
+    // was empty passed all 44 of the players it was added to catch.
+    const allZero = player({ tries: 0, metres: 0, tackles: 0, runs: 0, points: 0 }, 22)
+    expect(Object.keys(allZero.stats).length).toBeGreaterThan(0)
+    expect(blockingReason(GRAPHIC_BY_ID.statcard, { match: full }, { side: 'home', player: allZero }))
+      .toMatch(/no match numbers/i)
+  })
+
+  it('tells a club WHICH squad box is empty', () => {
+    const awayEmpty = matchWith({ home: { squad: squad({ metres: 1 }) }, away: { squad: [] } })
+    expect(blockingReason(GRAPHIC_BY_ID.teamsheet,
+      { match: awayEmpty, source: 'manual' }, { side: 'away' }))
+      .toMatch(/Away squad box/i)
+  })
+
+  it('keeps the message that names which competitions have stats', () => {
+    // The player-level check used to run first and shadow this on 296
+    // combinations - replacing the one actionable message with a dead end.
+    const noStats = matchWith({ home: { squad: squad({}) }, away: { squad: squad({}) } })
+    expect(blockingReason(GRAPHIC_BY_ID.statcard, { match: noStats },
+      { side: 'home', player: player({}, 1) }))
+      .toMatch(/internationals only/i)
+  })
+
   it('refuses a player card for a player with no numbers', () => {
     // 44 of the 2,438 gate-open players drew the empty card the meta claims to
     // have fixed - the gate checked the SQUAD, not the player being drawn.

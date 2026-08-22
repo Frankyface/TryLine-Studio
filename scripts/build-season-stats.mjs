@@ -112,6 +112,8 @@ function buildSeason(competitionId, season, matches, fixtures = []) {
     shortName: side.shortName || side.name,
     abbreviation: side.abbreviation,
     logo: side.logo,
+    // The club's own colour, so the season chart can actually use it.
+    color: side.color || '',
   })
   const teamOf = (side) => {
     if (!byTeam.has(side.name)) {

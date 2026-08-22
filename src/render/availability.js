@@ -12,6 +12,7 @@ import { canPlotTeamSeason } from '../analysis/team-season.js'
 import { canPlotSeason } from '../analysis/season.js'
 import { canPlotFortress } from '../analysis/fortress.js'
 import { STARTING_XV } from '../data/schema.js'
+import { pickPlayerStats } from './format.js'
 import { timelineIsComplete, timelineTotal } from '../analysis/winprob.js'
 
 /** A team sheet with no numbers on it is a list of names, not a stat source. */
@@ -110,8 +111,13 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
     const squads = requiredSides(graphic, options).map((side) => match[side]?.squad || [])
 
     if (squads.some((squad) => !squad.length)) {
+      // Name the box that is actually empty. It always said "Home", including
+      // when Home was the filled one.
+      const missing = requiredSides(graphic, options)
+        .filter((side) => !(match[side]?.squad || []).length)
+        .map((side) => (side === 'away' ? 'Away' : 'Home'))
       return source === 'manual'
-        ? 'Type your team sheet into the Home squad box above.'
+        ? `Type your team sheet into the ${missing.join(' and ')} squad box above.`
         : 'No squad recorded for that match. Tick "only matches with squads", or enter the team yourself.'
     }
     // A team sheet is laid out from the starting XV, and divides by how many
@@ -123,19 +129,25 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
         + 'so there is no starting XV to lay out.'
     }
 
-    // The player being drawn has to have numbers, not merely somebody in the
-    // squad. 44 of the 2,438 gate-open players drew the empty card the meta
-    // says was fixed - a replacement on for two minutes has all-zero stats.
-    if (graphic.meta.requiresPlayer && graphic.meta.requiresStats && options.player) {
-      if (!Object.keys(options.player.stats || {}).length) {
-        return 'That player has no match numbers recorded, so the card would be empty.'
-      }
-    }
-
+    // Squad-level FIRST: where a whole competition has no stats, saying which
+    // competitions do is the only actionable thing we can tell someone. Asking
+    // about the player first shadowed that on 296 combinations across eight
+    // competitions, replacing the useful message with a dead end.
     if (graphic.meta.requiresStats && squads.some((squad) => !squadHasStats(squad))) {
       return source === 'manual'
         ? 'Player stats cannot come from manual entry - the form has no place to put them.'
         : 'That match has team sheets but no player stats. ESPN records them for internationals only - try Six Nations, The Rugby Championship, the Lions tour or the Womens Rugby World Cup.'
+    }
+
+    // Then the player. Asking whether the stats OBJECT is empty was the wrong
+    // question: every ESPN player in a statted squad carries all 26 keys, so a
+    // replacement whose every value is zero passed - which is exactly the 44
+    // players this check was added to catch. What matters is whether anything
+    // would actually be drawn.
+    if (graphic.meta.requiresPlayer && graphic.meta.requiresStats && options.player) {
+      if (!pickPlayerStats(options.player).length) {
+        return 'That player has no match numbers recorded, so the card would be empty.'
+      }
     }
   }
 

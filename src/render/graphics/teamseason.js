@@ -27,7 +27,6 @@ export const meta = Object.freeze({
   label: 'Season so far',
   description: 'One club, every result in order, by winning margin.',
   needs: 'season',
-  usesTeamColour: true,
   requiresTeam: true,
 })
 
@@ -68,10 +67,10 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
   const headline = teamSeasonHeadline(timeline)
   const bounds = marginBounds(timeline)
 
-  const accent = resolveAccent(theme, {
-    accent: options.accent,
-    team: options.useTeamColour ? timeline.team : null,
-  })
+  // No option to consult: this graphic is about one club, so its colour is
+  // the accent whenever the user has not overridden it. The old gate was on
+  // options.useTeamColour, which nothing ever set.
+  const accent = resolveAccent(theme, { accent: options.accent, team: timeline.team })
   const box = contentBox(size)
   const isStory = size.height > size.width
 
