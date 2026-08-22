@@ -235,8 +235,13 @@ function visibleMatches() {
   const filter = $('match-filter').value.trim().toLowerCase()
   const squadsOnly = $('only-squads').checked
   const statsOnly = $('only-stats').checked
+  const notableOnly = $('only-notable').checked
 
   return all
+    // Scored by scripts/rank-matches.mjs. Absent means the match could not be
+    // scored, not that it was dull - 125 finished matches have no usable
+    // timeline, and 22 of those finished within three points.
+    .filter((match) => (notableOnly ? Number.isFinite(match.drama) && match.why : true))
     .filter((match) => (statsOnly ? match.hasStats : true))
     .filter((match) => (squadsOnly ? match.hasDetail : true))
     .filter((match) => !filter
@@ -247,6 +252,8 @@ function visibleMatches() {
     // the Top 14 - so the default selection was an unplayed game and the first
     // graphic a new user saw was a fixture card they had not asked for.
     .sort((a, b) => {
+      // Asked for the notable ones, the point is the ranking, not the calendar.
+      if (notableOnly) return (b.drama ?? -1) - (a.drama ?? -1)
       const played = (match) => (match.status === 'final' ? 0 : 1)
       return played(a) - played(b) || new Date(b.kickoff) - new Date(a.kickoff)
     })
@@ -266,6 +273,12 @@ function fillMatchSelect() {
     const squadMark = match.hasDetail ? ' *' : ''
     const date = formatMatchDate(match.kickoff, { timeZone: resolveZone($('timezone').value) })
     option.textContent = `${date} - ${match.home.shortName} ${score} ${match.away.shortName}${squadMark}`
+    // The reason it is worth posting, on the option itself, so the list is a
+    // recommendation rather than an ordering the user has to take on trust.
+    if (match.why) {
+      option.textContent += `  -  ${match.why}`
+      option.title = match.why
+    }
     select.append(option)
   }
 
@@ -571,6 +584,7 @@ function bindEvents() {
   $('season-team').addEventListener('change', render)
   $('match-filter').addEventListener('input', refilterMatches)
   $('only-squads').addEventListener('change', refilterMatches)
+  $('only-notable').addEventListener('change', refilterMatches)
   $('only-stats').addEventListener('change', refilterMatches)
   $('mode').addEventListener('change', render)
   $('player-b').addEventListener('change', render)

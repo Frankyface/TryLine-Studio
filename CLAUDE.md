@@ -126,6 +126,31 @@ undo a chart showing the loser winning.
 `requiresTimeline`. That refuses 80 matches and keeps 658. Do not relax this to
 a caption.
 
+## The drama score zeroes home advantage; the win-prob GRAPHIC does not
+
+`src/analysis/notable.js` ranks matches by how worth posting they are, and it
+runs the model with `h = 0`. The fitted model gives the home side 0.692 at
+kick-off, so an away team that led from the first minute to the last still
+"bottomed out" at 0.308 - 72 of the matches scoring below 0.45 had never
+trailed at all, every one an away win. The measure was reporting the venue.
+Neutralised, a winner who never trailed scores exactly 0.
+
+The win-probability graphic keeps the fitted home advantage, because there it
+is predicting a match; the score is describing one that already happened. The
+two therefore disagree by the home-advantage offset at kick-off, on purpose.
+
+Two branches, `max(comeback, lateDoubt)`, because neither covers the other -
+they share under a quarter of their top 50. A one-point win where nobody ever
+trailed scores zero on the first and high on the second. Do NOT add lead
+changes as a third: it ranks a six-lead-change match that finished 14 points
+apart above genuine thrillers.
+
+**An unscoreable match is not a dull one.** 125 finished matches have no usable
+timeline - every Major League Rugby match (ESPN publishes none at all for it)
+and France 48-46 England, whose feed is missing the winning score. 22 of them
+finished within three points. They carry no `drama` field and must read as
+unrated, never as zero.
+
 ## A club's own season is NOT the league table's season
 
 `season-{year}.json` carries a per-team match list, and it includes play-offs.
@@ -202,6 +227,7 @@ if it ever happens again.
 | `npm run e2e` | Drive the real app in Chromium |
 | `npm run stress` | Label-collision geometry over every real match |
 | `npm run contrast` | Ink contrast against the backdrop actually rendered |
+| `npm run rank` | Score every match for how worth posting it is |
 
 Four scripts need the static server running - shots, stress, contrast and e2e,
 which is four of the five steps in `npm run verify` (`npx serve . -l 4321`, or
