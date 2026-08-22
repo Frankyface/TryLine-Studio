@@ -324,11 +324,38 @@ matching a 400,000-iteration reference to six decimals), the fitter/runtime
 feature parity, all timezone handling across DST and midnight rollover, and
 the malformed-event filtering.
 
+## Player card redesign + audit fixes (2026-08-22)
+
+**The card now leads with one number, or refuses to.** The old card blew up the
+first four non-zero stats in a fixed priority order; measured over all 2,438
+players with stats, its chosen number sat at the 58th percentile of its own
+match and picked METRES for 149 of the 212 props at a median of six.
+`src/analysis/hero.js` benchmarks each stat against the same SHIRT (p90 per
+shirt group in `data/models/hero-stats.json`), puts scoring above volume, and
+returns null for 61% of players, who keep the grid. Measured after: 96th
+percentile at the median, never below the 60th, 0 of 212 props on metres.
+
+Two rules were measured and rejected rather than assumed - requiring a value to
+reach its shirt's p90 (cost a third of the cards, bought 0.02 of percentile)
+and a perfect-rate tier (unreachable: 0 of 2,438). Both are recorded in
+CLAUDE.md so they are not re-opened.
+
+**An audit of the headline change found eight faults**, all fixed: a single
+over-wide word drew off the canvas (the shrink loop only counted lines, never
+width); the label stress harness had stopped measuring the plot the graphic
+draws, so `npm run verify`'s label proof was hollow; the fortress footer still
+repeated its own headline and a two-line headline shrank club names to 15.3px;
+the season tiebreak compared floats exactly and never ran; and the win-prob
+headline printed "down to 0%" for a side that won. The headline geometry now
+has tests and `frame.js` is inside the coverage gate.
+
 ## Next, in rough order
 
-1. Cam's phone check - do these read well in the Instagram feed and story frames?
-   This is the only outstanding item; deployment and the deeper analysis
-   graphics below are both done.
-2. Deeper analysis beyond what is built: scoring-run charts. Rugby has no
+1. Cam's phone check - do these read well in the Instagram feed and story
+   frames? Still the only item needing a human.
+2. The STORY format, generally. The player card is now designed for 9:16 - its
+   number grows into the room rather than being letterboxed - and the other
+   graphics are not. That is the clearest remaining design gap.
+3. Deeper analysis beyond what is built: scoring-run charts. Rugby has no
    shot-chart equivalent in free
    data - no coordinates, no possession-level play-by-play.

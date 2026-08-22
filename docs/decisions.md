@@ -92,3 +92,29 @@ would plate roughly a third of all crests and make the design worse. The dim
 wordmarks that remain (Saracens, Harlequins, Ospreys) are a matter of degree,
 not a defect. Do not re-open without a legibility measure that is not just a
 dark-pixel count.
+
+**2026-08-22 - No playoff or relegation banding on the league table.
+Investigated and declined.** ESPN's standings carry no qualification metadata
+at all: the row is rank/team/played/won/drawn/lost/for/against/difference/
+tries/bonus/points/form, and no file in `data/` contains the words qualify,
+playoff or relegation. Drawing a banding line would mean hard-coding each
+competition's structure by hand - which teams make the play-offs, whether the
+league relegates at all, and for which season - none of it verifiable from the
+source and all of it changing year to year. This project already refuses to
+state what it cannot check (the incomplete-archive note, the blanked form
+column, the refused win curve); a confidently drawn cutoff that is a season out
+of date is the same fault with a line instead of a number. Re-open only if a
+source that actually carries qualification per row is adopted.
+
+**2026-08-22 - The hero stat's benchmark ORDERS, it does not gate.** Requiring
+a value to reach its own shirt's p90 before it can headline was measured and
+rejected: acceptance fell from 38.6% to 26.4% of players while the weakest
+hero's percentile within its own match moved by 0.02. The per-stat floors do
+the gating; the benchmark decides which of several qualifying stats wins.
+
+**2026-08-22 - There is no perfect-rate tier on the player card.** "100% from
+14 tackles" can only be reached by a player who has already cleared the volume
+floor of 12, so the volume tier fires first by construction - 0 of 2,438
+players in the archive ever reached a rate headline. Raising the rate's floor
+cannot help, because the volume floor sits below it. The concrete number is the
+better headline; the rate belongs in the supporting row.
