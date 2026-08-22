@@ -197,7 +197,7 @@ function drawTeamRow(ctx, size, theme, { team, crest, colour, y, box, align }) {
  * accounted for; a constant height left a quarter of the story blank on the
  * 62% of matches that get no caption.
  */
-export function winprobLayout(size, { showCaption = false, headlineHeight = 0 } = {}) {
+export function winprobLayout(size, { headlineHeight = 0 } = {}) {
   const box = contentBox(size)
   const isStory = size.height > size.width
   const top = box.top + scale(size, 48) + scale(size, 34)
@@ -205,7 +205,6 @@ export function winprobLayout(size, { showCaption = false, headlineHeight = 0 } 
   // The headline is now variable - it wraps to one or two lines depending on
   // the sentence - so the chart starts below whatever it measured.
   const chartTop = top + (headlineHeight || scale(size, isStory ? 126 : 92))
-  const captionSpace = scale(size, isStory ? 88 : 70)
   const footerTop = box.bottom - scale(size, 60)
   const teamRowSpace = scale(size, isStory ? 104 : 78) + scale(size, 74)
   const axisSpace = scale(size, 44)
@@ -216,7 +215,6 @@ export function winprobLayout(size, { showCaption = false, headlineHeight = 0 } 
   const gutter = scale(size, 66)
 
   return {
-    captionSpace,
     radius: scale(size, 11),
     labelSize: scale(size, 21),
     gap: scale(size, 15),
@@ -250,20 +248,6 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // Whether the comeback caption will be drawn has to be known BEFORE the plot
   // is sized, or the chart leaves a blank band wherever the caption is skipped.
   const played = match.home.score !== null && match.away.score !== null
-  const isDraw = played && match.home.score === match.away.score
-  const homeWon = played && match.home.score > match.away.score
-  const chanceAt = (point) => (homeWon ? point.homeWin : 1 - point.homeWin)
-  const lowest = played && !isDraw
-    ? curve.slice(1).reduce(
-      (worst, point) => (chanceAt(point) < worst.chance
-        ? { chance: chanceAt(point), minute: point.minute }
-        : worst),
-      { chance: 1, minute: 1 },
-    )
-    : null
-  const showCaption = Boolean(lowest)
-    && lowest.chance < 0.45
-    && lowest.chance < chanceAt(curve[0]) - 0.05
 
 
   drawFrame(ctx, size, theme, { accent })
@@ -295,8 +279,8 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
 
   const headlineHeight = scale(size, 6)
     + headlineLayout(ctx, size, { ...headline, width: headlineWidth }).height
-  const layout = winprobLayout(size, { showCaption, headlineHeight })
-  const { plot, captionSpace } = layout
+  const layout = winprobLayout(size, { headlineHeight })
+  const { plot } = layout
 
   // Y axis: who the top and bottom of the chart belong to.
   for (const [label, y, colour] of [

@@ -94,6 +94,9 @@ export function timelineIsComplete(match) {
  * first minute to the last would otherwise read "down to 31% at 1'" - the
  * measure reporting the venue rather than the match.
  */
+/** Below this the low point is the story; above it, the deficit is. */
+const LOW_POINT = 0.35
+
 export function winprobHeadline(match, model = DEFAULT_MODEL) {
   const steps = scoreSteps(match)
   const home = match?.home?.score
@@ -124,7 +127,13 @@ export function winprobHeadline(match, model = DEFAULT_MODEL) {
   }
 
   if (!deepest) return `${name} never trailed`
-  if (lowest < 0.35) return `${name} down to ${Math.round(lowest * 100)}% at ${lowestMinute}'`
+  if (lowest < LOW_POINT) {
+    // Rounded DOWN, and never below 1. Rounding to nearest printed "down to
+    // 35%" on five matches - the number this branch excludes - and rounding
+    // 0.283% to zero printed "Queensland Reds down to 0%" for a side that won.
+    const percent = Math.max(1, Math.floor(lowest * 100))
+    return `${name} down to ${percent}% at ${lowestMinute}'`
+  }
   return `${name} came from ${deepest} down`
 }
 

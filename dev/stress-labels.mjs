@@ -38,15 +38,17 @@ await page.waitForFunction(() => document.body.dataset.renderState, null, { time
 
 const report = await page.evaluate(async ({ entries, fittedModel }) => {
   const [
-    { buildWinProbabilityCurve, keyMoments, FULL_TIME },
+    { buildWinProbabilityCurve, keyMoments, winprobHeadline, FULL_TIME },
     { placeLabel, rectsOverlap, polylineHitsRect },
     { SIZES, FONTS },
     { winprobLayout },
+    { headlineLayout, contentBox },
   ] = await Promise.all([
     import('/src/analysis/winprob.js'),
     import('/src/render/labels.js'),
     import('/src/render/theme.js'),
     import('/src/render/graphics/winprob.js'),
+    import('/src/render/frame.js'),
   ])
 
   const timelineMarks = { try: 'TRY', penaltyTry: 'PEN TRY', conversion: 'CON', penalty: 'PEN', dropGoal: 'DG', yellowCard: 'YC', redCard: 'RC' }
@@ -66,21 +68,19 @@ const report = await page.evaluate(async ({ entries, fittedModel }) => {
       if (!moments.length) continue
       totals.instances += 1
 
-      // The caption changes the chart height, so the layout must be asked for
-      // the same way the graphic asks for it.
+      // The layout must be asked for exactly the way the graphic asks for it.
+      // Without the measured headline the harness took the fixed fallback and
+      // proved label geometry against a plot 20-101px taller than the one that
+      // gets drawn - a green stress run for a chart that does not exist.
       const match = entry.match
-      const played = match.home.score !== null && match.away.score !== null
-      const isDraw = played && match.home.score === match.away.score
-      const homeWon = played && match.home.score > match.away.score
-      const chanceAt = (p) => (homeWon ? p.homeWin : 1 - p.homeWin)
-      const lowest = played && !isDraw
-        ? curve.slice(1).reduce((worstPoint, p) => (chanceAt(p) < worstPoint.chance
-          ? { chance: chanceAt(p), minute: p.minute } : worstPoint), { chance: 1, minute: 1 })
-        : null
-      const showCaption = Boolean(lowest) && lowest.chance < 0.45
-        && lowest.chance < chanceAt(curve[0]) - 0.05
+      const headline = {
+        finding: winprobHeadline(match, fittedModel),
+        category: 'Win probability',
+      }
+      const headlineHeight = scale(6)
+        + headlineLayout(ctx, size, { ...headline, width: contentBox(size).width - scale(150) }).height
 
-      const { plot, radius, labelSize, gap } = winprobLayout(size, { showCaption })
+      const { plot, radius, labelSize, gap } = winprobLayout(size, { headlineHeight })
       ctx.font = `700 ${labelSize}px "${FONTS.body}", Arial, sans-serif`
 
       const points = curve.map((p) => ({

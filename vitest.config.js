@@ -16,7 +16,11 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/data/**/*.js', 'src/render/format.js', 'src/render/labels.js', 'src/render/series.js',
-        'src/render/availability.js', 'src/render/crest-sizes.js', 'src/analysis/**/*.js'],
+        'src/render/availability.js', 'src/render/crest-sizes.js', 'src/analysis/**/*.js',
+        // frame.js is in the gate for its GEOMETRY, which is pure measurement
+        // and takes no theme: it decides how much room a headline reserves,
+        // and an unbreakable word once drew 1075px into 762px of space.
+        'src/render/frame.js'],
       // Excluded because they are browser-only shells rather than logic, and
       // the e2e suite drives both against a real browser:
       //   client.js - a thin fetch wrapper over the static data files

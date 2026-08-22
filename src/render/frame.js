@@ -140,13 +140,28 @@ export function headlineLayout(ctx, size, { finding, category, width } = {}) {
     return lines
   }
 
+  const options = (fontSize) => ({
+    size: fontSize, weight: 700, family: FONTS.display, uppercase: true, tracking: 1,
+  })
+  const overflows = (candidates, fontSize) =>
+    candidates.some((line) => measureText(ctx, line, options(fontSize)) > available)
+
   let fontSize = scale(size, isStory ? 74 : 62)
   let lines = fit(fontSize)
-  while (lines.length > HEADLINE_MAX_LINES && fontSize > scale(size, 30)) {
+  // Shrink for a line that is too LONG as well as for too many lines. A single
+  // over-wide word can never make the line count exceed two - `fit` only
+  // breaks at spaces - so a one-token club name from manual entry drew clean
+  // off the canvas at full size: "Ballynahinch-Rugby-Football-Club" measured
+  // 1075px into 762px of room, sliced by the frame edge.
+  while ((lines.length > HEADLINE_MAX_LINES || overflows(lines, fontSize))
+    && fontSize > scale(size, 30)) {
     fontSize -= scale(size, 2)
     lines = fit(fontSize)
   }
+  // At the floor, an unbreakable word still may not fit, and every other text
+  // site in this project ellipses rather than overflowing.
   lines = lines.slice(0, HEADLINE_MAX_LINES)
+    .map((line) => truncateText(ctx, line, available, options(fontSize)))
 
   const lineHeight = fontSize * 1.06
   return { height: kicker + lines.length * lineHeight + scale(size, 16), lines, fontSize, kicker }

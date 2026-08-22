@@ -118,14 +118,25 @@ export function seasonBounds(profile, padding = 0.12) {
  * fact. Measured across every drawable table, the leader's attack-minus-
  * defence runs 8.9 to 18.9 points a game - no season produces a mundane one.
  *
- * The tiebreak is not decorative: URC 2026 has two clubs on exactly 8.889, and
- * without it the headline changes between renders of the same data.
+ * The tiebreak is not decorative, and it compares to a TOLERANCE rather than
+ * exactly: URC 2026's two leading clubs are 8.8888888888888893 and
+ * 8.8888888888888857 - a difference of 3.6e-15, which is division noise and
+ * not a lead. Compared exactly the first key never returns zero, so the rule
+ * never ran and the club was picked by the last bit of a float.
  */
+const TIED = 1e-9
+
+/** Ordered comparison that treats a difference below the tolerance as a tie. */
+const by = (value) => (a, b) => {
+  const difference = value(a) - value(b)
+  return Math.abs(difference) < TIED ? 0 : difference
+}
+
 export function seasonHeadline(table) {
   const profile = seasonProfile(table)
-  const best = [...profile.teams].sort((a, b) => (b.attack - b.defence) - (a.attack - a.defence)
-    || b.attack - a.attack
-    || a.defence - b.defence
+  const best = [...profile.teams].sort((a, b) => by((team) => team.defence - team.attack)(a, b)
+    || by((team) => -team.attack)(a, b)
+    || by((team) => team.defence)(a, b)
     || (a.rank ?? 99) - (b.rank ?? 99))[0]
   if (!best) return ''
   const name = best.team?.shortName || best.team?.name || ''

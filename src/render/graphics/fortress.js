@@ -9,6 +9,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, withAlpha, fillRoundRect, truncateText, crestFallback,
+  measureText,
   pageSurface,
 } from '../primitives.js'
 import {
@@ -89,7 +90,7 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
   const box = contentBox(size)
   const isStory = size.height > size.width
   const accent = resolveAccent(theme, { accent: options.accent })
-  const rows = fortressRows(season, { limit: options.limit || (isStory ? 16 : 14) })
+  const allRows = fortressRows(season, { limit: options.limit || (isStory ? 16 : 14) })
   const highlights = fortressHighlights(season)
 
   drawFrame(ctx, size, theme, { accent })
@@ -126,8 +127,20 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
   // Wide enough for the long ones - "Stade Francais Paris", "Montpellier
   // Herault" - rather than truncating half the league.
   const nameWidth = scale(size, 292)
+  // Clear of the headline, but the LIST does not pay for a two-line one: it
+  // used to, and a wrapped headline shrank club names to 15.3px on the two
+  // biggest leagues - smaller than anything else the app draws. The rows keep
+  // their height and the headline overhang is taken off the top instead.
   const listTop = Math.max(headlineBottom + scale(size, 22), top + scale(size, isStory ? 170 : 138))
   const listBottom = box.bottom - scale(size, isStory ? 150 : 128)
+
+  // Type size follows row height, so a two-line headline used to shrink every
+  // club name with it - measured 17.6px down to 15.3px on URC and Top 14,
+  // smaller than the footer. Rows are DROPPED instead of squeezed: the footer
+  // already says "top N of M", so a shorter list is stated, and an unreadable
+  // one is not.
+  const MIN_ROW = scale(size, 34)
+  const rows = allRows.slice(0, Math.max(6, Math.floor((listBottom - listTop) / MIN_ROW)))
   const rowHeight = (listBottom - listTop) / rows.length
 
   const track = {
@@ -152,6 +165,19 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     ctx.lineTo(x, track.bottom)
     ctx.stroke()
     ctx.restore()
+
+    // Labelled where it is, rather than explained in the footer. The footer
+    // said "home sides win 68%" beside a headline reading "THE HOME SIDE WINS
+    // 68% OF THE TIME", and spelling it out there instead ran the legend past
+    // the width and truncated "gap in points".
+    const label = 'LEAGUE AVG'
+    const half = measureText(ctx, label, { size: scale(size, 16), family: FONTS.body, tracking: 2 }) / 2
+    drawText(ctx, label,
+      Math.min(Math.max(x, track.left + half), track.right - half),
+      track.bottom + scale(size, 26), {
+        size: scale(size, 16), weight: 700, family: FONTS.body,
+        color: withAlpha(accent, 0.85), align: 'center', baseline: 'middle', tracking: 2,
+      })
   }
 
   const crests = await Promise.all(rows.map((row) => loadCrestImage(row.team.logo, scale(size, 36))))
@@ -212,13 +238,13 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     })
   }
 
-  const leagueRate = highlights.leagueHomeWinRate === null
-    ? ''
-    : `home sides win ${formatRate(highlights.leagueHomeWinRate)}`
+  // The league rate is NOT repeated here: it is the headline, and printing
+  // "home sides win 68%" under "THE HOME SIDE WINS 68% OF THE TIME" spends a
+  // second line of the card saying the same thing. The dashed line on the
+  // chart is what the footer has to explain instead.
   drawFooter(ctx, size, theme, {
     left: [
       rows.length < (season.teams?.length ?? 0) ? `top ${rows.length} of ${season.teams.length}` : `${season.matches} matches`,
-      leagueRate,
       'gap in points',
     ].filter(Boolean).join('  -  '),
     right: options.handle || season.competition.abbreviation || '',
