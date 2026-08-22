@@ -21,7 +21,35 @@ export const meta = Object.freeze({
   requiresSquad: false,
 })
 
-const AWAY_TINT = 0.3
+/**
+ * Away is a hollow ring, home a solid disc, both in full-strength accent.
+ *
+ * Fading the away end out instead measured 1.51:1 against the page on chalk -
+ * half the data on the chart, effectively invisible. Shape carries the
+ * difference now, which survives any theme, any accent, and readers who cannot
+ * separate the two by colour at all.
+ */
+function drawEnd(ctx, x, y, radius, { accent, theme, hollow, ringWidth }) {
+  ctx.save()
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  if (hollow) {
+    // Punched out of the page rather than the connector, so the ring reads as
+    // an outline instead of a disc sitting on a line.
+    ctx.fillStyle = theme.bg
+    ctx.fill()
+    ctx.strokeStyle = accent
+    ctx.lineWidth = ringWidth
+    ctx.stroke()
+  } else {
+    ctx.fillStyle = accent
+    ctx.fill()
+    ctx.strokeStyle = theme.bg
+    ctx.lineWidth = ringWidth
+    ctx.stroke()
+  }
+  ctx.restore()
+}
 
 function drawScale(ctx, size, theme, track) {
   for (const level of [0, 0.25, 0.5, 0.75, 1]) {
@@ -73,12 +101,9 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
   const keyY = top + scale(size, 74)
   const keyGap = scale(size, 150)
   const dot = scale(size, 13)
-  for (const [index, [label, colour]] of [['Away', withAlpha(accent, AWAY_TINT)], ['Home', accent]].entries()) {
+  for (const [index, [label, hollow]] of [['Away', true], ['Home', false]].entries()) {
     const x = box.right - keyGap * (2 - index) + scale(size, 40)
-    ctx.beginPath()
-    ctx.arc(x, keyY, dot, 0, Math.PI * 2)
-    ctx.fillStyle = colour
-    ctx.fill()
+    drawEnd(ctx, x, keyY, dot, { accent, theme, hollow, ringWidth: scale(size, 3) })
     drawText(ctx, label, x + scale(size, 22), keyY + scale(size, 1), {
       size: scale(size, 21),
       weight: 700,
@@ -151,16 +176,8 @@ export async function draw(ctx, { season, size, theme, options = {} }) {
     fillRoundRect(ctx, Math.min(awayX, homeX), y - barHeight / 2,
       Math.abs(homeX - awayX), barHeight, barHeight / 2, withAlpha(accent, 0.35))
 
-    for (const [x, colour] of [[awayX, withAlpha(accent, AWAY_TINT)], [homeX, accent]]) {
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(x, y, dot, 0, Math.PI * 2)
-      ctx.fillStyle = colour
-      ctx.fill()
-      ctx.strokeStyle = theme.bg
-      ctx.lineWidth = scale(size, 3)
-      ctx.stroke()
-      ctx.restore()
+    for (const [x, hollow] of [[awayX, true], [homeX, false]]) {
+      drawEnd(ctx, x, y, dot, { accent, theme, hollow, ringWidth: scale(size, 3) })
     }
 
     const gapLabel = `${row.gap >= 0 ? '+' : ''}${Math.round(row.gap * 100)}`

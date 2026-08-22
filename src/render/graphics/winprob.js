@@ -292,7 +292,7 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
       size: scale(size, 19),
       weight: 700,
       family: FONTS.body,
-      color: colour === theme.inkFaint ? theme.inkFaint : contrastAccent(colour, theme.bg, { fallback: theme.ink }),
+      color: colour === theme.inkFaint ? theme.inkFaint : contrastAccent(colour, theme.bg, { minRatio: 4.5, fallback: theme.ink }),
       align: 'right',
       baseline: 'middle',
     })

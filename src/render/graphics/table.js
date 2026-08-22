@@ -4,7 +4,8 @@
  */
 import { FONTS, scale } from '../theme.js'
 import {
-  drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider, crestFallback,
+  drawText, drawCrest, loadCrestImage, truncateText, withAlpha, fillRoundRect, drawDivider,
+  crestFallback, contrastAccent,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formLetters } from '../format.js'
@@ -17,10 +18,16 @@ export const meta = Object.freeze({
   requiresSquad: false,
 })
 
-/** Win/loss keep their universal meaning; draws follow the theme. */
+/**
+ * Win/loss keep their universal meaning; draws follow the theme.
+ *
+ * Run through contrastAccent like every other data colour: hardcoded, the
+ * green measured 1.39:1 on the light theme - a win dot that is simply not
+ * there - and the red fell under 3:1 on midnight and turf.
+ */
 const formColor = (letter, theme) => {
-  if (letter === 'W') return '#25D07A'
-  if (letter === 'L') return '#E5344A'
+  if (letter === 'W') return contrastAccent('#25D07A', theme.bg, { minRatio: 3, fallback: theme.ink })
+  if (letter === 'L') return contrastAccent('#E5344A', theme.bg, { minRatio: 3, fallback: theme.ink })
   return theme.inkMuted
 }
 

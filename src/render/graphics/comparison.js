@@ -73,9 +73,12 @@ function drawRow(ctx, size, theme, { row, y, height, box, colours }) {
   // theme but not a light one - a 45% yellow measured 1.14:1 against its own
   // row band. On light themes the loser keeps full opacity and is distinguished
   // by height instead.
+  // 0.24 was too far: the loser measured 1.51:1 against its own row band on
+  // every dark theme, readable only because the winner sat beside it. Height
+  // now carries the difference on BOTH themes, so opacity does not have to.
   const isLightTheme = luminance(theme.bg) > 0.5
-  const dim = (colour, isLeader) => withAlpha(colour, isLeader || isLightTheme ? 0.95 : 0.24)
-  const barScale = (isLeader) => (isLeader || !isLightTheme ? 1 : 0.55)
+  const dim = (colour, isLeader) => withAlpha(colour, isLeader ? 0.95 : 0.6)
+  const barScale = (isLeader) => (isLeader ? 1 : 0.62)
 
   const leftLeads = row.leader !== 'right'
   const rightLeads = row.leader !== 'left'

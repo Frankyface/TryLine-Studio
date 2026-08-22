@@ -233,7 +233,7 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
     drawText(ctx, venue, centreX,
       isLoss ? track.zero - scale(size, 40) : track.zero + scale(size, 58), {
         size: scale(size, isStory ? 17 : 14), weight: 600, family: FONTS.body,
-        align: 'center', color: withAlpha(theme.ink, 0.35),
+        align: 'center', color: theme.inkFaint,
       })
   })
 
@@ -279,7 +279,11 @@ export async function draw(ctx, { season, table, size, theme, options = {} }) {
     }
     drawText(ctx, truncateText(ctx, caption, box.width, captionOptions),
       box.centerX, captionBaseline, {
-        ...captionOptions, align: 'center', color: withAlpha(accent, 0.9),
+        ...captionOptions,
+        align: 'center',
+        // At 0.9 alpha over a 3.5:1 accent this landed at 3.01:1. It is 20px
+        // body text, so it needs the body-text bar.
+        color: contrastAccent(accent, theme.bg, { minRatio: 4.5, fallback: theme.ink }),
       })
   }
 }
