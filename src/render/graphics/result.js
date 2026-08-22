@@ -81,7 +81,13 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   // Status pill, centred above the score. The ink is chosen against the pill
   // it lands on, not assumed: white on the 90% live red measured 3.86:1 on the
   // light theme, and a live pill is the one a fan stares at.
+  // An unplayed fixture has no scorers, so the band reserved for them is dead
+  // canvas - 48% of the content box once scheduled matches started carrying a
+  // null score instead of 0-0. With nothing to sit below it, the hero block
+  // drops to the middle of the space instead.
+  const hasScorers = match.home.score !== null && match.away.score !== null
   const pillY = top + scale(size, isStory ? 96 : 8)
+    + (hasScorers ? 0 : scale(size, isStory ? 300 : 190))
   const isLive = match.status === MATCH_STATUS.LIVE
   const pillFill = isLive
     ? composite('#E5344A', 0.9, theme.bg)

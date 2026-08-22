@@ -45,7 +45,19 @@ for (const competitionId of readdirSync(dataDir)) {
     const match = JSON.parse(readFileSync(matchPath, 'utf8'))
     const stats = hasPlayerStats(match)
     if (stats) withStats += 1
-    return { ...row, hasDetail: Boolean(match.home?.squad?.length), hasStats: stats }
+    // The match file is the authority on the score and the status. Spreading
+    // the old row carried a literal 0-0 on every unplayed fixture long after
+    // the match files had been corrected to null, so the picker read
+    // "Section Paloise 0-0 Bayonne" for a game in April and the app's own
+    // null branch was unreachable.
+    return {
+      ...row,
+      status: match.status ?? row.status,
+      home: { ...row.home, score: match.home?.score ?? null },
+      away: { ...row.away, score: match.away?.score ?? null },
+      hasDetail: Boolean(match.home?.squad?.length),
+      hasStats: stats,
+    }
   })
 
   index.withStats = withStats

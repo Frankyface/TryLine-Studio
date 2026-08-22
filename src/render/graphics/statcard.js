@@ -111,7 +111,10 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
   const surnameSize = fitTextSize(ctx, surname, box.width, {
     max: scale(size, 108), min: scale(size, 44), weight: 700, uppercase: true,
   })
-  drawText(ctx, surname, box.left, nameTop + scale(size, 74), {
+  // Leading set from the surname's own size rather than a fixed 74: at the
+  // largest fitted size the two names' boxes overlapped by 3px, which is tight
+  // leading rather than an ink collision, but it varies with the name.
+  drawText(ctx, surname, box.left, nameTop + scale(size, 52) + surnameSize * 0.32, {
     size: surnameSize, weight: 700, color: theme.ink, uppercase: true, tracking: 1,
   })
 
