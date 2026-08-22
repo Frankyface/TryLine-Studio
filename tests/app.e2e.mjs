@@ -8,7 +8,7 @@
  * Usage: node tests/app.e2e.mjs [--url http://localhost:4321/]
  */
 import { chromium } from 'playwright'
-import { mkdirSync, rmSync, existsSync } from 'node:fs'
+import { mkdirSync, rmSync, existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 
@@ -308,6 +308,40 @@ await download.saveAs(savedPath)
 check('exports a feed PNG', existsSync(savedPath), download.suggestedFilename())
 check('export filename describes the graphic', /-table-feed\.png$/.test(download.suggestedFilename()),
   download.suggestedFilename())
+
+// The SET button, which is the one a club actually presses. Nothing had ever
+// driven it: the single-size export above was the only export under test, so
+// a set that saved one file, or a story at feed dimensions, would have shipped.
+const setFiles = []
+const collectSet = async (item) => {
+  const to = join(downloadDir, item.suggestedFilename())
+  await item.saveAs(to)
+  setFiles.push(to)
+}
+page.on('download', collectSet)
+await page.click('#export-set')
+await page.waitForFunction(() => /^Saved /.test(document.getElementById('status')?.textContent || ''),
+  null, { timeout: 30000 }).catch(() => null)
+await page.waitForTimeout(1200)
+page.off('download', collectSet)
+
+check('the Instagram set saves both sizes', setFiles.length === 2, `${setFiles.length} file(s)`)
+
+// Dimensions straight from the PNG header: a story saved at feed size is the
+// failure this is here to catch, and both files existing does not rule it out.
+const pngShape = (file) => {
+  const buffer = readFileSync(file)
+  const isPng = buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+  return { isPng, width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20), bytes: buffer.length }
+}
+const shapes = setFiles.map(pngShape)
+check('every file in the set is a real PNG with bytes in it',
+  shapes.length > 0 && shapes.every((shape) => shape.isPng && shape.bytes > 10000),
+  shapes.map((shape) => `${Math.round(shape.bytes / 1024)}KB`).join(', '))
+check('the set is one feed and one story, at full size',
+  shapes.some((shape) => shape.width === 1080 && shape.height === 1080)
+  && shapes.some((shape) => shape.width === 1080 && shape.height === 1920),
+  shapes.map((shape) => `${shape.width}x${shape.height}`).join(', '))
 
 // Manual entry: no API involved.
 await page.click('[data-source="manual"]')

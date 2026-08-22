@@ -107,8 +107,16 @@ Across 1,147 downloaded matches:
   player card.
 - Summed player points equal the final score in 102/106 team-matches. The four
   failures are all exactly -7 and the `timeline` is short by the same amount:
-  ESPN dropped a converted try. Gate any tries/points row on reconciliation;
-  take the scoreline from `home.score`, which is always right.
+  ESPN dropped a converted try. Take the scoreline from `home.score`, which is
+  always right. `compareTeams` now DROPS a summed tries or points row when
+  either squad fails to reconcile, and `heroStat` withholds a scoring headline
+  on the same test - both were documented as required here long before either
+  existed, and the only reason nothing shipped wrong from the comparison is
+  that `TEAM_STAT_KEYS` happens to list neither key.
+
+  Per-PLAYER tiles are deliberately NOT gated: "Arundell 3 tries" is true
+  whatever the squad sums to. What reconciliation protects is a claim about the
+  whole - a team total, or "most in the match".
 - Tackles run ~25% above a "tackles made" convention (ESPN appears to count
   assists), so do not caption them one-per-tackle.
 

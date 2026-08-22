@@ -238,6 +238,25 @@ describe('against a real international', () => {
     expect(aggregateSquad(realMatch.away.squad).points).toBe(realMatch.away.score)
   })
 
+  it.skipIf(!available)('withholds a summed scoring row when it contradicts the scoreline', () => {
+    // The one row here that can disagree with the score printed on the same
+    // graphic. ESPN drops a converted try in 4 of the 106 team-matches with
+    // stats, always by exactly 7, so a squad sums to 41 in a match it won 48.
+    const short = {
+      ...realMatch,
+      home: {
+        ...realMatch.home,
+        score: realMatch.home.score + 7,
+      },
+    }
+    const keys = [...TEAM_STAT_KEYS, 'tries', 'points']
+    expect(compareTeams(realMatch, keys).map((row) => row.key)).toContain('points')
+    expect(compareTeams(short, keys).map((row) => row.key)).not.toContain('points')
+    expect(compareTeams(short, keys).map((row) => row.key)).not.toContain('tries')
+    // Play stats are untouched: a missing conversion says nothing about metres.
+    expect(compareTeams(short, keys).map((row) => row.key)).toContain('metres')
+  })
+
   it.skipIf(!available)('fills every default team row', () => {
     const rows = compareTeams(realMatch, TEAM_STAT_KEYS)
     expect(rows).toHaveLength(TEAM_STAT_KEYS.length)

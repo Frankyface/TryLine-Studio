@@ -233,12 +233,39 @@ export function buildComparison(leftStats, rightStats, keys) {
   })
 }
 
-/** Team versus team, aggregated from both squads. */
+/**
+ * Rows that are a claim about the SCORELINE rather than about play, and so
+ * cannot be shown from summed player stats unless those stats add up.
+ */
+const SCORING_ROWS = Object.freeze(['tries', 'points'])
+
+/** Whether a squad's own stat lines add up to the score it was given. */
+const squadReconciles = (squad, score) => Number.isFinite(score)
+  && (squad || []).reduce((total, player) => total + (player?.stats?.points || 0), 0) === score
+
+/**
+ * Team versus team, aggregated from both squads.
+ *
+ * A summed points or tries row is the one row here that can contradict the
+ * scoreline printed at the top of the same graphic: ESPN drops a converted try
+ * in 4 of the 106 team-matches carrying stats, always by exactly 7, so England
+ * sums to 41 in a match they won 48-46. CLAUDE.md has required this gate since
+ * the fault was found; it was never implemented, and the only reason nothing
+ * shipped wrong is that `TEAM_STAT_KEYS` happens not to list either key. That
+ * is one edit away from being untrue, so the rule lives in code now.
+ *
+ * Play stats - metres, tackles, rucks - are unaffected: they are not derivable
+ * from the score and a missing conversion says nothing about them.
+ */
 export function compareTeams(match, keys = TEAM_STAT_KEYS) {
+  const agrees = squadReconciles(match?.home?.squad, match?.home?.score)
+    && squadReconciles(match?.away?.squad, match?.away?.score)
+  const usable = agrees ? keys : keys.filter((key) => !SCORING_ROWS.includes(key))
+
   return buildComparison(
     aggregateSquad(match?.home?.squad || []),
     aggregateSquad(match?.away?.squad || []),
-    keys,
+    usable,
   )
 }
 
