@@ -133,3 +133,12 @@ is. A mark drawn where the club is not is a worse fault than an axis that
 exaggerates attack differences, especially on a chart whose readings are
 "which quadrant" and "how extreme". Re-open only with a layout that buys the
 aspect back without crowding.
+
+**2026-09-03 - Hand-supplied crests override the ESPN mirror, from a manifest.**
+ESPN has no crest for Vannes, Bayonne or Perpignan and its "500px" club
+crests measure 160px wide, drawn at 300px on a result card. Club-supplied
+badges (SVG where available) live in `assets/crest-sources`, are named in
+`scripts/crest-overrides.json` by ESPN team id, and `apply-crest-overrides`
+renders them after every mirror so the weekly refresh cannot undo them. A
+raster source is never upscaled. Where ESPN gives a club two ids, an alias
+shares one set of files rather than shipping a copy.

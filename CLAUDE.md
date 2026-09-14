@@ -19,6 +19,17 @@ Rugby matchday graphics generator. Read `handoff.md` for current state, then
   Mirrored at two sizes they are served same-origin and cached; a league
   table's crests now weigh 34-139 KB depending on the competition. Use
   `loadCrestImage(logo, px)` and pass the size you actually draw at.
+- **Hand-supplied crests go through `scripts/crest-overrides.json`, never
+  straight into `assets/crests`.** `npm run refresh` re-downloads every crest
+  ESPN serves and blanks every one it does not, so a file dropped into
+  `assets/crests` is overwritten or orphaned the following week. Put the
+  source (SVG preferred) in `assets/crest-sources`, name it in the manifest
+  against the ESPN team id, and `apply-crest-overrides` renders it at both
+  sizes and repoints the data after every mirror. ESPN's "500px" club crests
+  measure 160px wide; a vector source is the only way a 300px result-card
+  crest is sharp. Where ESPN gives one club two ids (the standings and the
+  scoreboard disagree - Pau is 270567 and 289553), an `alias` points the
+  second at the first's files.
 - **A real number must never draw as nothing.** A proportional bar can collapse
   to zero width; floor it. This shipped on 565 rows of a default card.
 - **Never judge a chart by one fixture.** The demo match in `dev/preview.html`
@@ -162,7 +173,10 @@ hit-test the controls at 390px.
 - **Some club crests are permanently 404 at ESPN.** `mirror-crests` blanks the
   url so the monogram draws with no request; leaving it made the live site
   retry a failing cross-origin request on every page view. 12 team crests and
-  8 competition badges currently carry a blank url for this reason.
+  8 competition badges currently carry a blank url for this reason. The fix
+  for a club is a hand-supplied crest via `scripts/crest-overrides.json`
+  (Vannes, Bayonne and Perpignan are done that way), not a file in
+  `assets/crests`.
 - **`T00:00Z` means the kick-off has not been announced**, not midnight. 90 of
   1,147 matches carry it, 77 of them Top 14. `formatKickoffTime` returns '' for
   it and the matchday pill collapses.
@@ -471,6 +485,7 @@ if it ever happens again.
 | `npm run seasons` | Build per-team home/away records for the season charts |
 | `npm run repair` | Fix known data faults in files already on disk |
 | `npm run crests` | Mirror and downscale team crests into assets/crests |
+| `npm run crests:manual` | Render hand-supplied crests from assets/crest-sources over the mirrored ones and repoint the data |
 | `npm run fit` | Refit the win-probability model |
 | `npm run shots` | Render every graphic to `dev/shots/` |
 | `npm run e2e` | Drive the real app in Chromium |

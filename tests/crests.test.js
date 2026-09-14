@@ -45,6 +45,39 @@ function collectLogos() {
 const logos = collectLogos()
 const local = logos.filter((logo) => logo.startsWith('assets/crests/'))
 
+/** Every object carrying both a team `id` and a `logo`, anywhere in any of our shapes. */
+function eachTeam(payload, visit) {
+  if (!payload || typeof payload !== 'object') return
+  if (typeof payload.logo === 'string' && payload.id != null) visit(payload)
+  for (const value of Object.values(payload)) {
+    if (Array.isArray(value)) value.forEach((entry) => eachTeam(entry, visit))
+    else if (value && typeof value === 'object') eachTeam(value, visit)
+  }
+}
+
+function collectTeams() {
+  const teams = []
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const path = join(dir, entry)
+      if (statSync(path).isDirectory()) walk(path)
+      else if (entry.endsWith('.json')) {
+        try { eachTeam(JSON.parse(readFileSync(path, 'utf8')), (team) => teams.push({ id: String(team.id), logo: team.logo })) } catch { /* covered elsewhere */ }
+      }
+    }
+  }
+  if (existsSync(dataDir)) walk(dataDir)
+  return teams
+}
+
+const overridesPath = join(root, 'scripts', 'crest-overrides.json')
+const sourceDir = join(root, 'assets', 'crest-sources')
+const overrides = existsSync(overridesPath)
+  ? JSON.parse(readFileSync(overridesPath, 'utf8'))
+  : { sources: {}, aliases: {} }
+const sources = overrides.sources || {}
+const aliases = overrides.aliases || {}
+
 describe('mirrored crests', () => {
   it.skipIf(!logos.length)('has data to check', () => {
     expect(logos.length).toBeGreaterThan(0)
@@ -73,5 +106,43 @@ describe('mirrored crests', () => {
     )
     const orphans = readdirSync(crestDir).filter((file) => !referenced.has(file))
     expect(orphans).toEqual([])
+  })
+})
+
+/**
+ * Hand-supplied crests are re-rendered after every refresh by
+ * scripts/apply-crest-overrides.mjs, from scripts/crest-overrides.json. A
+ * manifest entry with no file, a file with no entry, or data still pointing
+ * at ESPN's copy would each fail silently into a monogram or a stale badge.
+ */
+describe('hand-supplied crests', () => {
+  it('has a source file for every override', () => {
+    const missing = Object.entries(sources)
+      .filter(([, file]) => !existsSync(join(sourceDir, file)))
+      .map(([id, file]) => `${id}: ${file}`)
+    expect(missing).toEqual([])
+  })
+
+  it.skipIf(!existsSync(sourceDir))('ships no source file the manifest does not name', () => {
+    const named = new Set(Object.values(sources))
+    expect(readdirSync(sourceDir).filter((file) => !named.has(file))).toEqual([])
+  })
+
+  it('aliases only ids that have a crest', () => {
+    const dangling = Object.entries(aliases)
+      .filter(([, target]) => !sources[target]
+        && !CREST_SIZES.every((size) => existsSync(join(crestDir, `${target}@${size}.png`))))
+      .map(([id, target]) => `${id} -> ${target}`)
+    expect(dangling).toEqual([])
+  })
+
+  it.skipIf(!logos.length)('is what the data points at for every overridden id', () => {
+    const targetOf = (id) => aliases[id] ?? (sources[id] ? id : null)
+    const wrong = []
+    for (const { id, logo } of collectTeams()) {
+      const target = targetOf(id)
+      if (target && logo !== `assets/crests/${target}`) wrong.push(`${id}: ${logo || '(blank)'}`)
+    }
+    expect([...new Set(wrong)]).toEqual([])
   })
 })
