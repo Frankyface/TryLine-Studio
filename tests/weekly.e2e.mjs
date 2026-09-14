@@ -21,6 +21,8 @@ const browser = await chromium.launch()
 const errors = []
 try {
   const page = await browser.newPage()
+  // The archived preview fixture must not disappear when CI runs after its date.
+  await page.clock.setFixedTime(new Date('2026-09-14T12:00:00Z'))
   page.on('pageerror', (error) => errors.push(error.message))
   page.on('response', (r) => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`) })
   for (const pack of calendar.packs) {
