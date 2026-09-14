@@ -30,10 +30,14 @@ const full = matchWith({
   away: { score: 10, squad: squad({ metres: 30 }) },
   timeline: [
     { minute: 10, side: 'home', type: 'try', homeScore: 5, awayScore: 0 },
+    { minute: 20, side: 'away', type: 'try', homeScore: 5, awayScore: 5 },
     { minute: 30, side: 'away', type: 'try', homeScore: 5, awayScore: 10 },
+    { minute: 40, side: 'home', type: 'try', homeScore: 10, awayScore: 10 },
+    { minute: 50, side: 'home', type: 'try', homeScore: 15, awayScore: 10 },
     { minute: 60, side: 'home', type: 'try', homeScore: 20, awayScore: 10 },
   ],
 })
+full.status = 'final'
 
 describe('every graphic declares what it actually needs', () => {
   it.each(GRAPHICS.map((g) => [g.meta.id, g]))('%s blocks on no data at all', (_id, graphic) => {

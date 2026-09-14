@@ -38,5 +38,6 @@ jobs:
             dev/shots/
             dev/app-shots/
             dev/posts/verification/
+            dev/posts/weekly-verification/
             server.log
           retention-days: 7

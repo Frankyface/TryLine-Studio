@@ -12,10 +12,15 @@ import * as comparison from './graphics/comparison.js'
 import * as scatter from './graphics/scatter.js'
 import * as fortress from './graphics/fortress.js'
 import * as teamseason from './graphics/teamseason.js'
+import * as matchflow from './graphics/matchflow.js'
+import * as weeklyfixtures from './graphics/weeklyfixtures.js'
+import * as weeklyresults from './graphics/weeklyresults.js'
+import * as weeklyanalysis from './graphics/weeklyanalysis.js'
+import * as scoringspotlight from './graphics/scoringspotlight.js'
 
 export const GRAPHICS = Object.freeze([
   result, matchday, teamsheet, statcard, table, winprob, comparison, scatter, fortress,
-  teamseason,
+  teamseason, matchflow, weeklyfixtures, weeklyresults, weeklyanalysis, scoringspotlight,
 ])
 
 export const GRAPHIC_BY_ID = Object.freeze(
@@ -27,7 +32,7 @@ export const GRAPHIC_BY_ID = Object.freeze(
  * The canvas is resized to the format, cleared, then handed to the graphic.
  */
 export async function renderGraphic(canvas, graphicId, {
-  match, table: tableData, season, size, theme, options,
+  match, table: tableData, season, week, size, theme, options,
 }) {
   const graphic = GRAPHIC_BY_ID[graphicId]
   if (!graphic) throw new Error(`Unknown graphic: ${graphicId}`)
@@ -38,6 +43,6 @@ export async function renderGraphic(canvas, graphicId, {
   ctx.clearRect(0, 0, size.width, size.height)
   ctx.textRendering = 'geometricPrecision'
 
-  await graphic.draw(ctx, { match, table: tableData, season, size, theme, options })
+  await graphic.draw(ctx, { match, table: tableData, season, week, size, theme, options })
   return canvas
 }

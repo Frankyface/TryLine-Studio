@@ -103,9 +103,11 @@ article{background:#151f30;border:1px solid #334155;border-radius:12px;overflow:
 a{color:#54e49c}details{font-size:12px;color:#b8c5d8;overflow-wrap:anywhere}</style><main>
 <header><small>TryLine Studio · Posting preview</small><h1>${escape(title)}</h1>
 <p>${bundle.cards.length} graphics · ${escape(bundle.timeZone)} · ${escape(bundle.status)}. Review captions and images before publishing.</p>
+${bundle.state ? `<p>Readiness: ${escape(bundle.state)} · Planned slot: ${escape(bundle.publishAt)}. Publishing is not connected.</p>` : ''}
+${bundle.warnings?.length ? `<ul>${bundle.warnings.map((warning) => `<li>${escape(warning)}</li>`).join('')}</ul>` : ''}
 <a href="plan.json">Download posting manifest</a></header><section class="grid">${bundle.cards.map((card) => `
 <article><a href="${escape(card.file)}"><img src="${escape(card.file)}" width="${card.width}" height="${card.height}" alt="${escape(card.altText)}" loading="lazy"></a>
-<div class="details"><small>${escape(card.format)} · ${card.width} × ${card.height}</small><h2>${card.order}. ${escape(GRAPHIC_BY_ID[card.graphicId].meta.label)}</h2>
+<div class="details"><small>${escape(card.format)} · ${card.width} × ${card.height}${card.carousel ? ` · Carousel ${card.carousel}, slide ${card.slide}` : ''}</small><h2>${card.order}. ${escape(GRAPHIC_BY_ID[card.graphicId].meta.label)}</h2>
 <pre>${escape(card.caption)}</pre><a href="${escape(card.file)}" download>Download JPEG</a>
 <details><summary>Post details</summary>${escape(card.id)}<br>${escape(card.sha256)}</details></div></article>`).join('')}
 </section></main></html>`

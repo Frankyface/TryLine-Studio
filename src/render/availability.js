@@ -13,6 +13,7 @@ import { canPlotSeason } from '../analysis/season.js'
 import { canPlotFortress } from '../analysis/fortress.js'
 import { pickPlayerStats } from './format.js'
 import { timelineIsComplete, timelineTotal } from '../analysis/winprob.js'
+import { matchFlow } from '../analysis/match-flow.js'
 
 /** A team sheet with no numbers on it is a list of names, not a stat source. */
 export const squadHasStats = (squad = []) =>
@@ -49,6 +50,14 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
   const { match, table, season, source } = snapshot
   const needs = graphic.meta.needs
 
+  if (needs === 'week') {
+    const week = snapshot.week
+    if (!week) return 'Open Weekly studio to choose a league and week.'
+    if (graphic.meta.id === 'weeklyfixtures') return week.upcoming?.length ? '' : 'No upcoming fixtures in this week.'
+    if (graphic.meta.id === 'scoringspotlight') return week.spotlights?.[options.spotlightIndex || 0] ? '' : 'No verified scoring spotlight.'
+    return week.finals?.length ? '' : 'No completed results in this week.'
+  }
+
   if (needs === 'table') {
     if (!table) {
       return source === 'manual'
@@ -82,6 +91,7 @@ export function blockingReason(graphic, snapshot = {}, options = {}) {
   }
 
   if (!match) return 'Pick a match to draw.'
+  if (graphic.meta.requiresMatchFlow) return matchFlow(match).reason
 
   if (graphic.meta.requiresTimeline) {
     if (!(match.timeline || []).length) {

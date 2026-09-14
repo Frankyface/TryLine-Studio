@@ -678,6 +678,7 @@ function buildStaticControls() {
   $('timezone').value = LOCAL_ZONE
 
   for (const graphic of GRAPHICS) {
+    if (graphic.meta.needs === 'week') continue
     const chip = document.createElement('button')
     chip.type = 'button'
     chip.className = `chip${graphic.meta.id === state.graphicId ? ' is-active' : ''}`

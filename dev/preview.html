@@ -27,6 +27,7 @@
     import { createTable, createSeason } from '../src/data/schema.js'
     import { teamsWithTimeline } from '../src/analysis/team-season.js'
     import { SIZES, THEMES } from '../src/render/theme.js'
+    import { buildWeek, DOMESTIC_LEAGUES } from '../src/publish/weekly.js'
 
     const status = document.getElementById('status')
     const out = document.getElementById('out')
@@ -66,6 +67,14 @@
       const seasonTable = rawSeasonTable ? createTable(rawSeasonTable) : null
       // The first club whose season can actually be drawn.
       const seasonTeam = (teamsWithTimeline(season)[0] || {}).name || ''
+      const domesticIndex = await load('../data/267979/index.json')
+      const domesticMatches = await Promise.all(domesticIndex.matches.filter((m) => m.kickoff >= '2026-04-20' && m.kickoff < '2026-04-27')
+        .map((m) => load(`../data/267979/matches/${m.id}.json`)))
+      const week = buildWeek({ league: DOMESTIC_LEAGUES.find((l) => l.id === '267979'), matches: domesticMatches,
+        updated: domesticIndex.updated, week: '2026-04-20' })
+      const previewMatches = await Promise.all(domesticIndex.matches.filter((m) => m.kickoff >= '2026-09-21' && m.kickoff < '2026-09-28')
+        .map((m) => load(`../data/267979/matches/${m.id}.json`)))
+      const previewWeek = buildWeek({ league: week.league, matches: previewMatches, updated: domesticIndex.updated, week: '2026-09-21', now: '2026-09-14T12:00:00Z' })
 
       // The comparison card has two modes; both need to be in the shot set,
       // or one of them never gets looked at.
@@ -80,6 +89,7 @@
           const caption = document.createElement('figcaption')
           caption.textContent = `${graphic.meta.id}${suffix} / ${size.id}`
           const canvas = document.createElement('canvas')
+          canvas.getContext('2d', { willReadFrequently: true })
           canvas.id = `${graphic.meta.id}${suffix}-${size.id}`
           figure.append(canvas, caption)
           out.append(figure)
@@ -87,9 +97,11 @@
           // a comeback for the curve, a lopsided stat profile for the card.
           let subject = match
           if (graphic.meta.id === 'winprob' && comeback) subject = comeback
+          if (graphic.meta.id === 'matchflow') subject = domesticMatches[0]
           if (graphic.meta.id === 'comparison' && contrast) subject = contrast
           await renderGraphic(canvas, graphic.meta.id, {
             match: subject,
+            week: graphic.meta.id === 'weeklyfixtures' ? previewWeek : week,
             table: graphic.meta.needs === 'season' ? (seasonTable || table) : table,
             season,
             size,
