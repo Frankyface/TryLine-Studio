@@ -1,5 +1,5 @@
 /**
- * PNG export. The brief is "Instagram-ready set", so the primary action renders
+ * PNG/JPEG export. The brief is "Instagram-ready set", so the primary action renders
  * every format for the chosen graphic and saves them one after another.
  */
 import { SIZE_LIST } from '../render/theme.js'
@@ -23,7 +23,7 @@ const slug = (value) => String(value || '')
  * whatever happens to be loaded. A match graphic must not be named after a
  * season simply because season data is in memory.
  */
-export function fileNameFor({ match, table, season, graphicId, sizeId, options = {} }) {
+export function fileNameFor({ match, table, season, graphicId, sizeId, options = {}, fileType = 'png' }) {
   const meta = GRAPHIC_BY_ID[graphicId]?.meta || {}
   const needs = meta.needs || 'match'
   const context = needs === 'season' ? season : table
@@ -38,17 +38,17 @@ export function fileNameFor({ match, table, season, graphicId, sizeId, options =
     // overwrote the first or landed as "(1)".
     : [context?.competition?.name || 'rugby', meta.requiresTeam ? options.team : '', context?.season?.display]
 
-  return `${slug(subject.filter(Boolean).join('-'))}-${graphicId}-${sizeId}.png`
+  return `${slug(subject.filter(Boolean).join('-'))}-${graphicId}-${sizeId}.${fileType === 'jpeg' ? 'jpg' : 'png'}`
 }
 
-function canvasToBlob(canvas) {
+function canvasToBlob(canvas, fileType) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob)
       // A tainted canvas is the realistic failure here - a crest served without
       // CORS headers would poison the export.
       else reject(new Error('Could not encode the image. A crest may have blocked the export.'))
-    }, 'image/png')
+    }, fileType === 'jpeg' ? 'image/jpeg' : 'image/png', 0.94)
   })
 }
 
@@ -64,20 +64,21 @@ function saveBlob(blob, fileName) {
 }
 
 /** Render one graphic at one size and save it. */
-export async function exportOne({ graphicId, size, match, table, season, theme, options }) {
+export async function exportOne({ graphicId, size, match, table, season, theme, options, fileType = 'png' }) {
+  if (!['png', 'jpeg'].includes(fileType)) throw new Error('Choose PNG or JPEG for export.')
   const canvas = document.createElement('canvas')
   await renderGraphic(canvas, graphicId, { match, table, season, size, theme, options })
-  const blob = await canvasToBlob(canvas)
-  const fileName = fileNameFor({ match, table, season, graphicId, sizeId: size.id, options })
+  const blob = await canvasToBlob(canvas, fileType)
+  const fileName = fileNameFor({ match, table, season, graphicId, sizeId: size.id, options, fileType })
   saveBlob(blob, fileName)
   return fileName
 }
 
 /** Render and save every format for one graphic - the "Instagram set" button. */
-export async function exportSet({ graphicId, match, table, season, theme, options, sizes = SIZE_LIST }) {
+export async function exportSet({ graphicId, match, table, season, theme, options, sizes = SIZE_LIST, fileType = 'png' }) {
   const saved = []
   for (const size of sizes) {
-    saved.push(await exportOne({ graphicId, size, match, table, season, theme, options }))
+    saved.push(await exportOne({ graphicId, size, match, table, season, theme, options, fileType }))
     await wait(DOWNLOAD_GAP_MS)
   }
   return saved

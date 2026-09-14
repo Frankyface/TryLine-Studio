@@ -635,7 +635,7 @@ async function runExport(sizeId) {
 
   const button = sizeId ? document.querySelector(`[data-export="${sizeId}"]`) : $('export-set')
   button.disabled = true
-  setStatus('Rendering PNGs...')
+  setStatus('Rendering images...')
   try {
     const payload = {
       graphicId: state.graphicId,
@@ -644,6 +644,7 @@ async function runExport(sizeId) {
       season: state.season,
       theme: THEMES[state.themeId],
       options,
+      fileType: $('export-file-type').value,
     }
     const saved = sizeId
       ? [await exportOne({ ...payload, size: SIZES[sizeId] })]

@@ -1,5 +1,32 @@
 # Handoff
 
+## 2026-09-14 — posting preparation pipeline
+
+`npm run plan -- --match 602502` now renders without a manually started server.
+It produces JPEGs, captions, hashes, stable post IDs and an offline preview;
+multiple matches have separate folders and immutable manifests. `--recent`
+selects final/upcoming fixtures with per-competition freshness checks.
+`--no-render` is browser-free and writes separate drafts with null image paths.
+Live/cancelled/postponed matches and malformed final scores are excluded.
+Captions derive drama from the normalized timeline and include fixture times in
+the venue/competition zone (UTC fallback), independent of the runner's location.
+
+Fonts are now local, with all Google's supplied subsets/weights preserved and
+licenses included. The app offers PNG and JPEG exports. The unattended renderer
+blocks external requests, checks assets/fonts, and uses CPU canvas rendering to
+avoid the GPU readback differences caught by the byte-identical-rerun test.
+
+Refresh now rejects incomplete/capped month downloads before replacing a
+competition, times out network requests, preserves matching final-match squads,
+and exits unsuccessfully if any requested competition fails.
+
+New Actions: **Prepare Instagram graphics** (manual artifact generation) and
+**Verify studio** (full PR checks). Account authorization, public image hosting,
+actual publishing and a durable published-post ledger remain future integration
+work. No Meta API calls or live data refresh were performed in this change.
+See `docs/instagram.md` for commands and the manifest contract. The older notes
+below describe the project before this work.
+
 _Last updated 2026-08-21. **LIVE at https://frankyface.github.io/TryLine-Studio/**_
 
 ## State: 10 graphics live, reviewed and audited

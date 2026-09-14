@@ -20,9 +20,35 @@
  */
 import { GRAPHIC_BY_ID, GRAPHICS } from '../render/index.js'
 import { blockingReason } from '../render/availability.js'
-import { THEME_LIST } from '../render/theme.js'
+import { THEME_LIST, SIZES } from '../render/theme.js'
 import { winprobHeadline } from '../analysis/winprob.js'
-import { dramaReason } from '../analysis/notable.js'
+import { dramaReason, matchDrama } from '../analysis/notable.js'
+import { formatMatchDate, formatKickoffTime } from '../render/format.js'
+import { zoneForVenue } from '../data/venue-zones.js'
+import { zoneForCompetition, resolveZone } from '../data/timezones.js'
+
+/** Unattended plans must never treat an in-progress score as a final result. */
+export function planningReason(match) {
+  if (!match) return 'No match selected.'
+  if (!match.home?.name || !match.away?.name) return 'Both teams need names.'
+  if (/\b(postponed|cancelled|canceled|abandoned|suspended)\b/i.test(match.statusDetail || '')) {
+    return 'Match has been postponed, cancelled, abandoned or suspended.'
+  }
+  if (match.status === 'live') return 'Match is still live; wait for the final result.'
+  if (!['scheduled', 'final'].includes(match.status)) return 'Match is not scheduled or final.'
+  if (match.status === 'final' && ![match.home.score, match.away.score]
+    .every((score) => Number.isInteger(score) && score >= 0)) return 'Final match needs two valid scores.'
+  return ''
+}
+
+/** Never inherit the runner's timezone, including for touring competitions. */
+export function postingTimeZone(match, override) {
+  if (override) {
+    if (!resolveZone(override)) throw new Error(`Use an IANA timezone, not "${override}".`)
+    return override
+  }
+  return zoneForVenue(match?.venue) || resolveZone(zoneForCompetition(match?.competition?.id)) || 'UTC'
+}
 
 /**
  * The order cards are posted in when they are all available.
@@ -61,10 +87,10 @@ function seedFrom(value) {
  * Never invents a fact: where there is no finding, the caption is the fixture,
  * which is always true.
  */
-function captionFor(graphicId, match, model) {
+export function captionFor(graphicId, match, model, options = {}) {
   const home = match.home?.shortName || match.home?.name || 'Home'
   const away = match.away?.shortName || match.away?.name || 'Away'
-  const played = match.home?.score !== null && match.away?.score !== null
+  const played = match.status === 'final' && Number.isFinite(match.home?.score) && Number.isFinite(match.away?.score)
   const scoreline = played ? `${home} ${match.home.score}-${match.away.score} ${away}` : `${home} v ${away}`
 
   if (graphicId === 'winprob') {
@@ -72,12 +98,18 @@ function captionFor(graphicId, match, model) {
     return finding ? `${finding}. ${scoreline}` : scoreline
   }
   if (graphicId === 'result') {
-    const why = match.drama ? dramaReason(match, match.drama) : ''
+    const why = dramaReason(match, matchDrama(match, model))
     return why ? `${why}. ${scoreline}` : scoreline
   }
   if (graphicId === 'matchday') {
-    return `${scoreline}${match.venue?.name ? ` - ${match.venue.name}` : ''}`
+    const timeZone = postingTimeZone(match, options.timeZone)
+    const date = formatMatchDate(match.kickoff, { withYear: true, timeZone })
+    const time = formatKickoffTime(match.kickoff, { timeZone })
+    return [scoreline, date, time ? `Kick-off ${time} (${timeZone})` : 'Kick-off time TBC', match.venue?.name]
+      .filter(Boolean).join('\n')
   }
+  if (graphicId === 'statcard' && options.player) return `${options.player.name} — player stats. ${scoreline}`
+  if (graphicId === 'teamsheet') return `${match[options.side === 'away' ? 'away' : 'home'].name} — team sheet. ${scoreline}`
   return scoreline
 }
 
@@ -89,10 +121,13 @@ function captionFor(graphicId, match, model) {
  * options those graphics would be given.
  */
 export function planFor(snapshot = {}, { model, options = {}, formats = ['feed', 'story'] } = {}) {
+  if (!Array.isArray(formats) || !formats.length || formats.some((format) => !Object.hasOwn(SIZES, format))) {
+    throw new Error('Formats must contain feed and/or story.')
+  }
   const match = snapshot.match
-  if (!match) return []
+  if (planningReason(match)) return []
 
-  const played = match.home?.score !== null && match.away?.score !== null
+  const played = match.status === 'final'
   const wanted = played ? PLAYED_ORDER : FIXTURE_ORDER
   const themes = rotationThemes()
   const seed = seedFrom(match.id || `${match.home?.name}-${match.away?.name}`)
@@ -110,7 +145,7 @@ export function planFor(snapshot = {}, { model, options = {}, formats = ['feed',
     if (!graphic) continue
     if (blockingReason(graphic, snapshot, options)) continue
 
-    for (const format of formats) {
+    for (const format of new Set(formats)) {
       // Advanced per CARD, not per graphic, so a feed and a story of the same
       // graphic do not arrive as a matching pair either.
       const themeId = themes[(seed + cards.length * step) % themes.length]
@@ -118,7 +153,7 @@ export function planFor(snapshot = {}, { model, options = {}, formats = ['feed',
         graphicId,
         format,
         themeId,
-        caption: captionFor(graphicId, match, model),
+        caption: captionFor(graphicId, match, model, options),
         order: cards.length + 1,
       })
     }

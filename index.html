@@ -6,9 +6,7 @@
   <title>TryLine Studio - rugby matchday graphics</title>
   <meta name="description" content="Instagram-ready rugby graphics from live competition data or your own team sheet.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="styles/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="styles/app.css">
 </head>
 <body>
@@ -230,12 +228,18 @@
 
       <section class="panel">
         <h2 class="panel__title">3 &middot; Export</h2>
+        <label class="field">Image type
+          <select id="export-file-type">
+            <option value="png">PNG · lossless</option>
+            <option value="jpeg">JPEG · publishing tools</option>
+          </select>
+        </label>
         <button type="button" class="button button--primary" id="export-set">Download Instagram set</button>
         <div class="button-row">
           <button type="button" class="button button--ghost" data-export="feed">Feed only</button>
           <button type="button" class="button button--ghost" data-export="story">Story only</button>
         </div>
-        <p class="hint">Feed 1080&times;1080 and story 1080&times;1920 PNGs, saved straight to your downloads.</p>
+        <p class="hint">Feed 1080&times;1080 and story 1080&times;1920, saved straight to your downloads. Choose JPEG for automated publishing tools.</p>
       </section>
     </aside>
 
