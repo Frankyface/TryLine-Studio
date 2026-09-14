@@ -309,6 +309,17 @@ check('exports a feed PNG', existsSync(savedPath), download.suggestedFilename())
 check('export filename describes the graphic', /-table-feed\.png$/.test(download.suggestedFilename()),
   download.suggestedFilename())
 
+await page.selectOption('#export-file-type', 'jpeg')
+const [jpegDownload] = await Promise.all([
+  page.waitForEvent('download', { timeout: 20000 }), page.click('[data-export="feed"]'),
+])
+const jpegPath = join(downloadDir, jpegDownload.suggestedFilename())
+await jpegDownload.saveAs(jpegPath)
+const jpegBytes = readFileSync(jpegPath)
+check('JPEG export is a real JPEG with a matching extension', /\.jpg$/.test(jpegPath)
+  && jpegBytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])))
+await page.selectOption('#export-file-type', 'png')
+
 // The SET button, which is the one a club actually presses. Nothing had ever
 // driven it: the single-size export above was the only export under test, so
 // a set that saved one file, or a story at feed dimensions, would have shipped.

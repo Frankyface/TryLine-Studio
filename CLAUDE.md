@@ -102,7 +102,7 @@ two colours in one test and one colour in the other.
 Crest extraction can only ever say what is IN a crest. It is not a brand guide,
 and the UI does not claim otherwise.
 
-## Auto-posting: the plan is built, the publishing cannot be
+## Auto-posting: preparation is built; publishing is a separate service
 
 `src/publish/plan.js` decides what to post, in what order, on which theme, with
 what caption - pure, tested, and using the app's own `blockingReason` so a plan
@@ -110,11 +110,23 @@ never lists a card the renderer refuses. Theme rotation is deterministic from
 the match id (both the start AND the step, or two matches in seven share a run),
 so a retry after a half-finished run repeats it exactly.
 
-Everything past that needs a server this project does not have: a Meta app with
-`instagram_content_publish` through App Review, a 60-day token that must be
-refreshed and can never be shipped to a browser, and publicly hosted image URLs
-because the Graph API fetches images rather than accepting bytes. docs/instagram.md
-has the full list. Do not add any of it to the static site.
+`npm run plan` now owns its loopback server and renderer and writes JPEGs,
+captions, an offline preview, stable card IDs and content-hashed manifests.
+`--no-render` runs without a browser and writes separate draft files. `--recent`
+selects a bounded batch and checks each competition's freshness. See
+`docs/instagram.md` for the CLI and publisher contract. It makes no Instagram calls.
+
+The publisher will need account authorization, secrets, an image host and a
+durable publication ledger. Requirements depend on the Meta login flow; do not
+copy historical token lifetimes or quotas from earlier notes. No token may be
+shipped to the static site. Stable card IDs support deduplication by that future
+service; rendering a bundle does not record that it has been published.
+
+Fonts are bundled in `assets/fonts` with licenses and the original weight and
+Unicode-range declarations in `styles/fonts.css`. The export renderer blocks
+external requests and fails on missing declared assets. Keep CPU canvas mode
+(`willReadFrequently`) for byte-identical exports: GPU readback caused a real
+rerun hash mismatch. `npm run e2e:posts` guards that behavior.
 
 ## Measure contrast against the RENDERED background, never the token
 
@@ -478,7 +490,7 @@ if it ever happens again.
 |---|---|
 | `npm test` | Unit tests only |
 | `npm run coverage` | Unit tests with the coverage gate |
-| `npm run verify` | Coverage, shots, label stress, contrast, full e2e - five steps. Run before saying done. |
+| `npm run verify` | Coverage, shots, label stress, contrast, geometry, app e2e and posting e2e. Run before saying done. |
 | `npm run refresh` | Re-download competition data into `data/` |
 | `npm run reindex` | Rebuild index files from data already on disk (no network) |
 | `npm run form` | Recompute form from match results; blank where unverifiable |
@@ -496,11 +508,12 @@ if it ever happens again.
 | `npm run rank` | Score every match for how worth posting it is |
 | `npm run colours` | Rebuild each team's primary and second colour |
 | `npm run plan` | Build a posting plan for one match and render its cards |
+| `npm run e2e:posts` | Check real JPEG bundles, dimensions, hashes, reruns, drafts and asset failures |
+| `npm run dev` | Start the local static server on port 4321 |
 | `npm run benchmarks` | Rebuild the per-shirt stat benchmarks for the player card |
 
-Four scripts need the static server running - shots, stress, contrast and e2e,
-which is four of the five steps in `npm run verify` (`npx serve . -l 4321`, or
-the `tryline` entry in the workspace `.claude/launch.json`).
+Shots, stress, contrast, geometry and app e2e need the static server running
+(`npm run dev`). Posting e2e starts and closes its own server.
 
 ## Style
 

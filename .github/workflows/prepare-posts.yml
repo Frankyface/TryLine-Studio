@@ -1,0 +1,52 @@
+name: Prepare Instagram graphics
+
+on:
+  workflow_dispatch:
+    inputs:
+      matches:
+        description: 'Match IDs, comma separated (for example 602502,602503)'
+        required: true
+        type: string
+      formats:
+        description: 'Image formats'
+        type: choice
+        options: [feed, 'feed,story', story]
+        default: 'feed,story'
+      side:
+        description: 'Team sheet and featured player'
+        type: choice
+        options: [home, away]
+        default: home
+      handle:
+        description: 'Instagram handle printed on graphics (optional)'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run coverage
+      - name: Render review bundles
+        env:
+          MATCH_IDS: ${{ inputs.matches }}
+          FORMATS: ${{ inputs.formats }}
+          SIDE: ${{ inputs.side }}
+          HANDLE: ${{ inputs.handle }}
+        run: npm run plan -- --match "$MATCH_IDS" --formats "$FORMATS" --side "$SIDE" --handle "$HANDLE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: instagram-graphics-${{ github.run_id }}
+          path: dev/posts/
+          if-no-files-found: error
+          retention-days: 14

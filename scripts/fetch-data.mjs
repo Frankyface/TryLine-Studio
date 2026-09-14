@@ -15,6 +15,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { retainMatchDetail, assertCompleteScoreboard } from '../src/data/refresh-policy.js'
 import {
   COMPETITIONS, adaptScoreboard, adaptSummary, adaptStandings,
   buildScoreboardUrl, buildSummaryUrl, buildStandingsUrl, toEspnDate,
@@ -44,6 +45,10 @@ const lookahead = Number(arg('lookahead', 150))
 const detailCount = Number(arg('details', 24))
 const only = arg('only', '')
 const now = Date.now()
+if (!Number.isFinite(lookahead) || lookahead < 0 || lookahead > 365
+  || !Number.isInteger(detailCount) || detailCount < 0 || detailCount > 500) {
+  throw new Error('--lookahead must be 0–365 days; --details must be an integer from 0 to 500.')
+}
 
 const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms) })
 
@@ -54,7 +59,7 @@ const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms) })
 async function getJson(url) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
-      const response = await fetch(url)
+      const response = await fetch(url, { signal: AbortSignal.timeout(30000) })
       if (response.status === 403) {
         throw new Error('403 from ESPN - the request looked like a browser, or you are being throttled.')
       }
@@ -86,6 +91,8 @@ const currentSeasonYear = () => {
 /** Month-by-month so the 100-event cap is never reached. */
 async function fetchMatchesByMonth(leagueId, from, to, log) {
   const byId = new Map()
+  const failedMonths = []
+  const cappedMonths = []
   const cursor = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1))
 
   while (cursor <= to) {
@@ -97,17 +104,20 @@ async function fetchMatchesByMonth(leagueId, from, to, log) {
         to: toEspnDate(monthEnd),
       }))
       const found = adaptScoreboard(payload)
-      if (found.length >= ESPN_EVENT_CAP) {
+      if ((payload.events || []).length >= ESPN_EVENT_CAP) {
+        cappedMonths.push(toEspnDate(monthStart))
         log(`  WARNING ${toEspnDate(monthStart)} hit the ${ESPN_EVENT_CAP}-event cap - results may be truncated`)
       }
       for (const match of found) byId.set(match.id, match)
       await wait(REQUEST_GAP_MS)
     } catch (error) {
+      failedMonths.push(toEspnDate(monthStart))
       log(`  month ${toEspnDate(monthStart)} failed: ${error.message.split(String.fromCharCode(10))[0]}`)
     }
     cursor.setUTCMonth(cursor.getUTCMonth() + 1)
   }
 
+  assertCompleteScoreboard({ failedMonths, cappedMonths, matchCount: byId.size, previousCount: 0 })
   return [...byId.values()].sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff))
 }
 
@@ -126,6 +136,10 @@ async function refreshCompetition(competition) {
   const from = new Date(Date.UTC(currentSeasonYear() - 2, 6, 1))
   const to = isoDay(lookahead)
   const matches = await fetchMatchesByMonth(competition.id, from, to, log)
+  const indexPath = join(dataDir, competition.id, 'index.json')
+  const previousIndex = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, 'utf8')) : null
+  assertCompleteScoreboard({ failedMonths: [], cappedMonths: [], matchCount: matches.length,
+    previousCount: previousIndex?.matches?.length || 0 })
   log(`${matches.length} matches`)
 
   const summary = {
@@ -147,7 +161,13 @@ async function refreshCompetition(competition) {
 
   // Full match records, including the scoring timeline, for every match.
   for (const match of matches) {
-    writeJson(join(dataDir, competition.id, 'matches', `${match.id}.json`), match)
+    const path = join(dataDir, competition.id, 'matches', `${match.id}.json`)
+    const previous = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : null
+    const retained = retainMatchDetail(match, previous)
+    writeJson(path, retained)
+    const row = summary.matches.find((entry) => entry.id === match.id)
+    row.hasDetail = Boolean(retained.home.squad.length || retained.away.squad.length)
+    row.hasStats = hasPlayerStats(retained)
   }
 
   // Squads and player stats for the most recent completed matches. Pulling
@@ -179,7 +199,9 @@ async function refreshCompetition(competition) {
       log(`  skipped squads for ${match.id}: ${error.message.split('\n')[0]}`)
     }
   }
-  log(`${detailed} with squads, ${withStats} with player stats`)
+  detailed = summary.matches.filter((match) => match.hasDetail).length
+  withStats = summary.matches.filter((match) => match.hasStats).length
+  log(`${detailed} with squads, ${withStats} with player stats (including retained detail)`)
 
   // Standings for this season and the one before it.
   const seasons = [currentSeasonYear(), currentSeasonYear() - 1, currentSeasonYear() - 2]
@@ -247,4 +269,4 @@ writeJson(catalogPath, {
 })
 
 process.stdout.write(`\nWrote data for ${results.length}/${wanted.length} competitions\n`)
-process.exit(results.length ? 0 : 1)
+process.exit(results.length === wanted.length ? 0 : 1)

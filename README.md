@@ -5,7 +5,8 @@
 Instagram-ready rugby matchday graphics, generated in the browser from real
 competition data or from your own team sheet.
 
-Ten graphics, each exported as a 1080×1080 feed post and a 1080×1920 story:
+Ten graphics, each exported as a 1080×1080 feed post and a 1080×1920 story,
+with PNG or JPEG downloads:
 
 | Graphic | What it shows |
 |---|---|
@@ -29,9 +30,27 @@ npm install
 npm run refresh
 ```
 
-Then open `index.html` through any static server (`npx serve .`) and pick a
+Then run `npm run dev`, open http://127.0.0.1:4321 and pick a
 match. Nothing is uploaded — every graphic is drawn in your browser and saved
 straight to your downloads.
+
+## Prepare automated posting bundles
+
+```bash
+npx playwright install chromium
+npm run plan -- --match 602502,602503 --handle @yourclub
+```
+
+This single command starts its own renderer and writes JPEGs, captions, stable
+post IDs, content hashes and an offline visual preview for each match into
+`dev/posts/`. `queue.json` lists the completed bundles for a future publishing
+service. Use `--no-render` for a browser-free JSON draft, or `--recent` to select
+recent finals/upcoming fixtures with freshness checks. Fonts and crests are
+bundled locally so automated renders need no third-party asset requests.
+
+The **Prepare Instagram graphics** GitHub Action also creates downloadable
+bundles. Account connection and actual publishing remain separate; see
+[the commands and integration contract](docs/instagram.md).
 
 **Live competition** covers 13 competitions with fixtures - Six Nations,
 International Tests, Gallagher Premiership, URC, Top 14, Champions and Challenge
@@ -115,9 +134,9 @@ footnote does not undo it.
 npm run verify
 ```
 
-Runs five layers:
+Runs seven layers:
 
-1. `vitest` — 383 unit tests against real captured API responses in
+1. `vitest` — unit and CLI tests against real captured API responses in
    `tests/fixtures/`, with a coverage gate on the data, analysis and
    formatting logic.
 2. `dev/shots.mjs` — renders every graphic in both formats to `dev/shots/` for
@@ -127,9 +146,14 @@ Runs five layers:
 4. `dev/contrast.mjs` — measures every ink against the backdrop actually
    rendered, not against the colour token.
 5. `tests/app.e2e.mjs` — drives the real app in Chromium: every graphic, both
-   data sources, theme switching, and a real PNG download.
+   data sources, theme switching, and real PNG and JPEG downloads.
+6. `dev/geometry.mjs` — checks content bounds and text overlap across real matches.
+7. `tests/posts.e2e.mjs` — renders posting bundles offline, checks dimensions and
+   hashes, reruns for identical output, and rejects missing assets.
 
-All but the first need a static server on port 4321.
+Start `npm run dev` in another terminal before running `npm run verify`.
+The posting smoke test can also run alone with `npm run e2e:posts`; it starts
+its own server. PRs run the complete suite in **Verify studio**.
 
 ## Layout
 
