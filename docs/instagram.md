@@ -3,6 +3,10 @@
 TryLine Studio now prepares complete posting bundles from the existing canvas
 renderers. It does not connect to an Instagram account or publish posts.
 
+For the five domestic leagues, [Weekly studio](weekly-posting.md) now prepares
+fixture previews, results/standings/analysis, scoring spotlights and match
+timeline carousels with a dated JSON/CSV posting calendar.
+
 ## Quick start
 
 ```bash

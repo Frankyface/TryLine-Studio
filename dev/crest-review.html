@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TryLine Studio — refreshed logos</title>
+  <link rel="icon" href="../favicon.svg">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #edf1f4; color: #142332; font: 15px/1.5 system-ui, sans-serif; }
+    header, main { max-width: 1400px; margin: auto; padding: 24px; }
+    header { padding-bottom: 8px; }
+    h1 { margin: 0; font-size: 30px; }
+    p { max-width: 850px; }
+    a { color: #175787; }
+    select { font: inherit; padding: 8px 12px; margin-left: 8px; }
+    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    article { background: white; border-radius: 12px; overflow: hidden; }
+    canvas { display: block; width: 100%; height: auto; }
+    article div { padding: 14px 16px; }
+    h2 { font-size: 16px; margin: 0 0 6px; }
+    small { display: block; margin-top: 6px; color: #526172; }
+    #status { color: #526172; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="../weekly.html">← Weekly studio</a>
+    <h1>Refreshed team logos</h1>
+    <p>24 existing badges updated and all 9 missing team identities filled. These previews use the same crest renderer and contrast backgrounds as the exported graphics.</p>
+    <label>Graphic theme <select id="theme"></select></label>
+    <p id="status" role="status">Loading logos…</p>
+  </header>
+  <main id="logos"></main>
+  <script type="module">
+    import { THEMES } from '../src/render/theme.js'
+    import { loadCrestImage, drawBackdrop, drawCrest, crestFallback, setCrestPlating } from '../src/render/primitives.js'
+
+    const read = async (path) => {
+      const response = await fetch(path)
+      if (!response.ok) throw new Error(`Could not load ${path}`)
+      return response.json()
+    }
+    const select = document.querySelector('#theme')
+    const status = document.querySelector('#status')
+    try {
+      const [sources, plating, colours] = await Promise.all([
+        read('../docs/crest-sources.json'), read('../data/models/crest-plating.json'), read('../data/models/team-colours.json'),
+      ])
+      setCrestPlating(plating)
+      for (const theme of Object.values(THEMES)) select.add(new Option(theme.label, theme.id))
+      select.value = new URLSearchParams(location.search).get('theme') || 'midnight'
+      if (!THEMES[select.value]) select.value = 'midnight'
+      const rows = [...sources.sources, ...sources.sharedNationalCrests].sort((a, b) => a.team.localeCompare(b.team))
+      const cards = await Promise.all(rows.map(async (row) => {
+        const id = row.crestId || row.teamId
+        const logo = `assets/crests/${id}`
+        const image = await loadCrestImage(logo, 300)
+        const smallImage = await loadCrestImage(logo, 48)
+        if (!image || !smallImage) throw new Error(`Missing crest: ${row.team}`)
+        const article = document.createElement('article')
+        const canvas = document.createElement('canvas')
+        canvas.width = 360; canvas.height = 230
+        canvas.setAttribute('aria-label', `${row.team}: result-card and table-row logo`)
+        const text = document.createElement('div')
+        const title = document.createElement('h2'); title.textContent = row.team
+        const link = document.createElement('a'); link.href = row.sourcePage; link.textContent = 'Artwork source'
+        const detail = document.createElement('small')
+        detail.textContent = row.teamId === '289469' ? '120px original — higher-resolution artwork still welcome.' : row.crestId ? 'Shared national union crest.' : 'Saved locally and protected during refresh.'
+        text.append(title, link, detail); article.append(canvas, text)
+        return { row, id, logo, image, smallImage, article, canvas }
+      }))
+      document.querySelector('#logos').replaceChildren(...cards.map((card) => card.article))
+      const render = () => {
+        const theme = THEMES[select.value]
+        for (const { row, id, logo, image, smallImage, canvas } of cards) {
+          const ctx = canvas.getContext('2d')
+          const accent = colours.colours[row.teamId]?.primary || colours.colours[id]?.primary || theme.accent
+          drawBackdrop(ctx, { width: 360, height: 230, pad: 0 }, theme, accent)
+          const fallback = crestFallback(theme, accent, row.team, { logo })
+          drawCrest(ctx, image, 132, 110, 178, fallback)
+          drawCrest(ctx, smallImage, 292, 110, 48, fallback)
+        }
+        status.textContent = `${cards.length} team identities · ${theme.label} · sources checked ${sources.checkedOn}`
+        document.body.dataset.renderState = 'done'
+      }
+      select.addEventListener('change', render)
+      render()
+    } catch (error) {
+      status.textContent = error.message
+      document.body.dataset.renderState = 'error'
+      console.error(error)
+    }
+  </script>
+</body>
+</html>

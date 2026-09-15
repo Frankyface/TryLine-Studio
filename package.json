@@ -12,8 +12,9 @@
     "refresh": "node scripts/fetch-data.mjs && node scripts/repair-data.mjs && node scripts/mirror-crests.mjs && node scripts/apply-crest-overrides.mjs && node scripts/derive-form.mjs && node scripts/build-season-stats.mjs && node scripts/fit-winprob.mjs && node scripts/rank-matches.mjs && node scripts/build-hero-benchmarks.mjs && node scripts/build-team-colours.mjs && node scripts/build-crest-plating.mjs",
     "shots": "node dev/shots.mjs",
     "e2e": "node tests/app.e2e.mjs",
-    "verify": "vitest run --coverage && node dev/shots.mjs && node dev/stress-labels.mjs && node dev/contrast.mjs && node dev/geometry.mjs --every 30 && node tests/app.e2e.mjs && node tests/posts.e2e.mjs",
+    "verify": "vitest run --coverage && node dev/shots.mjs && node dev/stress-labels.mjs && node dev/contrast.mjs && node dev/geometry.mjs --every 30 && node tests/app.e2e.mjs && node tests/posts.e2e.mjs && node tests/weekly.e2e.mjs",
     "e2e:posts": "node tests/posts.e2e.mjs",
+    "e2e:weekly": "node tests/weekly.e2e.mjs",
     "fit": "node scripts/fit-winprob.mjs",
     "reindex": "node scripts/reindex.mjs",
     "form": "node scripts/derive-form.mjs",
@@ -28,6 +29,7 @@
     "colours": "node scripts/build-team-colours.mjs",
     "plating": "node scripts/build-crest-plating.mjs",
     "plan": "node scripts/build-post-plan.mjs",
+    "weekly": "node scripts/build-weekly-packs.mjs",
     "crests": "node scripts/mirror-crests.mjs",
     "crests:manual": "node scripts/apply-crest-overrides.mjs"
   },

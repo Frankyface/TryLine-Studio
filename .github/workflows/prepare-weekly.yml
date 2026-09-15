@@ -1,0 +1,54 @@
+name: Prepare domestic weekly packs
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'Date in the coverage week (YYYY-MM-DD)'
+        required: true
+      pack:
+        description: 'Edition'
+        type: choice
+        options: [all, preview, review, stories]
+        default: all
+      formats:
+        description: 'Image formats'
+        type: choice
+        options: [feed, 'feed,story', story]
+        default: feed
+      archive:
+        description: 'Allow stale snapshots for archive previews (never publication-ready)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Prepare all five leagues and posting calendar
+        env:
+          WEEK: ${{ inputs.week }}
+          PACK: ${{ inputs.pack }}
+          FORMATS: ${{ inputs.formats }}
+          ARCHIVE: ${{ inputs.archive }}
+        run: |
+          args=(--week "$WEEK" --pack "$PACK" --formats "$FORMATS")
+          if [ "$ARCHIVE" = true ]; then args+=(--allow-stale); fi
+          npm run weekly -- "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: domestic-weekly-${{ github.run_id }}
+          path: dev/posts/weekly/
+          if-no-files-found: error
+          retention-days: 14

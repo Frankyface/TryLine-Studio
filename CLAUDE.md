@@ -104,6 +104,15 @@ and the UI does not claim otherwise.
 
 ## Auto-posting: preparation is built; publishing is a separate service
 
+Weekly editions live in `src/publish/weekly.js`, `weekly.html` and
+`scripts/build-weekly-packs.mjs`. Their contract is in `docs/weekly-posting.md`.
+All completed matches must survive pagination. Do not replace a historical
+round’s missing table with a later snapshot or infer missing bonus points.
+Player spotlights use verified named scoring events; missing domestic stats
+are not zeroes. The new match-flow gate sums event values, independently of
+the supplied cumulative score. Keep the midnight-TBC date handling shared
+between CLI selection, browser selection, captions and graphics.
+
 `src/publish/plan.js` decides what to post, in what order, on which theme, with
 what caption - pure, tested, and using the app's own `blockingReason` so a plan
 never lists a card the renderer refuses. Theme rotation is deterministic from

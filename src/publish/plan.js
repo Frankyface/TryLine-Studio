@@ -57,7 +57,7 @@ export function postingTimeZone(match, override) {
  * match, then the detail. A team sheet posted before the result would be odd
  * on a finished game and is handled by the played/unplayed split below.
  */
-const PLAYED_ORDER = Object.freeze(['result', 'winprob', 'comparison', 'statcard', 'teamsheet'])
+const PLAYED_ORDER = Object.freeze(['result', 'matchflow', 'winprob', 'comparison', 'statcard', 'teamsheet'])
 const FIXTURE_ORDER = Object.freeze(['matchday', 'teamsheet'])
 
 /**
@@ -108,6 +108,7 @@ export function captionFor(graphicId, match, model, options = {}) {
     return [scoreline, date, time ? `Kick-off ${time} (${timeZone})` : 'Kick-off time TBC', match.venue?.name]
       .filter(Boolean).join('\n')
   }
+  if (graphicId === 'matchflow') return `${scoreline}. Scoring and cards in 20-minute periods; FT includes added time.`
   if (graphicId === 'statcard' && options.player) return `${options.player.name} — player stats. ${scoreline}`
   if (graphicId === 'teamsheet') return `${match[options.side === 'away' ? 'away' : 'home'].name} — team sheet. ${scoreline}`
   return scoreline

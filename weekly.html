@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Weekly studio · TryLine Studio</title>
+  <link rel="icon" href="favicon.svg"><link rel="stylesheet" href="styles/fonts.css">
+  <link rel="stylesheet" href="styles/weekly.css">
+</head>
+<body>
+  <header><a class="brand" href="index.html">TRYLINE <span>STUDIO</span></a><a href="index.html">Match studio ↗</a></header>
+  <main>
+    <div class="intro"><p class="eyebrow">THE DOMESTIC RUGBY DESK</p><h1>A whole week.<br><em>Every game.</em></h1><p>Preview the fixtures. Tell the story of the results.<br>Five leagues, one weekly rhythm.</p></div>
+    <section class="rhythm" aria-label="Posting schedule">
+      <article><span>01 / WEDNESDAY</span><h2>The week ahead</h2><p>Every fixture, with kick-off times. Early games bring the preview forward.</p></article>
+      <article><span>02 / MONDAY</span><h2>Results & analysis</h2><p>All results, standings, team numbers and one or two scoring spotlights.</p></article>
+      <article><span>03 / TUESDAY</span><h2>How it unfolded</h2><p>Match timelines with tries, scoring kicks and cards. Every completed game gets a slide.</p></article>
+    </section>
+    <p class="schedule-note">Eastern Time: Super Rugby 09:00 · URC 10:00 · Premiership 11:00 · Top 14 12:00 · MLR 13:00. Results and timelines follow the covered week.</p>
+    <form id="controls">
+      <label>League<select id="league"></select></label>
+      <label>Week containing<input id="week" type="date" required></label>
+      <label>Edition<select id="pack"><option value="preview">Weekly preview</option><option value="review">Results & analysis</option><option value="stories">Match timelines</option></select></label>
+      <label>Format<select id="format"><option value="feed">Feed · 1080 × 1080</option><option value="story">Story · 1080 × 1920</option></select></label>
+      <label>Handle<input id="handle" value="@trylinestudio" maxlength="40"></label>
+      <button type="submit">Build edition →</button>
+    </form>
+    <div class="edition-heading"><div><p class="eyebrow" id="edition-label">YOUR EDITION</p><h2 id="edition-title">Choose a league and week</h2></div><button id="calendar" type="button" disabled>Download schedule</button></div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <details id="notes" hidden><summary>Coverage & readiness</summary><ul></ul></details>
+    <section id="cards" class="cards" aria-label="Carousel slides"></section>
+    <p id="empty" hidden>No graphics for this edition. Try another week or open the <a id="latest" href="#">latest recorded results</a>.</p>
+    <footer>Built from recorded fixtures and results. Scoring spotlights are editorial selections. Exports prepare your posts; account publishing is not connected.</footer>
+  </main>
+  <script type="module" src="src/weekly-app.js"></script>
+</body></html>

@@ -39,7 +39,8 @@ export async function createPostRenderer(root, plating) {
           canvas.getContext('2d', { willReadFrequently: true })
           const output = []
           for (const card of cards) {
-            await renderGraphic(canvas, card.graphicId, { ...snapshot, options,
+            await renderGraphic(canvas, card.graphicId, { ...snapshot, match: card.match || snapshot.match,
+              options: { ...options, ...card.options },
               size: SIZES[card.format], theme: THEMES[card.themeId] })
             output.push(canvas.toDataURL('image/jpeg', 0.94))
           }

@@ -5,7 +5,7 @@
 Instagram-ready rugby matchday graphics, generated in the browser from real
 competition data or from your own team sheet.
 
-Ten graphics, each exported as a 1080×1080 feed post and a 1080×1920 story,
+Fifteen graphics, each exported as a 1080×1080 feed post and a 1080×1920 story,
 with PNG or JPEG downloads:
 
 | Graphic | What it shows |
@@ -20,6 +20,11 @@ with PNG or JPEG downloads:
 | **Attack v defence** | A whole season plotted by what each team scores and concedes |
 | **Home advantage** | Every club's home win rate against its away win rate |
 | **Season so far** | One club, every result in order, by winning margin |
+| **Match timeline** | Scoring and card icons, with running scores in 20-minute periods |
+| **Weekly fixtures** | Every upcoming league fixture, paginated for readability |
+| **Weekly results** | Every completed game in the league week |
+| **Weekly analysis** | Points, home/away wins, draws and the highest team scores |
+| **Scoring spotlight** | Named players’ verified tries and kicking points |
 
 No build step, no framework, no server. Plain ES modules and a canvas.
 
@@ -35,6 +40,19 @@ match. Nothing is uploaded — every graphic is drawn in your browser and saved
 straight to your downloads.
 
 ## Prepare automated posting bundles
+
+**Weekly studio** organizes all five domestic leagues into Wednesday previews,
+Monday results/standings/analysis and Tuesday match timelines. Each roundup can
+include one or two scoring spotlights. Use the link in the app or open
+`weekly.html`; [the weekly posting guide](docs/weekly-posting.md) explains the
+schedule, data checks and full-pack export command:
+
+```bash
+npm run weekly -- --pack preview
+npm run weekly -- --previous --pack review
+```
+
+For individual match bundles:
 
 ```bash
 npx playwright install chromium

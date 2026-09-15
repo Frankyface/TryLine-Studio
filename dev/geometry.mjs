@@ -28,6 +28,7 @@
  */
 import { chromium } from 'playwright'
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
+import { DOMESTIC_LEAGUES, buildWeek, mondayOf, dateInZone } from '../src/publish/weekly.js'
 
 const NL = String.fromCharCode(10)
 const arg = (name, fallback) => {
@@ -121,7 +122,14 @@ const pageErrors = []
 page.on('pageerror', (error) => pageErrors.push(String(error)))
 await page.goto('http://localhost:4321/dev/preview?only=result', { waitUntil: 'networkidle' })
 
-const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, allowed, theme, TOLERANCE]) => {
+// Whole league weeks exercise pagination, long club names and player spotlights.
+const weeklySamples = DOMESTIC_LEAGUES.flatMap((league) => {
+  const leagueMatches = matches.filter((m) => m.competition.id === league.id)
+  const weeks = [...new Set(leagueMatches.filter((m) => Number.isFinite(Date.parse(m.kickoff))).map((m) => mondayOf(dateInZone(m.kickoff))))]
+  return weeks.filter((_, i) => i % 4 === 0).map((week) => buildWeek({ league, matches: leagueMatches, week, updated: '2026-08-22T10:00:00Z' }))
+})
+
+const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, allowed, theme, TOLERANCE, weeklySamples]) => {
   const [{ GRAPHICS, renderGraphic }, schema, themeModule, { contentBox },
     { blockingReason }, primitives] = await Promise.all([
     import('/src/render/index.js'), import('/src/data/schema.js'),
@@ -333,6 +341,7 @@ const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, all
     if (needs === 'match') items = matchRaws.map((raw) => ({ match: schema.createMatch(raw), id: raw.id }))
     else if (needs === 'table') items = tableRaws.map((raw, i) => ({ table: schema.createTable(raw), id: `table-${i}` }))
     else if (needs === 'season') items = seasonRaws.map((raw, i) => ({ season: schema.createSeason ? schema.createSeason(raw) : raw, id: `season-${i}` }))
+    else if (needs === 'week') items = weeklySamples.map((week) => ({ week, id: `${week.league.id}-${week.start}` }))
     if (!items.length) continue
 
     let drawn = 0
@@ -372,7 +381,7 @@ const report = await page.evaluate(async ([matchRaws, tableRaws, seasonRaws, all
   CanvasRenderingContext2D.prototype.fill = realPathFill
   for (const undo of restore) undo()
   return { results, violations }
-}, [sampled, tables, seasons, ALLOWED_BLEED, themeId, TOLERANCE])
+}, [sampled, tables, seasons, ALLOWED_BLEED, themeId, TOLERANCE, weeklySamples])
 
 await browser.close()
 

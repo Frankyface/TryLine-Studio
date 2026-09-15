@@ -1,5 +1,36 @@
 # Handoff
 
+## 2026-09-15 — logo replacements
+
+24 existing badges updated and all nine missing team identities filled through
+the existing persistent crest overrides. Sources and provenance are in
+`docs/crest-sources.json`; source decisions and resolution limits are in
+`docs/logo-refresh.md`. `dev/crest-review.html` previews all 33 affected team
+identities at two sizes in every graphic theme. Hong Kong China now uses an
+official vector badge instead of Honduras's flag. AUNZ remains a 120px source.
+Rebuild colours and plating whenever changing a source. Do not reintroduce
+the discarded white-on-transparent Sharks/Black Ferns variants on light themes.
+
+## 2026-09-14 — domestic weekly editions
+
+`weekly.html` and `npm run weekly` cover all five domestic leagues. Wednesday
+previews precede the coverage week’s first fixture by at least 24 hours; Monday
+reviews contain every final result, a contemporaneous table when available,
+weekly team analysis and up to two scoring spotlights. Tuesday match stories
+use the new icon timeline, falling back to result cards for missing events.
+All slots use America/Toronto with DST. See `docs/weekly-posting.md`.
+
+The timeline sums actual event values to the final score and groups into four
+20-minute periods. It preserves added time and calls the 40-minute score a
+checkpoint rather than half time. Domestic player spotlights derive scoring
+only; no invented tackles/metres or player-of-the-match claims. Missing MLR
+events/tables and historical standings are reported, not reconstructed.
+
+The new manual GitHub Action prepares artifacts, not live posts. Calendar
+states preserve stale-data and unresolved-fixture holds. Rendered files and
+manifests are hashed; draft files are isolated. Weekly browser tests are in
+`npm run verify`; the real-data geometry guard now includes whole league weeks.
+
 ## 2026-09-14 — posting preparation pipeline
 
 `npm run plan -- --match 602502` now renders without a manually started server.
