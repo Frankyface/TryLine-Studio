@@ -1,7 +1,7 @@
 import { startStaticServer } from './static-server.mjs'
 
 /** No external requests: every font, module and crest must be reproducible locally. */
-export async function createPostRenderer(root, plating) {
+export async function createPostRenderer(root) {
   const { chromium } = await import('playwright')
   const server = await startStaticServer(root)
   let browser
@@ -19,11 +19,10 @@ export async function createPostRenderer(root, plating) {
     await page.goto(`${server.url}/scripts/render.html`)
     return {
       async render(snapshot, options, cards) {
-        const images = await page.evaluate(async ({ snapshot, options, cards, plating }) => {
-          const [{ renderGraphic }, { SIZES, THEMES }, { setCrestPlating }] = await Promise.all([
-            import('/src/render/index.js'), import('/src/render/theme.js'), import('/src/render/primitives.js'),
+        const images = await page.evaluate(async ({ snapshot, options, cards }) => {
+          const [{ renderGraphic }, { SIZES, THEMES }] = await Promise.all([
+            import('/src/render/index.js'), import('/src/render/theme.js'),
           ])
-          setCrestPlating(plating)
           // Include the real names so accented subsets load before canvas measurement.
           const sample = JSON.stringify(snapshot)
           for (const family of ['Barlow Condensed', 'Inter']) {
@@ -45,7 +44,7 @@ export async function createPostRenderer(root, plating) {
             output.push(canvas.toDataURL('image/jpeg', 0.94))
           }
           return output
-        }, { snapshot, options, cards, plating })
+        }, { snapshot, options, cards })
         if (failures.length) throw new Error(`Render failed: ${[...new Set(failures)].join('; ')}`)
         return images.map((url) => {
           if (!url.startsWith('data:image/jpeg;base64,')) throw new Error('Renderer did not produce a JPEG.')

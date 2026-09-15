@@ -215,112 +215,13 @@ export function drawContained(ctx, image, centerX, centerY, box) {
   ctx.drawImage(image, centerX - width / 2, centerY - height / 2, width, height)
 }
 
-/**
- * When a crest needs a plate behind it.
- *
- * The test is DIRECTIONAL, not a plain contrast ratio. On a dark page only a
- * near-black crest disappears; a mid-tone one is fine. On a light page the
- * reverse. A symmetric ratio test gets this wrong in both directions at once -
- * at a 4.5 bar it plated most crests on the light theme, and at 3 it plated
- * Bath, Leicester and Exeter there while still missing near-black Newcastle on
- * dark. These thresholds are on the crest's own luminance.
- */
-const CREST_TOO_DARK = 0.14
-const CREST_TOO_PALE = 0.66
+/** Half-width of the box containing a crest or its missing-image monogram. */
+export const CREST_HALF = 0.5
 
-/**
- * Average luminance of an image's opaque pixels, 0-1.
- * Sampled at low resolution - enough to answer "is this crest dark?".
- */
-export function imageLuminance(image, samples = 16) {
-  try {
-    const canvas = document.createElement('canvas')
-    canvas.width = samples
-    canvas.height = samples
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    ctx.drawImage(image, 0, 0, samples, samples)
-    const { data } = ctx.getImageData(0, 0, samples, samples)
-    let total = 0
-    let weight = 0
-    for (let i = 0; i < data.length; i += 4) {
-      const alpha = data[i + 3] / 255
-      if (alpha < 0.1) continue
-      const value = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255
-      total += value * alpha
-      weight += alpha
-    }
-    return weight ? total / weight : 0.5
-  } catch {
-    // A tainted or unreadable image: assume it is fine rather than guessing.
-    return 0.5
-  }
-}
-
-/**
- * Crest, or a lettered monogram disc when it could not be loaded.
- *
- * Not every team has a crest on ESPN's CDN - Newcastle Falcons' URL 404s - so
- * the fallback has to be a deliberate design, not a faint ghost. It gets a
- * solid fill, a ring, and ink chosen for contrast against that fill.
- */
-/**
- * Half-width of the widest thing `drawCrest` can paint, as a fraction of the
- * crest box. The plate takes its padding out of the crest rather than adding
- * it around, so nothing exceeds the box and half of it is the bound.
- *
- * It was not always: the plate used to add 6% of the box on each side, which
- * put it 0.56 of the box from centre, and four graphics that draw a crest
- * flush to the content box bled into the margin.
- */
-export const PLATE_HALF = 0.5
-
+/** Draw the original crest directly, or a monogram when no image is available. */
 export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
   if (image) {
-    // Newcastle Falcons' crest is essentially black, which disappears entirely
-    // on a dark theme. When a crest and the page are both dark (or both light),
-    // it gets a soft plate behind it so the shape still reads.
-    if (fallback.plate) {
-      // Directional, and deliberately so: on a dark page only a very dark
-      // crest needs rescuing, and on a light page only a very pale one. A
-      // symmetric test plated most crests on chalk while missing near-black
-      // on midnight. The thresholds are tuned against the real crest set.
-      // The precomputed answer where there is one, the old mean-luminance
-      // test where there is not.
-      let vanishes
-      if (fallback.plate.decided !== undefined) {
-        vanishes = fallback.plate.decided
-      } else {
-        const crestLuminance = imageLuminance(image)
-        const pageIsDark = fallback.plate.pageLuminance < 0.5
-        const tooDark = fallback.plate.tooDark ?? CREST_TOO_DARK
-        const tooPale = fallback.plate.tooPale ?? CREST_TOO_PALE
-        vanishes = pageIsDark ? crestLuminance < tooDark : crestLuminance > tooPale
-      }
-      const padding = box * 0.06
-      if (vanishes) {
-        // Shaped to the image, not to a circle. drawContained fits the crest
-        // inside a SQUARE box, so a wide wordmark spans the full width while a
-        // circle of radius 0.53*box only covers it within a narrow band -
-        // "NEWCASTLE FALCONS" came out with the ends sliced off and the final
-        // S sitting on bare navy.
-        //
-        // The padding is taken OUT of the crest rather than added around it,
-        // so a plate never exceeds the box it was given. Added around it, the
-        // plate reached 6% of the box past every caller's edge - and four
-        // graphics draw a crest flush against the content box, so four of them
-        // bled into the margin, over the accent hairline on the left.
-        const inner = box - padding * 2
-        const ratio = Math.min(inner / image.width, inner / image.height)
-        const width = image.width * ratio + padding * 2
-        const height = image.height * ratio + padding * 2
-        ctx.save()
-        fillRoundRect(ctx, centerX - width / 2, centerY - height / 2,
-          width, height, Math.min(width, height) * 0.22, fallback.plate.fill)
-        ctx.restore()
-        drawContained(ctx, image, centerX, centerY, inner)
-        return
-      }
-    }
+    // Logos remain transparent on every theme, as requested.
     drawContained(ctx, image, centerX, centerY, box)
     return
   }
@@ -348,51 +249,13 @@ export function drawCrest(ctx, image, centerX, centerY, box, fallback = {}) {
   })
 }
 
-/**
- * Fallback styling for a missing crest, tuned to the theme so the monogram is
- * visible on a light page as well as a dark one.
- */
-/**
- * Crests that need a plate, per theme, from `npm run plating`.
- *
- * Set once at start-up by the app. Without it `drawCrest` falls back to the
- * mean-luminance test, which is a safe degradation rather than a wrong one -
- * it plates less, which is what shipped for months.
- */
-let platingTable = null
-export const setCrestPlating = (table) => { platingTable = table?.plating || null }
-
-/** The crest id is the tail of its mirrored path: assets/crests/25907. */
-const crestId = (logo) => String(logo || '').split('/').pop().split('@')[0]
-
-export function crestFallback(theme, color, label, { tooDark, tooPale, logo } = {}) {
-  const pageLuminance = luminance(theme.bg)
-  const listed = platingTable?.[crestId(logo)]
+/** Theme-aware styling used only when a crest image is missing. */
+export function crestFallback(theme, color, label) {
   return {
     label,
     solid: withAlpha(color || theme.ink, 0.18),
     ring: withAlpha(color || theme.ink, 0.5),
     ink: theme.ink,
-    plate: {
-      pageLuminance,
-      tooDark,
-      tooPale,
-      /**
-       * Decided ahead of time where the table knows this crest.
-       *
-       * The mean-luminance test it replaces cannot see the case that matters:
-       * a crest can average bright while the part carrying the club's name is
-       * invisible. Ulster is a bright red hand over a near-black "ULSTER" and
-       * Edinburgh a red castle over a dark blue "EDINBURGH" - both averaged
-       * clear of the bar, neither was plated, and on every dark theme you
-       * could not read either club's name. `npm run plating` measures the
-       * largest connected region of the crest that goes blank against the page
-       * it actually lands on.
-       */
-      decided: listed ? listed.includes(theme.id) : undefined,
-      // The light-theme fill was too weak to rescue anything it was applied to.
-      fill: pageLuminance < 0.5 ? 'rgba(255,255,255,0.92)' : 'rgba(11,18,32,0.42)',
-    },
   }
 }
 

@@ -75,14 +75,13 @@ where a right-aligned column anchors exactly on `box.right`, and the smallest
 real fault seen, a 1.1px axis label. It was 1.2px for a while and masked that
 fault. Do not raise it without re-measuring what starts getting through.
 
-## A crest plate pads INWARD
+## Logos have no added background
 
-`drawCrest` paints a plate behind a crest that would otherwise vanish. It used
-to add 6% of the crest box on each side, which put the plate outside every
-caller's box - and four graphics draw a crest flush against the content box, so
-four of them bled into the margin, over the accent hairline on the left. The
-padding now comes out of the crest instead, so nothing `drawCrest` paints
-exceeds the box it was given and `PLATE_HALF` is simply 0.5.
+The user explicitly removed the rounded crest backgrounds on 2026-09-15.
+`drawCrest` draws the original image directly on every theme. Do not reintroduce
+contrast plates, image-luminance fallbacks or per-team exceptions. The old
+plating model and refresh step were removed. A missing image still uses its
+lettered monogram. `CREST_HALF = 0.5` bounds the image or monogram within its box.
 
 ## Team colours: ESPN has one, and only for 69 of 113 teams
 

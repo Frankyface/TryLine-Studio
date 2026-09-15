@@ -27,14 +27,14 @@
   <header>
     <a href="../weekly.html">← Weekly studio</a>
     <h1>Refreshed team logos</h1>
-    <p>24 existing badges updated and all 9 missing team identities filled. These previews use the same crest renderer and contrast backgrounds as the exported graphics.</p>
+    <p>24 existing badges updated and all 9 missing team identities filled. These previews use the same transparent logos as the exported graphics, with no added backgrounds.</p>
     <label>Graphic theme <select id="theme"></select></label>
     <p id="status" role="status">Loading logos…</p>
   </header>
   <main id="logos"></main>
   <script type="module">
     import { THEMES } from '../src/render/theme.js'
-    import { loadCrestImage, drawBackdrop, drawCrest, crestFallback, setCrestPlating } from '../src/render/primitives.js'
+    import { loadCrestImage, drawBackdrop, drawCrest, crestFallback } from '../src/render/primitives.js'
 
     const read = async (path) => {
       const response = await fetch(path)
@@ -44,10 +44,9 @@
     const select = document.querySelector('#theme')
     const status = document.querySelector('#status')
     try {
-      const [sources, plating, colours] = await Promise.all([
-        read('../docs/crest-sources.json'), read('../data/models/crest-plating.json'), read('../data/models/team-colours.json'),
+      const [sources, colours] = await Promise.all([
+        read('../docs/crest-sources.json'), read('../data/models/team-colours.json'),
       ])
-      setCrestPlating(plating)
       for (const theme of Object.values(THEMES)) select.add(new Option(theme.label, theme.id))
       select.value = new URLSearchParams(location.search).get('theme') || 'midnight'
       if (!THEMES[select.value]) select.value = 'midnight'

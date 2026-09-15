@@ -108,7 +108,6 @@ async function main() {
 
   const model = await readJson(join(dataDir, 'models', 'winprob.json'), true)
   const heroStats = await readJson(join(dataDir, 'models', 'hero-stats.json'), true)
-  const plating = await readJson(join(dataDir, 'models', 'crest-plating.json'), true)
   const jobs = snapshots.map((snapshot) => {
     const options = renderOptions(snapshot.match, { model, heroStats, side: args.side,
       handle: args.handle, timeZone: args.timezone })
@@ -126,7 +125,7 @@ async function main() {
     const render = !args['no-render']
     if (render && jobs.length) {
       const { createPostRenderer } = await import('./lib/render-posts.mjs')
-      renderer = await createPostRenderer(root, plating)
+      renderer = await createPostRenderer(root)
     }
     const queue = { schemaVersion: 1, status: render ? 'rendered' : 'planned', warnings, bundles: [] }
     for (const { snapshot, options, bundle } of jobs) {

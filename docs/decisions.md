@@ -2,6 +2,12 @@
 
 Settled. Re-open only if Cam asks.
 
+**2026-09-15 - No backgrounds behind logos.** The user explicitly rejected the
+rounded squares added for contrast. Draw every loaded crest directly on the
+graphic, on all themes and in all exports. Remove the automatic plating model,
+fallback and manual exceptions. This supersedes the older plating decisions
+below; missing-image monograms remain.
+
 **2026-08-21 - Both data sources, one schema.** Pro competitions via a prefetched
 ESPN adapter, plus manual entry for club rugby. Both produce identical `Match`
 objects so graphics never branch on source.

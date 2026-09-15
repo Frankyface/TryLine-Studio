@@ -1,5 +1,13 @@
 # Handoff
 
+## 2026-09-15 — transparent logos
+
+The user removed all rounded backgrounds behind logos. The shared crest
+renderer now draws loaded images directly across the app, Weekly studio and
+PNG/JPEG exports. The plating model, generation script, refresh step and
+manual exceptions were removed. Do not reintroduce them for contrast. This
+supersedes the background settings described in the earlier logo work below.
+
 ## 2026-09-15 — logo replacements
 
 24 existing badges updated and all nine missing team identities filled through
@@ -8,7 +16,7 @@ the existing persistent crest overrides. Sources and provenance are in
 `docs/logo-refresh.md`. `dev/crest-review.html` previews all 33 affected team
 identities at two sizes in every graphic theme. Hong Kong China now uses an
 official vector badge instead of Honduras's flag. AUNZ remains a 120px source.
-Rebuild colours and plating whenever changing a source. Do not reintroduce
+Rebuild colours whenever changing a source. Do not reintroduce
 the discarded white-on-transparent Sharks/Black Ferns variants on light themes.
 
 ## 2026-09-14 — domestic weekly editions

@@ -81,7 +81,7 @@ try {
   await mkdir(out, { recursive: true })
   lock = join(out, '.weekly-lock')
   try { await mkdir(lock) } catch (error) { lock = null; throw new Error(`Weekly output is locked: ${error.message}`) }
-  if (!args['no-render']) renderer = await createPostRenderer(root, await readJson(join(root, 'data/models/crest-plating.json'), true))
+  if (!args['no-render']) renderer = await createPostRenderer(root)
   const calendar = { schemaVersion: 1, week: start, timeZone: args.timezone,
     status: args['no-render'] ? 'draft' : 'rendered', publishingEnabled: false, leagues: [], packs: [] }
   for (const week of weeks) {

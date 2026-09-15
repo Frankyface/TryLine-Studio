@@ -7,7 +7,7 @@
 import { FONTS, scale } from '../theme.js'
 import {
   drawText, drawCrest, loadCrestImage, fitTextSize, withAlpha, drawPill, crestFallback,
-  pageSurface, contrastAccent, composite, readableInk, PLATE_HALF,
+  pageSurface, contrastAccent, composite, readableInk, CREST_HALF,
 } from '../primitives.js'
 import { contentBox, drawFrame, drawEyebrow, drawFooter, resolveAccent } from '../frame.js'
 import { formatMatchDate, formatKickoffTime } from '../format.js'
@@ -112,10 +112,9 @@ export async function draw(ctx, { match, size, theme, options = {} }) {
     // because they are what a fixture poster is looking at, then the gaps.
     let surplus = -overflow
     // Bounded by the WIDTH as well as the surplus. Growing on height alone put
-    // both crests 51.5px outside the content box on all 1,147 story renders,
-    // and their plates 77.6px out - over the accent hairline the frame paints
-    // at x <= 10. The plate is the crest box plus 6% of padding each side.
-    const sideRoom = (box.right - box.centerX - scale(size, 290)) / PLATE_HALF
+    // both crests 51.5px outside the content box on all 1,147 story renders.
+    // Keep the full image box inside the available width.
+    const sideRoom = (box.right - box.centerX - scale(size, 290)) / CREST_HALF
     const crestRoom = Math.max(0, Math.min(
       surplus * 0.55,
       crestBox * 0.45,

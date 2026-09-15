@@ -1,5 +1,8 @@
 # September 2026 logo refresh
 
+Following user feedback on 15 September, all added backgrounds behind logos
+were removed. Logos now draw directly on every graphic theme and export.
+
 24 existing identities were updated and nine missing team identities were
 filled. Original artwork and retrieval URLs are recorded in
 [crest-sources.json](crest-sources.json). Review every changed team at
@@ -52,22 +55,18 @@ these sources creates additional detail.
 Keep originals in `assets/crest-sources/` and mappings in
 `scripts/crest-overrides.json`. `npm run refresh` already reapplies them after
 the provider's crest mirror, including blank provider logos and aliases.
-The render assets are generated at 96px and 320px; the team-colour and
-crest-plating models are then rebuilt. No runtime image requests to external
+The render assets are generated at 96px and 320px; the team-colour model is
+then rebuilt. No runtime image requests to external
 sites are needed. Team names and historical match data are unchanged.
 
-The manifest's `plating` entries explicitly set the themes that need a
-background for Western Force and Zebre. The automatic detector mistakes the
-swan for a harmless rim, and rejects Zebre's background because of its yellow
-lettering even though it restores the navy zebra and wordmark. These two
-exceptions were checked visually; global contrast thresholds are unchanged.
+The former automatic background detector and Western Force/Zebre exceptions
+were removed at the user's request, along with the plating refresh step.
 
 After replacing an original, run:
 
 ```sh
 npm run crests:manual
 npm run colours
-npm run plating
 npm run verify
 ```
 

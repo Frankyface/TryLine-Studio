@@ -34,10 +34,6 @@
     "289754": "first-nations-pasifika-xv.png",
     "289766": "us-montauban.png"
   },
-  "plating": {
-    "25893": ["midnight", "turf", "bloodwood", "ocean", "violet"],
-    "167124": ["midnight", "turf", "bloodwood", "ocean", "violet"]
-  },
   "aliases": {
     "126831": "143737",
     "289253": "3",

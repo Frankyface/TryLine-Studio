@@ -1,8 +1,7 @@
 import { DOMESTIC_LEAGUES, POSTING_ZONE, mondayOf, dateInZone, addDays, buildWeek, scheduleFor, weeklyCards } from './publish/weekly.js'
-import { loadCompetition, loadMatch, loadTable, loadCrestPlating } from './data/client.js'
+import { loadCompetition, loadMatch, loadTable } from './data/client.js'
 import { renderGraphic, GRAPHIC_BY_ID } from './render/index.js'
 import { SIZES, THEMES } from './render/theme.js'
-import { setCrestPlating } from './render/primitives.js'
 import { fixtureDate } from './data/fixture-time.js'
 
 const $ = (id) => document.getElementById(id)
@@ -58,7 +57,6 @@ async function build() {
     const slots = scheduleFor(week)
     const slot = slots.find((s) => s.kind === kind)
     const cards = weeklyCards(week, kind)
-    await setCrestPlating(await loadCrestPlating())
     const sample = JSON.stringify(week)
     for (const family of ['Barlow Condensed', 'Inter']) for (const weight of [400, 500, 600, 700]) await document.fonts.load(`${weight} 32px "${family}"`, sample)
     await document.fonts.ready

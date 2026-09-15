@@ -6,7 +6,7 @@
  */
 import {
   loadCatalog, loadCompetition, loadMatch, loadTable, loadModel, loadSeason, loadHeroStats,
-  loadTeamColours, loadCrestPlating,
+  loadTeamColours,
 } from './data/client.js'
 import { TIME_ZONES, LOCAL_ZONE, zoneForCompetition, resolveZone } from './data/timezones.js'
 import { zoneForVenue } from './data/venue-zones.js'
@@ -18,7 +18,6 @@ import { SIZES, THEME_LIST, THEMES } from './render/theme.js'
 import { GRAPHICS, GRAPHIC_BY_ID, renderGraphic } from './render/index.js'
 import { exportOne, exportSet } from './export/png.js'
 import { blockingReason, usesSide } from './render/availability.js'
-import { setCrestPlating } from './render/primitives.js'
 import { teamsWithTimeline } from './analysis/team-season.js'
 import { byDrama } from './analysis/notable.js'
 import { formatMatchDate } from './render/format.js'
@@ -816,11 +815,9 @@ async function start() {
   ]).then(() => document.fonts.ready).catch(() => null)
 
   try {
-    const [catalog, model, heroStats, teamColours, plating] = await Promise.all([
-      loadCatalog(), loadModel(), loadHeroStats(), loadTeamColours(), loadCrestPlating(),
+    const [catalog, model, heroStats, teamColours] = await Promise.all([
+      loadCatalog(), loadModel(), loadHeroStats(), loadTeamColours(),
     ])
-    // Before the first render, or the first card drawn uses the old rule.
-    setCrestPlating(plating)
     // The first render must still wait, or it measures the fallback face.
     await fontsReady
     state = Object.freeze({ ...state, model, heroStats, teamColours })
