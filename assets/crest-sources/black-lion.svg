@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.0 (4035a4fb49, 2020-05-01)"
+   height="2993.9658"
+   width="3019.7561"
+   sodipodi:docname="Logo Black Lion 2021.svg"
+   version="1.1"
+   viewBox="0 0 3019.7562 2993.9659"
+   id="Layer_1">
+  <metadata
+     id="metadata853">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     inkscape:current-layer="Layer_1"
+     inkscape:window-maximized="1"
+     inkscape:window-y="-9"
+     inkscape:window-x="-9"
+     inkscape:cy="1496.9"
+     inkscape:cx="1509.8"
+     inkscape:zoom="0.23194724"
+     fit-margin-bottom="0"
+     fit-margin-right="0"
+     fit-margin-left="0"
+     fit-margin-top="0"
+     showgrid="false"
+     id="namedview851"
+     inkscape:window-height="1001"
+     inkscape:window-width="1920"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <defs
+     id="defs846">
+    <style
+       id="style844">.cls-1{fill:#231f20;}</style>
+  </defs>
+  <path
+     id="path848"
+     d="m 1293.9,2628 c -100.2,-566.7 587.6,-761.9 860.6,-454.1 87,98.1 122,207.1 110.8,336.7 24.5,67.7 48.6,112.5 84.3,127.1 h 0.2 c 45.7,19.7 170.3,-1.1 216.4,-79.1 24.6,-41.6 13,-123.3 -30.7,-150.6 -23.5,-14.7 89.4,-48.3 122.2,56.6 8.5,27 89.5,-14 72.9,-52.3 -166.6,-403.4 -424,-739.1 -762.5,-1000.8 -76.2,-58.9 -78.4,-89.8 -78.4,-89.8 -91.2,-254 -183.8,-442.8 -651.6,-485 C 471.9,767.6 678.3,131.4 809.7,0 796,102.4 728.6,481.4 1274.8,551.8 c 534.3,68.8 735.5,287.9 865.6,620.2 3.5,8.9 9.3,16.8 16.9,22.7 374.5,291.5 657.5,666.1 841.3,1113.7 40.2,97.9 22.3,208.1 -46.8,287.7 -23.8,27.4 -53.3,59 -87.9,91.5 -118.3,111.4 -296.5,234 -509.1,237.6 -91.9,1.6 -163.3,-35.6 -218.4,-87.5 C 1866.8,3144.8 1352.5,2959 1293.9,2628 M 1538.8,1366.9 C 1346.2,1124.3 657.5,1440.6 210.6,1045.2 21.7,878.1 -20.4,548.7 127.1,336.8 38.4,655.6 270.7,947.3 712,1005.2 c 304.4,40.1 732.1,-12 826.8,361.7 m -20.1,296.7 v 0 C 1493.3,1554.4 1359.6,1520.3 1205.4,1541.1 520.4,1633.6 193,1555.2 0,1227.8 c 19.7,172.7 68.1,447.7 340.6,546.9 185.2,67.4 524.2,29.7 904.7,-86.5 43.1,-12.3 204.5,-54.7 273.4,-24.6 m 174.3,268.5 c -78.3,-127 -266.3,-133.1 -511.8,-10.3 -263.5,131.9 -490,297 -819.6,181.6 0,0 208.9,488.7 708.2,116.5 236.1,-198.7 371.2,-311.3 623.2,-287.8 m 121.8,391.7 c -128.5,0 -231.8,92.7 -218.6,265.4 22.7,203.9 332.3,296.7 479,176.6 -66.8,-96 -95.3,-203.7 -100.4,-224.7 0,0 -72,5.6 -98.2,-29.1 -4.3,-5.7 -1.7,-14.1 4.8,-17 l 13.7,-6.3 c 67.7,-31.2 51.8,-164.9 -80.3,-164.9 m 268.1,-415.5 c 19.5,-51.8 56.5,-93 103.4,-122.7 14.2,-9 12.2,-30.2 -3.7,-35.8 -55,-19.1 -103,-59.8 -131.3,-108.1 -7.2,-12.2 -25.2,-10.5 -30.1,2.8 -18.8,52.1 -61,100.6 -110.4,132 -12.4,7.9 -10.6,26.6 3.5,31 52.6,16.3 99.6,54 130.6,104 9.2,15 31.7,13.3 38,-3.2"
+     class="cls-1" />
+</svg>

@@ -1,13 +1,49 @@
 {
   "sources": {
-    "25952": "glasgow-warriors.svg",
-    "289337": "rc-vannes.svg",
+    "9": "france.svg",
+    "15": "samoa.png",
+    "25": "canada.svg",
+    "25893": "western-force.png",
+    "25899": "bristol-bears.svg",
+    "25906": "newcastle-red-bulls.png",
+    "25907": "northampton-saints.png",
+    "25909": "saracens.png",
     "25912": "aviron-bayonnais.png",
-    "25920": "usap-perpignan.png"
+    "25916": "castres-olympique.svg",
+    "25920": "usap-perpignan.png",
+    "25921": "stade-francais-paris.png",
+    "25922": "stade-toulousain.png",
+    "25923": "connacht.svg",
+    "25952": "glasgow-warriors.svg",
+    "25953": "bulls.svg",
+    "25958": "lions.svg",
+    "25961": "sharks-rugby-club.svg",
+    "25962": "stormers.svg",
+    "25965": "cardiff-rugby.svg",
+    "25967": "dragons-rfc.svg",
+    "25968": "ospreys.svg",
+    "25986": "toulon.png",
+    "143737": "union-bordeaux-begles.png",
+    "167124": "zebre-parma.svg",
+    "270567": "section-paloise.png",
+    "289247": "black-ferns.png",
+    "289268": "hong-kong-china.svg",
+    "289337": "rc-vannes.svg",
+    "289460": "black-lion.svg",
+    "289469": "aunz-xv.png",
+    "289754": "first-nations-pasifika-xv.png",
+    "289766": "us-montauban.png"
+  },
+  "plating": {
+    "25893": ["midnight", "turf", "bloodwood", "ocean", "violet"],
+    "167124": ["midnight", "turf", "bloodwood", "ocean", "violet"]
   },
   "aliases": {
+    "126831": "143737",
+    "289253": "3",
+    "289255": "23",
+    "289320": "5",
     "289359": "25912",
-    "289553": "270567",
-    "126831": "143737"
+    "289553": "270567"
   }
 }

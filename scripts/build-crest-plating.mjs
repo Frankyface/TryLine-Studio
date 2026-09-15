@@ -37,6 +37,7 @@ import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { chromium } from 'playwright'
+import { THEMES } from '../src/render/theme.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
@@ -59,6 +60,18 @@ const teamColours = existsSync(join(dataDir, 'models', 'team-colours.json'))
 const crests = readdirSync(crestDir)
   .filter((name) => name.endsWith('@320.png'))
   .map((name) => name.replace('@320.png', ''))
+
+// Visually checked exceptions for badges whose shape defeats the heuristic:
+// Force's swan is rejected as a rim; Zebre's pale yellow rejects a plate that
+// restores its navy zebra and wordmark. Keep these with the source overrides
+// so a normal refresh preserves the reviewed result without moving thresholds.
+const { plating: platingOverrides = {} } = JSON.parse(readFileSync(join(here, 'crest-overrides.json'), 'utf8'))
+for (const [id, themes] of Object.entries(platingOverrides)) {
+  if (!crests.includes(id) || !Array.isArray(themes)
+    || themes.some((theme) => !THEMES[theme]) || new Set(themes).size !== themes.length) {
+    throw new Error(`Invalid crest plating override for ${id}`)
+  }
+}
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 400, height: 400 } })
@@ -331,6 +344,12 @@ const rows = await page.evaluate(async ([files, colours, threshold]) => {
 ])
 
 await browser.close()
+
+for (const row of rows) {
+  if (!row.error && Object.hasOwn(platingOverrides, row.id)) {
+    row.plate = platingOverrides[row.id].includes(row.theme)
+  }
+}
 
 // Highest scorers per theme, so a run says WHICH crests it is deciding about.
 const byTheme = new Map()

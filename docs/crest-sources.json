@@ -1,0 +1,326 @@
+{
+  "checkedOn": "2026-09-15",
+  "scope": "30 replacements and additions from the September logo audit; three missing women’s crests share their national union artwork.",
+  "sources": [
+    {
+      "teamId": "25906",
+      "team": "Newcastle Red Bulls",
+      "file": "newcastle-red-bulls.png",
+      "sourcePage": "https://www.premrugby.com/clubs",
+      "assetUrl": "https://media-cdn.incrowdsports.com/7fc9ef97-88f9-4353-8dff-ec260bac23ad.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "1dbae38a6f1e2e9194a61b2e0953b6de7c7feb36179a40d0d0699075a0b53d84",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25907",
+      "team": "Northampton Saints",
+      "file": "northampton-saints.png",
+      "sourcePage": "https://www.premrugby.com/clubs",
+      "assetUrl": "https://media-cdn.incrowdsports.com/45fedf62-349b-46af-a6c9-2504dd82ee8c.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "17de79c9dddf2422aa1ae22ceb0c0a81d168e7cf35bbbef953ab218802f35f76",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25909",
+      "team": "Saracens",
+      "file": "saracens.png",
+      "sourcePage": "https://www.premrugby.com/clubs",
+      "assetUrl": "https://media-cdn.incrowdsports.com/17733469-fa47-4bee-bb7e-2e8c36a26e8b.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "8d068c1e4b174c5aa963ec05f1a50874a860084b7ba4f302ea6cc611f0d7b663",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25965",
+      "team": "Cardiff Rugby",
+      "file": "cardiff-rugby.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2025/05/Cardiff-Rugby-1.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "449a880057098d511b3c1310f2e9d44f51ba99b99f58c059352e64437be263af",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25923",
+      "team": "Connacht",
+      "file": "connacht.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2025/05/Connacht.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "6a6d30c0b08f54fc496b5c46431577b323b1f411b754a6158fb726526b4032d1",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25967",
+      "team": "Dragons RFC",
+      "file": "dragons-rfc.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2025/05/Dragons-1.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "68f221ca5334beede3bf588be7adf46fa556a79d4080084a7a6067d886566f7f",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25962",
+      "team": "Stormers",
+      "file": "stormers.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2025/08/Stormers.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "6699f32903ce88e6dae41903363ae69b4ac5cfeb739c09fe8d3188f25c543545",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "167124",
+      "team": "Zebre Parma",
+      "file": "zebre-parma.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2025/05/Zebre-Parma-1.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "aa84ca4519a07690ada130b943891aaf1f19bdb86cf3d933f6d3176881e18c42",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25953",
+      "team": "Bulls",
+      "file": "bulls.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2025/05/Vodacom.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "387d2881505c4df1419a3c297972d10c82af95de8a417de15e14c535f9b7885c",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25958",
+      "team": "Lions",
+      "file": "lions.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2026/09/Lions.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "076f0135a2b31329b09d615e3130cc65f5775eb42d1e9e1e43c2600d0cdbae25",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25968",
+      "team": "Ospreys",
+      "file": "ospreys.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2025/05/Ospreys-1.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "dc96a71dd48152c6047a921283a122d663e1ad10e171479d6116f057ac690ad3",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25912",
+      "team": "Aviron Bayonnais",
+      "file": "aviron-bayonnais.png",
+      "sourcePage": "https://www.abrugby.fr/",
+      "assetUrl": "https://avironbayonnais.blob.core.windows.net/match-picture/bayonne.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "0693d72c0aa6a43705c04a36b7e40afa68194741226138edeb247349eef7450a",
+      "notes": "Published artwork; original proportions retained."
+    },
+    {
+      "teamId": "270567",
+      "team": "Section Paloise",
+      "file": "section-paloise.png",
+      "sourcePage": "https://www.section-paloise.com/",
+      "assetUrl": "https://cdn.prod.website-files.com/6807657bd6012564f08ec175/6827b366ed0ae91059de6879_SECTION.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "9bf4125d2b6c69c175943dd7eaf51e3da49f44aac4f4f5c979dbf98ed6bb5bf6",
+      "notes": "Published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25921",
+      "team": "Stade Francais Paris",
+      "file": "stade-francais-paris.png",
+      "sourcePage": "https://top14.lnr.fr/clubs",
+      "assetUrl": "https://cdn.lnr.fr/club/paris/photo/logo.005dcfdc2f408e5fb157d32f91a45c28d7bbedd7",
+      "checkedOn": "2026-09-15",
+      "sha256": "f4ae23a01a3fd4ace27b8b8718b2657d112d04bd560a9a15a1751c83c19ceabf",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25986",
+      "team": "Toulon",
+      "file": "toulon.png",
+      "sourcePage": "https://rctoulon.com/",
+      "assetUrl": "https://rctoulon.com/wp-content/uploads/2025/02/RCT_LOGO-1.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "a5d5868342aa8c65fc7024b64f41f6e98c20cc44bc1697aaf126bdda74dbef88",
+      "notes": "Published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25922",
+      "team": "Stade Toulousain",
+      "file": "stade-toulousain.png",
+      "sourcePage": "https://top14.lnr.fr/clubs",
+      "assetUrl": "https://cdn.lnr.fr/club/toulouse/photo/logo.005dcfdc2f408e5fb157d32f91a45c28d7bbedd7",
+      "checkedOn": "2026-09-15",
+      "sha256": "b9a29705ebcaa4a1692991dd500f20e592f249bebc96e75de3c923541c63cff3",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25916",
+      "team": "Castres Olympique",
+      "file": "castres-olympique.svg",
+      "sourcePage": "https://castres-olympique.com/",
+      "assetUrl": "https://castres-olympique.com/wp-content/uploads/2024/06/Castres_Olympique_logo_2026.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "db91b354a50daa8f940f5bf139e9b63583d8d4d5ce9f5548bb30224ebec24eac",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "143737",
+      "team": "Union Bordeaux Begles",
+      "file": "union-bordeaux-begles.png",
+      "sourcePage": "https://www.ubbrugby.com/ressources.html",
+      "assetUrl": "https://www.ubbrugby.com/application/uploads/idev_resources/2/resources/ubb-2026_quadri.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "b5c0ef749c8ddba5ac32376c5895b1e62d1545968ca4a48e44f4a4574100a316",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25961",
+      "team": "Sharks Rugby Club",
+      "file": "sharks-rugby-club.svg",
+      "sourcePage": "https://stats.unitedrugby.com/clubs/",
+      "assetUrl": "https://www.unitedrugby.com/wp-content/uploads/2026/09/HollywoodbetsSharks_Dark-1.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "eaf59517045031c7da4604998a54b60b66b63c990133cdc1ab9773c0990c8fdb",
+      "notes": "Current URC competition wordmark. Selected the dark-ink official variant so it also reads on light graphics."
+    },
+    {
+      "teamId": "25899",
+      "team": "Bristol Bears",
+      "file": "bristol-bears.svg",
+      "sourcePage": "https://www.bristolbearsrugby.com/",
+      "assetUrl": "https://www.bristolbearsrugby.com/wp-content/uploads/2023/03/Menu-Logo.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "130f732a5679a03274af060b911a423c52dba80cbc17ccfefdc4408c2b57a02c",
+      "notes": "Published artwork; original proportions retained."
+    },
+    {
+      "teamId": "289268",
+      "team": "Hong Kong China",
+      "file": "hong-kong-china.svg",
+      "sourcePage": "https://www.hkrugby.com/",
+      "assetUrl": "https://resources.hkrugby.com/resource/hong_kong_china_vs_sri_lanka_matchday_programme22.06.25.pdf",
+      "checkedOn": "2026-09-15",
+      "sha256": "891d4324954dadab4e3155fe1147125094670504d6b34d6b32212e8df42f2518",
+      "notes": "142 vector paths extracted unchanged from the HKCR badge at the top of page 1 of the official 22 June 2025 match programme; original fills and proportions retained."
+    },
+    {
+      "teamId": "289766",
+      "team": "US Montauban",
+      "file": "us-montauban.png",
+      "sourcePage": "https://usmsapiac.fr/",
+      "assetUrl": "https://usmsapiac.fr/wp-content/uploads/2024/07/Logo-USM-Sapiac-monochrome.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "70427e2b33b342808eaf62c69233b86c7f9eefb92e1ed9b485e0b248a2af17b3",
+      "notes": "Official published artwork; original proportions retained."
+    },
+    {
+      "teamId": "289247",
+      "team": "Black Ferns",
+      "file": "black-ferns.png",
+      "sourcePage": "https://westondesign.squarespace.com/home",
+      "assetUrl": "https://images.squarespace-cdn.com/content/v1/59b99a8a80bd5effe1ed62de/1776657608272-RHFHQ2JAFIHPXHWSNZBJ/BlackFerns_600x600.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "a018917b4ef220e4c32a3499cfbaa499e804a302f6e05bb0210ab8bdc4b74c77",
+      "notes": "600px black artwork from Weston Design sports portfolio, visually matched to the official Black Ferns fern and team wordmark at https://www.allblacks.com/team/black-ferns. The white official header version disappears on light themes."
+    },
+    {
+      "teamId": "15",
+      "team": "Samoa",
+      "file": "samoa.png",
+      "sourcePage": "https://www.lakapisamoa.com/",
+      "assetUrl": "https://www.lakapisamoa.com/wp-content/uploads/2022/07/manu-logoArtboard-1.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "3d4afa1efd4f956e88348c0e3847840a3666ed3b222cf0e5a8a73e0416ce955b",
+      "notes": "Official Manu Samoa team artwork: the teuila flower, replacing the retired SRU shield."
+    },
+    {
+      "teamId": "9",
+      "team": "France",
+      "file": "france.svg",
+      "sourcePage": "https://presse.ffr.fr/",
+      "assetUrl": "https://api-presse.ffr.fr/wp-content/uploads/2022/12/ffr_red.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "ada58520f210e066a00393d2a77285b0125381021443ef74da5a0074d8131e9e",
+      "notes": "Published artwork; original proportions retained."
+    },
+    {
+      "teamId": "289460",
+      "team": "Black Lion",
+      "file": "black-lion.svg",
+      "sourcePage": "https://fr.wikipedia.org/wiki/Black_Lion",
+      "assetUrl": "https://upload.wikimedia.org/wikipedia/fr/5/5f/Logo_Black_Lion_2021.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "4e58994c514eefe95e1944c9ea06894f8fdf74863d7c5f5b20b6c42abf453d3e",
+      "notes": "Published artwork; original proportions retained."
+    },
+    {
+      "teamId": "289469",
+      "team": "AUNZ XV",
+      "file": "aunz-xv.png",
+      "sourcePage": "https://www.rugbypass.com/british-irish-lions/stats/",
+      "assetUrl": "https://eu-cdn.rugbypass.com/images/team-images/logos/png/100030389.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "627c699420e760b3547c14e2bccdbc4649d5e0d9a74432935e3f22bf5425e590",
+      "notes": "Current AUNZ badge from RugbyPass. Native 120px source; kept at native resolution instead of manufacturing larger detail."
+    },
+    {
+      "teamId": "25893",
+      "team": "Western Force",
+      "file": "western-force.png",
+      "sourcePage": "https://westernforce.rugby/",
+      "assetUrl": "https://d26phqdbpt0w91.cloudfront.net/NonVideo/5bfb68c0-f412-44ca-9c54-11eb282a53a1.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "9d45e2ccbbb4521fe6a7fd5d5e23ebab8395466c964794ee74d407e044f1f640",
+      "notes": "Current full-colour match badge from the official club site; refreshed at 500px. A lettering-free emblem is also used on 2026 jerseys."
+    },
+    {
+      "teamId": "289754",
+      "team": "First Nations & Pasifika XV",
+      "file": "first-nations-pasifika-xv.png",
+      "sourcePage": "https://www.rugbypass.com/british-irish-lions/",
+      "assetUrl": "https://eu-cdn.rugbypass.com/images/team-images/logos/png/100030573.png",
+      "checkedOn": "2026-09-15",
+      "sha256": "106132b392a8af7792e7b46f4db651ae363cb3c7d66b3c0ce4d9a0b244dca562",
+      "notes": "Published artwork; original proportions retained."
+    },
+    {
+      "teamId": "25",
+      "team": "Canada",
+      "file": "canada.svg",
+      "sourcePage": "https://rugby.ca/",
+      "assetUrl": "https://rugby.ca/assets/images/sprite.svg",
+      "checkedOn": "2026-09-15",
+      "sha256": "b0b1ced3ce188a9ed18a8154cd66a944c4cdcef98ad713f25cebc5a262340476",
+      "notes": "Extracted logo-red symbol unchanged from official SVG sprite."
+    }
+  ],
+  "sharedNationalCrests": [
+    {
+      "teamId": "289253",
+      "team": "Ireland Women",
+      "crestId": "3",
+      "sourcePage": "https://www.irishrugby.ie/"
+    },
+    {
+      "teamId": "289255",
+      "team": "Japan Women",
+      "crestId": "23",
+      "sourcePage": "https://en.rugby-japan.jp/"
+    },
+    {
+      "teamId": "289320",
+      "team": "South Africa Women",
+      "crestId": "5",
+      "sourcePage": "https://www.sarugby.co.za/"
+    }
+  ]
+}
